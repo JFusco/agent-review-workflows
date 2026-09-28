@@ -34,6 +34,12 @@ class ReviewTests(unittest.TestCase):
         lock_root_patch = patch.object(r, 'LOCK_ROOT', self.lock_root)
         lock_root_patch.start()
         self.addCleanup(lock_root_patch.stop)
+        cli_environment = patch.dict(os.environ, {
+            'AGENT_REVIEW_CODEX_BIN': sys.executable,
+            'AGENT_REVIEW_CLAUDE_BIN': sys.executable,
+        })
+        cli_environment.start()
+        self.addCleanup(cli_environment.stop)
         self.project = self.root / 'project'
         self.project.mkdir()
         for name in ('calculator.py', 'test_calculator.py'):

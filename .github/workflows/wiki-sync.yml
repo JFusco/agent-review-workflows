@@ -1,0 +1,131 @@
+name: Sync context wiki
+
+on:
+  pull_request:
+    types: [closed]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "Merged pull request number to replay"
+        required: false
+        type: string
+      since:
+        description: "Reconcile merged pull requests since YYYY-MM-DD (defaults to 90 days)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: wiki-sync-${{ inputs.pr_number || inputs.since || github.event.pull_request.number || 'batch' }}
+  cancel-in-progress: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  GRAPHIFY_SKIP_HOOK: "1"
+  PR_NUMBER: ${{ inputs.pr_number || github.event.pull_request.number || '' }}
+  SINCE: ${{ inputs.since || '' }}
+
+jobs:
+  sync:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.merged == true && !startsWith(github.event.pull_request.head.ref, 'bot/wiki-'))
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.PR_BOT_TOKEN }}
+    steps:
+      - name: Validate request and credentials
+        id: context
+        run: |
+          test -n "$GH_TOKEN" || { echo 'PR_BOT_TOKEN is required'; exit 1; }
+          gh api rate_limit >/dev/null
+          if [ -n "$PR_NUMBER" ] && [ -n "$SINCE" ]; then
+            echo 'pr_number and since are mutually exclusive'
+            exit 1
+          fi
+          if [ -n "$PR_NUMBER" ]; then
+            pr="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER")"
+            test -n "$(jq -r '.merged_at // empty' <<<"$pr")" || { echo "PR #$PR_NUMBER is not merged"; exit 1; }
+            case "$(jq -r '.head.ref' <<<"$pr")" in bot/wiki-*) echo 'Wiki bot PRs are not replayed'; exit 1;; esac
+            base="$(jq -r '.base.ref' <<<"$pr")"
+          else
+            base="$(gh api "repos/$GITHUB_REPOSITORY" --jq '.default_branch')"
+          fi
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+      - name: Checkout merged base
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.context.outputs.base }}
+          fetch-depth: 0
+          token: ${{ secrets.PR_BOT_TOKEN }}
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24.14.0"
+      - name: Reconcile wiki
+        id: reconcile
+        env:
+          BASE_BRANCH: ${{ steps.context.outputs.base }}
+        run: |
+          args=(--repository "$GITHUB_REPOSITORY" --base "$BASE_BRANCH")
+          if [ -n "$PR_NUMBER" ]; then args+=(--pr "$PR_NUMBER"); fi
+          if [ -n "$SINCE" ]; then args+=(--since "$SINCE"); fi
+          set +e
+          node scripts/wiki/reconcile-merges.cjs "${args[@]}" | tee "$RUNNER_TEMP/wiki-reconcile-summary.json"
+          reconcile_status="${PIPESTATUS[0]}"
+          set -e
+          {
+            echo '### Wiki reconciliation'
+            jq -r '"- Processed: \(.processed)\n- Changed: \(.changed)\n- Unchanged: \(.unchanged)\n- Errors: \(.errors)"' "$RUNNER_TEMP/wiki-reconcile-summary.json"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$reconcile_status" != '0' ]; then exit "$reconcile_status"; fi
+          node scripts/wiki/build-graph.cjs
+          node scripts/wiki/check.cjs
+          if [ -z "$(git status --porcelain -- wiki scripts/wiki/graph/data/graph.json)" ]; then
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ -n "$PR_NUMBER" ]; then branch="bot/wiki-sync/$PR_NUMBER"; else branch='bot/wiki-maintenance'; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -B "$branch"
+          git add wiki scripts/wiki/graph/data/graph.json
+          proposed_tree="$(git write-tree)"
+          git fetch origin "refs/heads/$branch:refs/remotes/origin/$branch" || true
+          remote_tree="$(git rev-parse "refs/remotes/origin/$branch^{tree}" 2>/dev/null || true)"
+          if [ -n "$remote_tree" ] && [ "$proposed_tree" = "$remote_tree" ]; then
+            echo 'Reusing the existing maintenance commit because its proposed content is unchanged.'
+          else
+            if [ -n "$PR_NUMBER" ]; then subject="docs(wiki): reconcile merged PR #$PR_NUMBER [skip release]"; else subject='docs(wiki): reconcile missed merges [skip release]'; fi
+            HUSKY=0 GRAPHIFY_SKIP_HOOK=1 git commit -m "$subject"
+            HUSKY=0 GRAPHIFY_SKIP_HOOK=1 git push --force-with-lease origin "HEAD:refs/heads/$branch"
+          fi
+          echo 'changed=true' >> "$GITHUB_OUTPUT"
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+      - name: Open, update, or reopen review PR
+        if: steps.reconcile.outputs.changed == 'true'
+        env:
+          BASE_BRANCH: ${{ steps.context.outputs.base }}
+          BRANCH: ${{ steps.reconcile.outputs.branch }}
+        run: |
+          owner="${GITHUB_REPOSITORY%%/*}"
+          if [ -n "$PR_NUMBER" ]; then
+            title="docs(wiki): reconcile PR #$PR_NUMBER"
+            body="Automated, reviewable wiki reconciliation for merged PR #$PR_NUMBER."
+          else
+            title='docs(wiki): reconcile missed merges'
+            counts="$(jq -r '"Processed \(.processed) merged PRs: \(.changed) changed, \(.unchanged) unchanged, \(.errors) errors."' "$RUNNER_TEMP/wiki-reconcile-summary.json")"
+            body="Automated, reviewable batch wiki reconciliation. $counts"
+          fi
+          pulls="$(gh api --method GET "repos/$GITHUB_REPOSITORY/pulls" -f state=all -f head="$owner:$BRANCH" -f base="$BASE_BRANCH" -f per_page=100)"
+          number="$(jq -r 'map(select(.state == "open")) | sort_by(.number) | last | .number // empty' <<<"$pulls")"
+          if [ -z "$number" ]; then number="$(jq -r 'map(select(.state == "closed" and .merged_at == null)) | sort_by(.number) | last | .number // empty' <<<"$pulls")"; fi
+          if [ -n "$number" ]; then
+            result="$(gh api --method PATCH "repos/$GITHUB_REPOSITORY/pulls/$number" -f state=open -f title="$title" -f body="$body")"
+          else
+            result="$(gh api --method POST "repos/$GITHUB_REPOSITORY/pulls" -f base="$BASE_BRANCH" -f head="$BRANCH" -f title="$title" -f body="$body")"
+          fi
+          echo "- Review PR: $(jq -r '.html_url' <<<"$result")" >> "$GITHUB_STEP_SUMMARY"

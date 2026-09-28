@@ -1,0 +1,174 @@
+{
+  "version": 1,
+  "wikiRoot": "wiki",
+  "counts": {
+    "nodes": 6,
+    "edges": 8,
+    "byType": {
+      "index": 3,
+      "journal": 1,
+      "plan": 1,
+      "topic": 1
+    }
+  },
+  "nodes": [
+    {
+      "id": "wiki/INDEX.md",
+      "label": "Context wiki",
+      "type": "index",
+      "aliases": [],
+      "githubRefs": [],
+      "bytes": 1361,
+      "degree": 2,
+      "x": 1,
+      "y": 0,
+      "size": 12
+    },
+    {
+      "id": "wiki/journal/2026-09-28-contributor-quality-and-delivery.md",
+      "label": "2026-09-28 — Contributor quality and delivery",
+      "type": "journal",
+      "aliases": [],
+      "githubRefs": [
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 1,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/1"
+        }
+      ],
+      "bytes": 4066,
+      "degree": 3,
+      "x": -0.5,
+      "y": 0.866025,
+      "size": 8
+    },
+    {
+      "id": "wiki/MECHANICS.md",
+      "label": "Wiki mechanics",
+      "type": "index",
+      "aliases": [],
+      "githubRefs": [],
+      "bytes": 2907,
+      "degree": 2,
+      "x": 0.5,
+      "y": 0.866025,
+      "size": 12
+    },
+    {
+      "id": "wiki/plans/2026-09-28-add-contributor-quality-gates-and-repository-wiki-00cc492088.md",
+      "label": "Add contributor quality gates and repository wiki",
+      "type": "plan",
+      "aliases": [],
+      "githubRefs": [
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 1,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/1"
+        }
+      ],
+      "bytes": 1235,
+      "degree": 4,
+      "x": -1,
+      "y": 0,
+      "size": 8
+    },
+    {
+      "id": "wiki/plans/INDEX.md",
+      "label": "Plan ledger",
+      "type": "index",
+      "aliases": [],
+      "githubRefs": [
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 38,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/38"
+        }
+      ],
+      "bytes": 17814,
+      "degree": 3,
+      "x": -0.5,
+      "y": -0.866025,
+      "size": 12
+    },
+    {
+      "id": "wiki/topics/contributor-quality-and-delivery.md",
+      "label": "Contributor quality and delivery",
+      "type": "topic",
+      "aliases": [],
+      "githubRefs": [
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 1,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/1"
+        }
+      ],
+      "bytes": 3320,
+      "degree": 2,
+      "x": 0.5,
+      "y": -0.866025,
+      "size": 8
+    }
+  ],
+  "edges": [
+    {
+      "id": "355b085344694472",
+      "source": "wiki/INDEX.md",
+      "target": "wiki/MECHANICS.md",
+      "type": "link",
+      "relation": "link"
+    },
+    {
+      "id": "6054eb89bc06ebe2",
+      "source": "wiki/INDEX.md",
+      "target": "wiki/plans/INDEX.md",
+      "type": "link",
+      "relation": "link"
+    },
+    {
+      "id": "60a712e77f83829c",
+      "source": "wiki/journal/2026-09-28-contributor-quality-and-delivery.md",
+      "target": "wiki/plans/2026-09-28-add-contributor-quality-gates-and-repository-wiki-00cc492088.md",
+      "type": "plan",
+      "relation": "plan"
+    },
+    {
+      "id": "85f6271a2480ec14",
+      "source": "wiki/journal/2026-09-28-contributor-quality-and-delivery.md",
+      "target": "wiki/plans/2026-09-28-add-contributor-quality-gates-and-repository-wiki-00cc492088.md",
+      "type": "link",
+      "relation": "link"
+    },
+    {
+      "id": "91bb1144dc1bd669",
+      "source": "wiki/journal/2026-09-28-contributor-quality-and-delivery.md",
+      "target": "wiki/topics/contributor-quality-and-delivery.md",
+      "type": "topic",
+      "relation": "topic"
+    },
+    {
+      "id": "de1b869690c70313",
+      "source": "wiki/plans/INDEX.md",
+      "target": "wiki/plans/2026-09-28-add-contributor-quality-gates-and-repository-wiki-00cc492088.md",
+      "type": "link",
+      "relation": "link"
+    },
+    {
+      "id": "e313d4dc641b4245",
+      "source": "wiki/plans/2026-09-28-add-contributor-quality-gates-and-repository-wiki-00cc492088.md",
+      "target": "wiki/topics/contributor-quality-and-delivery.md",
+      "type": "topic",
+      "relation": "topic"
+    },
+    {
+      "id": "e56d58329e2a8982",
+      "source": "wiki/MECHANICS.md",
+      "target": "wiki/plans/INDEX.md",
+      "type": "link",
+      "relation": "link"
+    }
+  ]
+}

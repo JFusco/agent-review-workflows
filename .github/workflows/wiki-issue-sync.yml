@@ -1,0 +1,104 @@
+name: Sync wiki issue state
+
+on:
+  schedule:
+    - cron: "30 11 * * 1" # Mondays at 11:30 UTC
+  workflow_dispatch:
+    inputs:
+      since:
+        description: "Reconcile merged pull requests since YYYY-MM-DD (defaults to 90 days)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: read
+  issues: read
+
+concurrency:
+  group: wiki-maintenance
+  cancel-in-progress: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  GRAPHIFY_SKIP_HOOK: "1"
+  SINCE: ${{ inputs.since || '' }}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.PR_BOT_TOKEN }}
+    steps:
+      - name: Require bot token
+        run: |
+          test -n "$GH_TOKEN" || { echo 'PR_BOT_TOKEN is required'; exit 1; }
+          gh api rate_limit >/dev/null
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.PR_BOT_TOKEN }}
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24.14.0"
+      - name: Refresh cited issues and reconcile missed merges
+        id: refresh
+        run: |
+          base="$(gh api "repos/$GITHUB_REPOSITORY" --jq '.default_branch')"
+          git checkout -B "$base" "origin/$base"
+          args=(--repository "$GITHUB_REPOSITORY" --base "$base")
+          if [ -n "$SINCE" ]; then args+=(--since "$SINCE"); fi
+          set +e
+          node scripts/wiki/reconcile-merges.cjs "${args[@]}" | tee "$RUNNER_TEMP/wiki-reconcile-summary.json"
+          reconcile_status="${PIPESTATUS[0]}"
+          set -e
+          {
+            echo '### Weekly wiki maintenance'
+            jq -r '"- Merged PRs processed: \(.processed)\n- Reconciled: \(.changed)\n- Already current: \(.unchanged)\n- Errors: \(.errors)"' "$RUNNER_TEMP/wiki-reconcile-summary.json"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$reconcile_status" != '0' ]; then exit "$reconcile_status"; fi
+          node scripts/wiki/refresh-issue-state.cjs
+          node scripts/wiki/build-graph.cjs
+          node scripts/wiki/check.cjs
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+          if [ -z "$(git status --porcelain -- wiki scripts/wiki/graph/data/graph.json)" ]; then
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          branch='bot/wiki-maintenance'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -B "$branch"
+          git add wiki scripts/wiki/graph/data/graph.json
+          proposed_tree="$(git write-tree)"
+          git fetch origin "refs/heads/$branch:refs/remotes/origin/$branch" || true
+          remote_tree="$(git rev-parse "refs/remotes/origin/$branch^{tree}" 2>/dev/null || true)"
+          if [ -n "$remote_tree" ] && [ "$proposed_tree" = "$remote_tree" ]; then
+            echo 'Reusing the existing maintenance commit because its proposed content is unchanged.'
+          else
+            HUSKY=0 GRAPHIFY_SKIP_HOOK=1 git commit -m 'docs(wiki): weekly maintenance [skip release]'
+            HUSKY=0 GRAPHIFY_SKIP_HOOK=1 git push --force-with-lease origin "HEAD:refs/heads/$branch"
+          fi
+          echo 'changed=true' >> "$GITHUB_OUTPUT"
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+      - name: Open, update, or reopen review PR
+        if: steps.refresh.outputs.changed == 'true'
+        env:
+          BASE_BRANCH: ${{ steps.refresh.outputs.base }}
+          BRANCH: ${{ steps.refresh.outputs.branch }}
+        run: |
+          owner="${GITHUB_REPOSITORY%%/*}"
+          title='docs(wiki): weekly issue and merge reconciliation'
+          counts="$(jq -r '"Processed \(.processed) merged PRs: \(.changed) changed, \(.unchanged) unchanged, \(.errors) errors."' "$RUNNER_TEMP/wiki-reconcile-summary.json")"
+          body="Automated, reviewable weekly refresh of cited issue state and missed merge reconciliation. $counts"
+          pulls="$(gh api --method GET "repos/$GITHUB_REPOSITORY/pulls" -f state=all -f head="$owner:$BRANCH" -f base="$BASE_BRANCH" -f per_page=100)"
+          number="$(jq -r 'map(select(.state == "open")) | sort_by(.number) | last | .number // empty' <<<"$pulls")"
+          if [ -z "$number" ]; then number="$(jq -r 'map(select(.state == "closed" and .merged_at == null)) | sort_by(.number) | last | .number // empty' <<<"$pulls")"; fi
+          if [ -n "$number" ]; then
+            result="$(gh api --method PATCH "repos/$GITHUB_REPOSITORY/pulls/$number" -f state=open -f title="$title" -f body="$body")"
+          else
+            result="$(gh api --method POST "repos/$GITHUB_REPOSITORY/pulls" -f base="$BASE_BRANCH" -f head="$BRANCH" -f title="$title" -f body="$body")"
+          fi
+          echo "- Review PR: $(jq -r '.html_url' <<<"$result")" >> "$GITHUB_STEP_SUMMARY"
