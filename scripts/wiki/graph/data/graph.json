@@ -2,12 +2,12 @@
   "version": 1,
   "wikiRoot": "wiki",
   "counts": {
-    "nodes": 19,
-    "edges": 32,
+    "nodes": 21,
+    "edges": 37,
     "byType": {
       "index": 3,
-      "journal": 6,
-      "plan": 7,
+      "journal": 7,
+      "plan": 8,
       "topic": 3
     }
   },
@@ -39,8 +39,8 @@
       ],
       "bytes": 2186,
       "degree": 2,
-      "x": 0.789141,
-      "y": 0.614213,
+      "x": 0.826239,
+      "y": 0.56332,
       "size": 8
     },
     {
@@ -58,8 +58,8 @@
       ],
       "bytes": 2103,
       "degree": 3,
-      "x": 0.546948,
-      "y": 0.837166,
+      "x": 0.62349,
+      "y": 0.781831,
       "size": 8
     },
     {
@@ -77,8 +77,8 @@
       ],
       "bytes": 1412,
       "degree": 3,
-      "x": 0.245485,
-      "y": 0.9694,
+      "x": 0.365341,
+      "y": 0.930874,
       "size": 8
     },
     {
@@ -96,8 +96,8 @@
       ],
       "bytes": 4200,
       "degree": 3,
-      "x": -0.082579,
-      "y": 0.996584,
+      "x": 0.07473,
+      "y": 0.997204,
       "size": 8
     },
     {
@@ -115,8 +115,8 @@
       ],
       "bytes": 2180,
       "degree": 2,
-      "x": -0.401695,
-      "y": 0.915773,
+      "x": -0.222521,
+      "y": 0.974928,
       "size": 8
     },
     {
@@ -134,8 +134,39 @@
       ],
       "bytes": 2766,
       "degree": 2,
-      "x": -0.677282,
-      "y": 0.735724,
+      "x": -0.5,
+      "y": 0.866025,
+      "size": 8
+    },
+    {
+      "id": "wiki/journal/2026-09-28-preserve-in-scope-adjudication-discoveries.md",
+      "label": "Preserve in-scope adjudication discoveries",
+      "type": "journal",
+      "aliases": [],
+      "githubRefs": [
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 14,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/14"
+        },
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 17,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/17"
+        },
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "pull-request",
+          "number": 15,
+          "url": "https://github.com/jfusco/agent-review-workflows/pull/15"
+        }
+      ],
+      "bytes": 1340,
+      "degree": 3,
+      "x": -0.733052,
+      "y": 0.680173,
       "size": 8
     },
     {
@@ -146,8 +177,8 @@
       "githubRefs": [],
       "bytes": 2904,
       "degree": 2,
-      "x": 0.945817,
-      "y": 0.324699,
+      "x": 0.955573,
+      "y": 0.294755,
       "size": 12
     },
     {
@@ -165,8 +196,8 @@
       ],
       "bytes": 1235,
       "degree": 4,
-      "x": -0.879474,
-      "y": 0.475947,
+      "x": -0.900969,
+      "y": 0.433884,
       "size": 8
     },
     {
@@ -177,8 +208,8 @@
       "githubRefs": [],
       "bytes": 4084,
       "degree": 3,
-      "x": -0.986361,
-      "y": 0.164595,
+      "x": -0.988831,
+      "y": 0.149042,
       "size": 8
     },
     {
@@ -196,8 +227,8 @@
       ],
       "bytes": 4673,
       "degree": 3,
-      "x": -0.986361,
-      "y": -0.164595,
+      "x": -0.988831,
+      "y": -0.149042,
       "size": 8
     },
     {
@@ -215,8 +246,8 @@
       ],
       "bytes": 1396,
       "degree": 3,
-      "x": -0.879474,
-      "y": -0.475947,
+      "x": -0.900969,
+      "y": -0.433884,
       "size": 8
     },
     {
@@ -234,8 +265,8 @@
       ],
       "bytes": 1060,
       "degree": 3,
-      "x": -0.677282,
-      "y": -0.735724,
+      "x": -0.733052,
+      "y": -0.680173,
       "size": 8
     },
     {
@@ -246,8 +277,27 @@
       "githubRefs": [],
       "bytes": 4946,
       "degree": 3,
-      "x": -0.401695,
-      "y": -0.915773,
+      "x": -0.5,
+      "y": -0.866025,
+      "size": 8
+    },
+    {
+      "id": "wiki/plans/2026-09-28-preserve-in-scope-adjudication-discoveries-a85c7cc5ea.md",
+      "label": "Preserve in-scope adjudication discoveries",
+      "type": "plan",
+      "aliases": [],
+      "githubRefs": [
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 17,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/17"
+        }
+      ],
+      "bytes": 1365,
+      "degree": 3,
+      "x": -0.222521,
+      "y": -0.974928,
       "size": 8
     },
     {
@@ -265,8 +315,8 @@
       ],
       "bytes": 1341,
       "degree": 3,
-      "x": -0.082579,
-      "y": -0.996584,
+      "x": 0.07473,
+      "y": -0.997204,
       "size": 8
     },
     {
@@ -290,6 +340,12 @@
         {
           "repository": "jfusco/agent-review-workflows",
           "kind": "issue",
+          "number": 17,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/17"
+        },
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
           "number": 38,
           "url": "https://github.com/jfusco/agent-review-workflows/issues/38"
         },
@@ -300,10 +356,10 @@
           "url": "https://github.com/jfusco/agent-review-workflows/pull/8"
         }
       ],
-      "bytes": 20059,
-      "degree": 9,
-      "x": 0.245485,
-      "y": -0.9694,
+      "bytes": 20428,
+      "degree": 10,
+      "x": 0.365341,
+      "y": -0.930874,
       "size": 12
     },
     {
@@ -327,8 +383,8 @@
       ],
       "bytes": 4290,
       "degree": 4,
-      "x": 0.546948,
-      "y": -0.837166,
+      "x": 0.62349,
+      "y": -0.781831,
       "size": 8
     },
     {
@@ -344,10 +400,10 @@
           "url": "https://github.com/jfusco/agent-review-workflows/issues/9"
         }
       ],
-      "bytes": 3631,
-      "degree": 7,
-      "x": 0.789141,
-      "y": -0.614213,
+      "bytes": 3690,
+      "degree": 10,
+      "x": 0.826239,
+      "y": -0.56332,
       "size": 8
     },
     {
@@ -365,8 +421,8 @@
       ],
       "bytes": 2238,
       "degree": 3,
-      "x": 0.945817,
-      "y": -0.324699,
+      "x": 0.955573,
+      "y": -0.294755,
       "size": 8
     }
   ],
@@ -374,6 +430,13 @@
     {
       "id": "0a36c528abcc3a4d",
       "source": "wiki/journal/2026-09-28-implementation-review-evidence.md",
+      "target": "wiki/topics/implementation-review-evidence.md",
+      "type": "topic",
+      "relation": "topic"
+    },
+    {
+      "id": "118f705ebaf415cb",
+      "source": "wiki/journal/2026-09-28-preserve-in-scope-adjudication-discoveries.md",
       "target": "wiki/topics/implementation-review-evidence.md",
       "type": "topic",
       "relation": "topic"
@@ -419,6 +482,13 @@
       "target": "wiki/plans/2026-09-28-constrain-implementation-review-adjudication-findings-7eeb3aeff9.md",
       "type": "link",
       "relation": "link"
+    },
+    {
+      "id": "30cab9e7168757b5",
+      "source": "wiki/journal/2026-09-28-preserve-in-scope-adjudication-discoveries.md",
+      "target": "wiki/plans/2026-09-28-preserve-in-scope-adjudication-discoveries-a85c7cc5ea.md",
+      "type": "plan",
+      "relation": "plan"
     },
     {
       "id": "3166aaa41f584e1f",
@@ -470,6 +540,13 @@
       "relation": "plan"
     },
     {
+      "id": "61b344e199f6cf71",
+      "source": "wiki/plans/INDEX.md",
+      "target": "wiki/plans/2026-09-28-preserve-in-scope-adjudication-discoveries-a85c7cc5ea.md",
+      "type": "link",
+      "relation": "link"
+    },
+    {
       "id": "69527ca3d812a4c9",
       "source": "wiki/journal/2026-09-28-constrain-adjudication-findings.md",
       "target": "wiki/topics/implementation-review-evidence.md",
@@ -498,6 +575,13 @@
       "relation": "topic"
     },
     {
+      "id": "976360da0fe5ff2e",
+      "source": "wiki/journal/2026-09-28-preserve-in-scope-adjudication-discoveries.md",
+      "target": "wiki/topics/implementation-review-evidence.md",
+      "type": "link",
+      "relation": "link"
+    },
+    {
       "id": "98fb17e8e68315df",
       "source": "wiki/journal/2026-09-28-deterministic-pull-request-structure.md",
       "target": "wiki/plans/2026-09-28-enforce-deterministic-pull-request-structure-f5d137d40f.md",
@@ -517,6 +601,13 @@
       "target": "wiki/plans/2026-09-28-enforce-deterministic-pull-request-structure-f5d137d40f.md",
       "type": "link",
       "relation": "link"
+    },
+    {
+      "id": "b74d4f4a827f345e",
+      "source": "wiki/plans/2026-09-28-preserve-in-scope-adjudication-discoveries-a85c7cc5ea.md",
+      "target": "wiki/topics/implementation-review-evidence.md",
+      "type": "topic",
+      "relation": "topic"
     },
     {
       "id": "c7cb743b2d89a3c2",
