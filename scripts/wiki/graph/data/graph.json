@@ -2,12 +2,12 @@
   "version": 1,
   "wikiRoot": "wiki",
   "counts": {
-    "nodes": 21,
-    "edges": 37,
+    "nodes": 23,
+    "edges": 41,
     "byType": {
       "index": 3,
-      "journal": 7,
-      "plan": 8,
+      "journal": 8,
+      "plan": 9,
       "topic": 3
     }
   },
@@ -39,8 +39,39 @@
       ],
       "bytes": 2186,
       "degree": 2,
-      "x": 0.826239,
-      "y": 0.56332,
+      "x": 0.854419,
+      "y": 0.519584,
+      "size": 8
+    },
+    {
+      "id": "wiki/journal/2026-09-28-collapse-implementation-review.md",
+      "label": "Collapse implementation review",
+      "type": "journal",
+      "aliases": [],
+      "githubRefs": [
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 17,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/17"
+        },
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 20,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/20"
+        },
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 21,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/21"
+        }
+      ],
+      "bytes": 1369,
+      "degree": 2,
+      "x": 0.682553,
+      "y": 0.730836,
       "size": 8
     },
     {
@@ -58,8 +89,8 @@
       ],
       "bytes": 2103,
       "degree": 3,
-      "x": 0.62349,
-      "y": 0.781831,
+      "x": 0.460065,
+      "y": 0.887885,
       "size": 8
     },
     {
@@ -77,8 +108,8 @@
       ],
       "bytes": 1412,
       "degree": 3,
-      "x": 0.365341,
-      "y": 0.930874,
+      "x": 0.203456,
+      "y": 0.979084,
       "size": 8
     },
     {
@@ -96,8 +127,8 @@
       ],
       "bytes": 4200,
       "degree": 3,
-      "x": 0.07473,
-      "y": 0.997204,
+      "x": -0.068242,
+      "y": 0.997669,
       "size": 8
     },
     {
@@ -115,8 +146,8 @@
       ],
       "bytes": 2180,
       "degree": 2,
-      "x": -0.222521,
-      "y": 0.974928,
+      "x": -0.33488,
+      "y": 0.942261,
       "size": 8
     },
     {
@@ -134,8 +165,8 @@
       ],
       "bytes": 2766,
       "degree": 2,
-      "x": -0.5,
-      "y": 0.866025,
+      "x": -0.57668,
+      "y": 0.81697,
       "size": 8
     },
     {
@@ -165,8 +196,8 @@
       ],
       "bytes": 1340,
       "degree": 3,
-      "x": -0.733052,
-      "y": 0.680173,
+      "x": -0.775711,
+      "y": 0.631088,
       "size": 8
     },
     {
@@ -177,8 +208,8 @@
       "githubRefs": [],
       "bytes": 2904,
       "degree": 2,
-      "x": 0.955573,
-      "y": 0.294755,
+      "x": 0.962917,
+      "y": 0.269797,
       "size": 12
     },
     {
@@ -196,8 +227,33 @@
       ],
       "bytes": 1235,
       "degree": 4,
-      "x": -0.900969,
-      "y": 0.433884,
+      "x": -0.917211,
+      "y": 0.398401,
+      "size": 8
+    },
+    {
+      "id": "wiki/plans/2026-09-28-collapse-implementation-review-to-five-calls-fe6bc3ca4e.md",
+      "label": "Collapse Implementation Review to Five Calls",
+      "type": "plan",
+      "aliases": [],
+      "githubRefs": [
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 17,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/17"
+        },
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 20,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/20"
+        }
+      ],
+      "bytes": 3057,
+      "degree": 3,
+      "x": -0.990686,
+      "y": 0.136167,
       "size": 8
     },
     {
@@ -208,8 +264,8 @@
       "githubRefs": [],
       "bytes": 4084,
       "degree": 3,
-      "x": -0.988831,
-      "y": 0.149042,
+      "x": -0.990686,
+      "y": -0.136167,
       "size": 8
     },
     {
@@ -227,8 +283,8 @@
       ],
       "bytes": 4673,
       "degree": 3,
-      "x": -0.988831,
-      "y": -0.149042,
+      "x": -0.917211,
+      "y": -0.398401,
       "size": 8
     },
     {
@@ -246,8 +302,8 @@
       ],
       "bytes": 1396,
       "degree": 3,
-      "x": -0.900969,
-      "y": -0.433884,
+      "x": -0.775711,
+      "y": -0.631088,
       "size": 8
     },
     {
@@ -265,8 +321,8 @@
       ],
       "bytes": 1060,
       "degree": 3,
-      "x": -0.733052,
-      "y": -0.680173,
+      "x": -0.57668,
+      "y": -0.81697,
       "size": 8
     },
     {
@@ -277,8 +333,8 @@
       "githubRefs": [],
       "bytes": 4946,
       "degree": 3,
-      "x": -0.5,
-      "y": -0.866025,
+      "x": -0.33488,
+      "y": -0.942261,
       "size": 8
     },
     {
@@ -296,8 +352,8 @@
       ],
       "bytes": 1365,
       "degree": 3,
-      "x": -0.222521,
-      "y": -0.974928,
+      "x": -0.068242,
+      "y": -0.997669,
       "size": 8
     },
     {
@@ -315,8 +371,8 @@
       ],
       "bytes": 1341,
       "degree": 3,
-      "x": 0.07473,
-      "y": -0.997204,
+      "x": 0.203456,
+      "y": -0.979084,
       "size": 8
     },
     {
@@ -356,10 +412,10 @@
           "url": "https://github.com/jfusco/agent-review-workflows/pull/8"
         }
       ],
-      "bytes": 20428,
-      "degree": 10,
-      "x": 0.365341,
-      "y": -0.930874,
+      "bytes": 20795,
+      "degree": 11,
+      "x": 0.460065,
+      "y": -0.887885,
       "size": 12
     },
     {
@@ -383,8 +439,8 @@
       ],
       "bytes": 4290,
       "degree": 4,
-      "x": 0.62349,
-      "y": -0.781831,
+      "x": 0.682553,
+      "y": -0.730836,
       "size": 8
     },
     {
@@ -398,12 +454,18 @@
           "kind": "issue",
           "number": 9,
           "url": "https://github.com/jfusco/agent-review-workflows/issues/9"
+        },
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 20,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/20"
         }
       ],
-      "bytes": 3690,
-      "degree": 10,
-      "x": 0.826239,
-      "y": -0.56332,
+      "bytes": 4050,
+      "degree": 12,
+      "x": 0.854419,
+      "y": -0.519584,
       "size": 8
     },
     {
@@ -421,8 +483,8 @@
       ],
       "bytes": 2238,
       "degree": 3,
-      "x": 0.955573,
-      "y": -0.294755,
+      "x": 0.962917,
+      "y": -0.269797,
       "size": 8
     }
   ],
@@ -433,6 +495,13 @@
       "target": "wiki/topics/implementation-review-evidence.md",
       "type": "topic",
       "relation": "topic"
+    },
+    {
+      "id": "1167a47a997bfc30",
+      "source": "wiki/plans/INDEX.md",
+      "target": "wiki/plans/2026-09-28-collapse-implementation-review-to-five-calls-fe6bc3ca4e.md",
+      "type": "link",
+      "relation": "link"
     },
     {
       "id": "118f705ebaf415cb",
@@ -554,11 +623,25 @@
       "relation": "topic"
     },
     {
+      "id": "7e4920a0567ee41b",
+      "source": "wiki/journal/2026-09-28-collapse-implementation-review.md",
+      "target": "wiki/topics/implementation-review-evidence.md",
+      "type": "topic",
+      "relation": "topic"
+    },
+    {
       "id": "85f6271a2480ec14",
       "source": "wiki/journal/2026-09-28-contributor-quality-and-delivery.md",
       "target": "wiki/plans/2026-09-28-add-contributor-quality-gates-and-repository-wiki-00cc492088.md",
       "type": "link",
       "relation": "link"
+    },
+    {
+      "id": "87a1b26d78d3eb59",
+      "source": "wiki/plans/2026-09-28-collapse-implementation-review-to-five-calls-fe6bc3ca4e.md",
+      "target": "wiki/topics/implementation-review-evidence.md",
+      "type": "topic",
+      "relation": "topic"
     },
     {
       "id": "91bb1144dc1bd669",
@@ -643,6 +726,13 @@
       "target": "wiki/plans/2026-09-28-add-contributor-quality-gates-and-repository-wiki-00cc492088.md",
       "type": "link",
       "relation": "link"
+    },
+    {
+      "id": "e2378af9d6b24c8c",
+      "source": "wiki/journal/2026-09-28-collapse-implementation-review.md",
+      "target": "wiki/plans/2026-09-28-collapse-implementation-review-to-five-calls-fe6bc3ca4e.md",
+      "type": "plan",
+      "relation": "plan"
     },
     {
       "id": "e2f82439f8f1ca71",

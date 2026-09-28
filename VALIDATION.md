@@ -40,6 +40,17 @@ commands. No new provider-backed trial was run. The live results below remain
 evidence for the built-in role and permission behavior only; they do not attest
 the new evidence contract.
 
+### Five-call implementation protocol
+
+Issue [#21](https://github.com/JFusco/agent-review-workflows/issues/21) introduces
+implementation evidence version 2. The 69-test Python suite uses temporary Git
+repositories to cover direct review-to-adjudication routing, the five-stage
+successful ledger, the adjudication repair lock, scope and artifact tampering,
+one repair and recheck, unresolved findings, check-only recovery, and version-1
+advisory continuation. The handoff displays the current scoped diff. These are
+deterministic fixture results; the provider-backed trials below exercised the
+older protocol and do not prove this new path.
+
 ## Live trials
 
 | Workflow | Result | Evidence |
