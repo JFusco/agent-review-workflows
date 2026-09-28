@@ -2,8 +2,10 @@
 
 Agent Review Workflows provides two installable agent skills that coordinate evidence-backed review through Claude Code and Codex CLI:
 
-- `review-plan`: Opus 5.5 High reviews; Astra 6 Max refines and finalizes the plan.
-- `review-implementation`: Opus 5.5 High reviews; Sol 6 XHigh responds and repairs; Astra 6 Max adjudicates and summarizes.
+- `review-plan`: a Claude reviewer critiques; a Codex coordinator refines and finalizes the plan.
+- `review-implementation`: a Claude reviewer critiques; a Codex implementer responds and repairs; a Codex coordinator adjudicates and summarizes.
+
+The built-in profile remains Opus 5.5 High, Astra 6 Max, and Sol 6 XHigh. Installation-local profiles and explicit per-run overrides can select other model and effort combinations without changing provider or permission boundaries.
 
 Invoke either skill in Codex by name. Finishing ordinary work does not launch a cycle. Plan review always stops before application implementation.
 
@@ -12,24 +14,42 @@ Each workflow keeps a revision-bound decision ledger, separates review from repa
 ## How it works
 
 1. The helper snapshots an explicitly scoped target and records its fingerprint.
-2. Claude Opus independently reviews the plan or implementation.
+2. The configured Claude reviewer independently reviews the plan or implementation.
 3. Codex agents respond to findings, adjudicate disagreements, and make only authorized changes.
-4. Claude Opus rechecks the resulting target and configured checks gate completion.
+4. The same reviewer rechecks the resulting target and configured checks gate completion.
 5. The workflow writes a readable handoff and immutable revision artifacts outside the reviewed project.
 
 No model is silently substituted, and publication, deployment, or merge actions are outside the workflow.
 
 ## Use
 
-From any project in Codex CLI, invoke `$review-plan` with the draft or `$review-implementation` with the change to review. To start the orchestrator explicitly:
+From any project in Codex CLI, invoke `$review-plan` with the draft or `$review-implementation` with the change to review. A plain skill cannot change the invoking conversation's model; current-chat coordinator stages are allowed only when that conversation exactly matches the run's frozen coordinator profile.
 
-```sh
-codex --model gpt-6-astra -c 'model_reasoning_effort="max"' '$review-plan Review the draft plan we just prepared.'
+## Configure models and effort
+
+Add any desired partial overrides to the ignored `runtime.local.json` beside this README. Missing fields retain the built-in profile:
+
+```json
+{
+  "skills": {
+    "review-plan": {
+      "reviewer": { "model": "claude-opus-5-5", "effort": "high" },
+      "coordinator": { "model": "gpt-6-astra", "effort": "max" }
+    },
+    "review-implementation": {
+      "reviewer": { "model": "claude-opus-5-5", "effort": "high" },
+      "coordinator": { "model": "gpt-6-astra", "effort": "max" },
+      "implementer": { "model": "gpt-6-sol", "effort": "xhigh" }
+    }
+  }
+}
 ```
+
+`start` also accepts `--reviewer-model`, `--reviewer-effort`, `--coordinator-model`, `--coordinator-effort`, and implementation-only `--implementer-model` / `--implementer-effort`. Explicit flags override the installation profile, which overrides built-in defaults. The complete result is recorded in the run and used unchanged on resume. Configuration errors fail before run artifacts are created; provider rejection stops the run without fallback.
 
 ## Install
 
-Requires macOS or Linux, Python 3.11+, Git for Git projects, authenticated `claude` and `codex` CLIs, and access to the pinned models. From this directory:
+Requires macOS or Linux, Python 3.11+, Git for Git projects, authenticated `claude` and `codex` CLIs, and access to the configured models. From this directory:
 
 ```sh
 python3 -m venv .venv
@@ -42,9 +62,9 @@ pnpm install --frozen-lockfile
 
 The installer adds links under `~/.agents/skills` and refuses to replace unrelated existing files. `--skills-dir` overrides that location. The source tree can live anywhere; links should be reinstalled after moving it. No global provider, model, permission, or project settings are changed.
 
-If the Codex executable on PATH cannot access a selected model, install with `--codex-bin /path/to/compatible/codex`. This records only this installation's executable in ignored `runtime.local.json`. `AGENT_REVIEW_CODEX_BIN` and `AGENT_REVIEW_CLAUDE_BIN` override local selection; otherwise the helper uses PATH. Runs capture the selected executable. Missing or unsupported models stop the cycle without substitution.
+If the Codex executable on PATH cannot access a selected model, install with `--codex-bin /path/to/compatible/codex`. This updates only `codex_binary` in ignored `runtime.local.json` and preserves saved skill profiles. `AGENT_REVIEW_CODEX_BIN` and `AGENT_REVIEW_CLAUDE_BIN` override local executable selection; otherwise the helper uses PATH. Runs capture the selected executable. Missing or unsupported models stop the cycle without substitution.
 
-[CLI use and recovery](references/cli.md) describes explicit scope, artifact storage, existing-chat Astra integration, and continuation after interruption. [Authoring](references/authoring.md) records best-practice sources and evaluation principles.
+[CLI use and recovery](references/cli.md) describes profile validation, explicit scope, artifact storage, current-chat coordinator integration, and continuation after interruption. [Authoring](references/authoring.md) records best-practice sources and evaluation principles.
 
 ## Validate
 

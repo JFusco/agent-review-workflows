@@ -1,6 +1,6 @@
 interface:
   display_name: "Review an implementation"
-  short_description: "Review, repair, and verify scoped implementation changes"
+  short_description: "Independent review, repair, and scoped verification"
   default_prompt: "Use $review-implementation to review this implementation and resolve accepted findings."
 policy:
   allow_implicit_invocation: true

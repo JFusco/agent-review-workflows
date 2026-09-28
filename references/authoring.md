@@ -12,4 +12,4 @@ Keep descriptions short and discriminating. Load only the needed supporting cont
 
 Evaluate observable outcomes before adding instructions. Use the same raw requirements and disposable fixtures for baseline and skill-assisted runs; never supply the intended repair to an independent reviewer. Compare accepted defects, unsupported findings, scope, plan simplicity, verification, runtime and available token usage. Provider judgments are not deterministic. Track baseline and fixture evidence separately from live provider execution.
 
-Tests must demonstrate rejection of malformed/stale handoffs, retained history, no plan-to-code transition, configured model settings, and only one implementation writer. Bounded live trials exercise every assigned role. No fixture carries production credentials or performs external writes.
+Tests must demonstrate rejection of malformed/stale handoffs, retained history, no plan-to-code transition, configured and frozen model settings, legacy-run compatibility, and only one implementation writer. Bounded live trials exercise every assigned role. No fixture carries production credentials or performs external writes.

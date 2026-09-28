@@ -61,7 +61,9 @@ class ReviewTests(unittest.TestCase):
 
     def accept(self, data):
         who = r.role(self.state)
-        r.accept(self.run, self.state, data, {'model': r.MODELS[who][0], 'effort': r.MODELS[who][1], 'observed': {'source':'fixture'}})
+        model, effort = r.agent_settings(self.state, who)
+        r.accept(self.run, self.state, data,
+                 {'model': model, 'effort': effort, 'observed': {'source': 'fixture'}})
 
     def to_repair(self):
         self.accept(self.response([finding()]))
@@ -210,25 +212,161 @@ class ReviewTests(unittest.TestCase):
         self.accept(self.response())
         self.assertEqual(self.state['findings'][0]['disposition'],'REJECTED')
 
+    def test_default_profile_is_frozen_into_new_runs(self):
+        self.assertEqual(self.state['schema_version'], 2)
+        self.assertEqual(self.state['agent_profile'], r.DEFAULT_PROFILES['review-implementation'])
+        original = r.read_json(self.run/'original.json')
+        self.assertEqual(original['agent_profile'], self.state['agent_profile'])
+
+    def test_per_skill_config_and_run_overrides_resolve_independently(self):
+        config_path = self.root/'runtime.local.json'
+        config_path.write_text(json.dumps({'skills': {
+            'review-plan': {
+                'reviewer': {'model': 'claude-plan-reviewer', 'effort': 'medium'},
+                'coordinator': {'model': 'gpt-plan-coordinator', 'effort': 'high'},
+            },
+            'review-implementation': {
+                'reviewer': {'model': 'claude-implementation-reviewer', 'effort': 'xhigh'},
+                'coordinator': {'model': 'gpt-implementation-coordinator', 'effort': 'ultra'},
+                'implementer': {'model': 'gpt-implementation-writer', 'effort': 'low'},
+            },
+        }}))
+        plan_args = copy.deepcopy(self.args)
+        plan_args.mode = 'plan'
+        plan_args.plan = str(ROOT/'tests/fixtures/sound-plan.md')
+        plan_args.coordinator_model = 'gpt-run-override'
+        plan_args.coordinator_effort = 'max'
+        implementation_args = copy.deepcopy(self.args)
+        implementation_args.implementer_effort = 'medium'
+        with patch.object(r, 'RUNTIME_CONFIG', config_path):
+            _, plan_state = r.initialize(plan_args)
+            _, implementation_state = r.initialize(implementation_args)
+        self.assertEqual(plan_state['agent_profile'], {
+            'reviewer': {'model': 'claude-plan-reviewer', 'effort': 'medium'},
+            'coordinator': {'model': 'gpt-run-override', 'effort': 'max'},
+        })
+        self.assertEqual(implementation_state['agent_profile']['reviewer']['model'],
+                         'claude-implementation-reviewer')
+        self.assertEqual(implementation_state['agent_profile']['coordinator']['effort'], 'ultra')
+        self.assertEqual(implementation_state['agent_profile']['implementer'],
+                         {'model': 'gpt-implementation-writer', 'effort': 'medium'})
+
+    def test_run_profile_does_not_drift_with_runtime_config(self):
+        config_path = self.root/'runtime.local.json'
+        config_path.write_text(json.dumps({'skills': {'review-implementation': {
+            'coordinator': {'model': 'gpt-frozen', 'effort': 'high'},
+        }}}))
+        with patch.object(r, 'RUNTIME_CONFIG', config_path):
+            run, state = r.initialize(copy.deepcopy(self.args))
+        config_path.write_text(json.dumps({'skills': {'review-implementation': {
+            'coordinator': {'model': 'gpt-changed', 'effort': 'max'},
+        }}}))
+        state['stage'] = 'adjudicate'
+        self.assertEqual(r.agent_settings(state, 'astra'), ('gpt-frozen', 'high'))
+        self.assertIn('gpt-frozen', r.cli_argv(state, run))
+        config_path.unlink()
+        self.assertEqual(r.agent_settings(state, 'astra'), ('gpt-frozen', 'high'))
+
+    def test_malformed_runtime_profiles_fail_before_run_creation(self):
+        cases = [
+            '{',
+            json.dumps({'unexpected': True}),
+            json.dumps({'skills': {'unknown-skill': {}}}),
+            json.dumps({'skills': {'review-plan': {'implementer': {}}}}),
+            json.dumps({'skills': {'review-plan': {'reviewer': {'temperature': 'hot'}}}}),
+            json.dumps({'skills': {'review-plan': {'reviewer': {'model': '   '}}}}),
+            json.dumps({'skills': {'review-plan': {'reviewer': {'effort': 'ultra'}}}}),
+        ]
+        for index, content in enumerate(cases):
+            with self.subTest(content=content):
+                config_path = self.root/f'invalid-{index}.json'
+                config_path.write_text(content)
+                args = copy.deepcopy(self.args)
+                args.runs_dir = str(self.root/f'invalid-runs-{index}')
+                with patch.object(r, 'RUNTIME_CONFIG', config_path), self.assertRaises(r.ReviewError):
+                    r.initialize(args)
+                self.assertFalse(Path(args.runs_dir).exists())
+
+    def test_plan_rejects_implementer_override_before_run_creation(self):
+        config_path = self.root/'empty-runtime.json'
+        config_path.write_text('{}')
+        args = copy.deepcopy(self.args)
+        args.mode = 'plan'
+        args.plan = str(ROOT/'tests/fixtures/sound-plan.md')
+        args.implementer_model = 'gpt-6-sol'
+        args.runs_dir = str(self.root/'invalid-plan-runs')
+        with patch.object(r, 'RUNTIME_CONFIG', config_path), self.assertRaisesRegex(
+                r.ReviewError, 'do not have an implementer'):
+            r.initialize(args)
+        self.assertFalse(Path(args.runs_dir).exists())
+
+    def test_version_one_runs_keep_original_pins(self):
+        legacy = copy.deepcopy(self.state)
+        legacy['schema_version'] = 1
+        legacy.pop('agent_profile')
+        self.assertEqual(r.effective_profile(legacy), r.V1_PROFILES['review-implementation'])
+        for who, stage in [('opus', 'review'), ('astra', 'adjudicate'), ('sol', 'repair')]:
+            legacy['stage'] = stage
+            self.assertEqual(r.agent_settings(legacy, who), {
+                'opus': ('claude-opus-5-5', 'high'),
+                'astra': ('gpt-6-astra', 'max'),
+                'sol': ('gpt-6-sol', 'xhigh'),
+            }[who])
+        legacy['schema_version'] = 2
+        with self.assertRaisesRegex(r.ReviewError, 'missing its frozen'):
+            r.effective_profile(legacy)
+
     def test_model_settings_on_resume(self):
+        self.state['agent_profile'] = {
+            'reviewer': {'model': 'claude-custom-reviewer', 'effort': 'medium'},
+            'coordinator': {'model': 'gpt-custom-coordinator', 'effort': 'high'},
+            'implementer': {'model': 'gpt-custom-implementer', 'effort': 'max'},
+        }
         for who,stage in [('opus','review'),('astra','adjudicate'),('sol','repair')]:
             self.state['stage']=stage; self.state['sessions'][who]='11111111-1111-4111-8111-111111111111'
             argv=r.cli_argv(self.state,self.run)
-            self.assertIn(r.MODELS[who][0],argv)
+            model, effort = r.agent_settings(self.state, who)
+            self.assertIn(model,argv)
             self.assertNotIn('--last',argv)
             if who=='opus':
                 self.assertIn('--safe-mode',argv); self.assertIn('Read,Glob,Grep',argv)
                 self.assertIn('--restricted',argv); self.assertIn('mcp__*',argv)
-                self.assertEqual(argv[argv.index('--effort')+1],'high')
+                self.assertEqual(argv[argv.index('--effort')+1],effort)
             else:
-                self.assertIn(f'model_reasoning_effort="{r.MODELS[who][1]}"',argv)
+                self.assertIn(f'model_reasoning_effort="{effort}"',argv)
                 self.assertIn('sandbox_mode="'+('workspace-write' if who=='sol' else 'read-only')+'"',argv)
                 if who=='sol': self.assertIn('sandbox_workspace_write.writable_roots='+json.dumps([str(self.project)]),argv)
 
-    def test_plan_stage_wont_get_write_permissions(self):
-        self.state.update(mode='plan',stage='repair')
-        argv=r.cli_argv(self.state,self.run)
-        self.assertIn('sandbox_mode="read-only"',argv)
+    def test_plan_cannot_resolve_an_implementation_stage(self):
+        self.state.update(mode='plan', stage='repair',
+                          agent_profile=copy.deepcopy(r.DEFAULT_PROFILES['review-plan']))
+        with self.assertRaisesRegex(r.ReviewError, 'has no implementer role'):
+            r.cli_argv(self.state,self.run)
+
+    def test_profile_is_visible_in_status_packet_receipt_and_handoff(self):
+        self.state['agent_profile']['reviewer'] = {
+            'model': 'claude-visible-reviewer', 'effort': 'medium'}
+        payload = r.status_payload(self.run, self.state)
+        self.assertEqual(payload['agent_profile'], self.state['agent_profile'])
+        self.assertEqual(r.packet(self.state)['agent_profile'], self.state['agent_profile'])
+        self.state['check_commands'] = []
+        self.accept(self.response([]))
+        self.assertEqual(self.state['ledger'][0]['agent']['model'], 'claude-visible-reviewer')
+        handoff = (self.run/'handoff.md').read_text()
+        self.assertIn('Reviewer (Claude): claude-visible-reviewer (medium)', handoff)
+        self.assertIn('By claude-visible-reviewer (medium)', handoff)
+
+    def test_parser_accepts_per_run_profile_flags(self):
+        args = r.build_parser().parse_args([
+            'start', 'plan', '--requirements', str(ROOT/'tests/fixtures/requirements.md'),
+            '--plan', str(ROOT/'tests/fixtures/sound-plan.md'),
+            '--reviewer-model', 'claude-custom', '--reviewer-effort', 'xhigh',
+            '--coordinator-model', 'gpt-custom', '--coordinator-effort', 'ultra',
+        ])
+        self.assertEqual(args.reviewer_model, 'claude-custom')
+        self.assertEqual(args.reviewer_effort, 'xhigh')
+        self.assertEqual(args.coordinator_model, 'gpt-custom')
+        self.assertEqual(args.coordinator_effort, 'ultra')
 
     def test_paths_and_symlink_execution(self):
         with patch.dict(os.environ,{'CODEX_HOME':str(self.root/'codex')},clear=True):
@@ -289,13 +427,30 @@ class ReviewTests(unittest.TestCase):
         self.accept(data)
         self.assertEqual(self.state['stage'],'respond')
 
-    def test_external_astra_yield(self):
+    def test_external_coordinator_yield(self):
         self.state['stage']='adjudicate'
-        r.advance(self.run,self.state,external_astra=True)
-        self.assertEqual(self.state['status'],'awaiting_astra')
+        self.state['agent_profile']['coordinator'] = {'model': 'gpt-6-luna', 'effort': 'high'}
+        r.advance(self.run,self.state,external_coordinator=True)
+        self.assertEqual(self.state['status'],'awaiting_coordinator')
         request=r.read_json(self.run/'external-request.json')
-        self.assertEqual(request['required_effort'],'max')
+        self.assertEqual(request['required_model'],'gpt-6-luna')
+        self.assertEqual(request['required_effort'],'high')
         self.assertEqual(request['packet']['run_id'],self.state['run_id'])
+
+    def test_external_submission_must_match_frozen_profile(self):
+        self.state['agent_profile']['coordinator'] = {'model': 'gpt-6-luna', 'effort': 'high'}
+        with self.assertRaisesRegex(r.ReviewError, 'exactly match'):
+            r.external_submission_config(self.state, 'gpt-6-astra', 'max')
+        config = r.external_submission_config(self.state, 'gpt-6-luna', 'high')
+        self.assertEqual(config['model'], 'gpt-6-luna')
+        self.assertEqual(config['effort'], 'high')
+
+    def test_external_astra_is_a_compatibility_alias(self):
+        parser = r.build_parser()
+        canonical = parser.parse_args(['run', str(self.run), '--external-coordinator'])
+        legacy = parser.parse_args(['run', str(self.run), '--external-astra'])
+        self.assertTrue(canonical.external_coordinator)
+        self.assertTrue(legacy.external_coordinator)
 
     def test_claude_fallback_model_rejected(self):
         call=self.root/'call'; call.mkdir()
@@ -385,6 +540,27 @@ class ReviewTests(unittest.TestCase):
         result = subprocess.run(argv, capture_output=True, text=True)
         self.assertNotEqual(result.returncode, 0)
         self.assertFalse((destination/'review-plan').is_symlink())
+
+    def test_installer_preserves_saved_skill_profiles(self):
+        source = self.root/'installer-source'
+        (source/'scripts').mkdir(parents=True)
+        (source/'scripts/install_skills.py').write_text((ROOT/'scripts/install_skills.py').read_text())
+        for name in ('review-plan', 'review-implementation'):
+            skill = source/'skills'/name
+            skill.mkdir(parents=True)
+            (skill/'SKILL.md').write_text(f'---\nname: {name}\ndescription: Fixture.\n---\n')
+        profiles = {'review-plan': {
+            'reviewer': {'model': 'claude-custom', 'effort': 'medium'},
+        }}
+        (source/'runtime.local.json').write_text(json.dumps({'skills': profiles}))
+        result = subprocess.run([
+            sys.executable, str(source/'scripts/install_skills.py'),
+            '--skills-dir', str(self.root/'installed-skills'), '--codex-bin', sys.executable,
+        ], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        saved = json.loads((source/'runtime.local.json').read_text())
+        self.assertEqual(saved['skills'], profiles)
+        self.assertEqual(saved['codex_binary'], str(Path(sys.executable).resolve()))
 
     def test_child_keeps_lock_after_parent_context_closes(self):
         with r.project_lock(self.project):
