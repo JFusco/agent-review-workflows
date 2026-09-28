@@ -1,6 +1,8 @@
 ---
 topics: [contributor-quality-and-delivery]
 plans: [2026-09-28-add-contributor-quality-gates-and-repository-wiki-00cc492088.md]
+issue: 'https://github.com/jfusco/agent-review-workflows/issues/1'
+issues: ['https://github.com/jfusco/agent-review-workflows/issues/1']
 ---
 
 # 2026-09-28 — Contributor quality and delivery
