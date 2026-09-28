@@ -56,10 +56,16 @@ class ReviewTests(unittest.TestCase):
         self.run, self.state = r.initialize(self.args)
 
     def response(self, fs=None):
+        findings = copy.deepcopy(self.state['findings'] if fs is None else fs)
+        if r.advisory_stage(self.state):
+            findings = [
+                {key: item[key] for key in ('id', 'disposition', 'rationale')}
+                for item in findings
+            ]
         return {'run_id': self.state['run_id'], 'target_fingerprint': self.state['target_fingerprint'],
                 'handoff_revision': self.state['handoff_revision'],
                 'stage': self.state['stage'], 'summary': 'Fixture result, not provider evidence.',
-                'findings': copy.deepcopy(self.state['findings'] if fs is None else fs), 'plan_markdown': None}
+                'findings': findings, 'plan_markdown': None}
 
     def accept(self, data):
         who = r.role(self.state)
@@ -120,6 +126,7 @@ class ReviewTests(unittest.TestCase):
     def test_existing_finding_definition_is_immutable(self):
         self.accept(self.response([finding()]))
         data = self.response()
+        data['findings'] = copy.deepcopy(self.state['findings'])
         data['findings'][0].update(
             disposition='ACCEPTED', rationale='Recommendation with altered evidence.', evidence='Rewritten evidence.',
         )
@@ -342,6 +349,7 @@ class ReviewTests(unittest.TestCase):
     def test_only_recheck_can_change_implementation_verification(self):
         self.accept(self.response([finding()]))
         implementer = self.response()
+        implementer['findings'] = copy.deepcopy(self.state['findings'])
         implementer['findings'][0].update(
             disposition='ACCEPTED', rationale='Recommendation cannot set verification.',
             verification_status='FAILED',
@@ -626,6 +634,51 @@ class ReviewTests(unittest.TestCase):
         data.pop('handoff_revision')
         self.assertFalse(validator.is_valid(data))
 
+    def test_advisory_schema_and_normalization_freeze_findings(self):
+        first = finding()
+        second = finding()
+        second.update(id='FIND-002', location='test_calculator.py:4')
+        self.state.update(stage='respond', findings=[first, second])
+        schema = r.provider_schema(self.state)
+        item = schema['properties']['findings']['items']
+        self.assertEqual(set(item['properties']), {'id', 'disposition', 'rationale'})
+        self.assertEqual(item['properties']['id']['enum'], ['FIND-001', 'FIND-002'])
+        self.assertEqual(schema['properties']['findings']['minItems'], 2)
+        self.assertEqual(schema['properties']['findings']['maxItems'], 2)
+        self.assertIn('return only id, disposition, and rationale', r.prompt(self.state))
+
+        data = self.response()
+        data['findings'][0].update(disposition='ACCEPTED', rationale='The defect is reproduced.')
+        data['findings'][1].update(disposition='REJECTED', rationale='The evidence disproves this finding.')
+        normalized = r.normalize_response(self.state, data)
+        self.assertEqual(normalized['findings'][0]['evidence'], first['evidence'])
+        self.assertEqual(normalized['findings'][1]['location'], second['location'])
+        self.assertEqual(normalized['findings'][0]['disposition'], 'ACCEPTED')
+        self.assertEqual(normalized['findings'][1]['disposition'], 'REJECTED')
+
+        mutations = [
+            lambda value: value['findings'].pop(),
+            lambda value: value['findings'].append(copy.deepcopy(value['findings'][0])),
+            lambda value: value['findings'].reverse(),
+            lambda value: value['findings'][0].update(id='FIND-999'),
+            lambda value: value['findings'][0].update(evidence='Changed definition.'),
+        ]
+        for mutate in mutations:
+            invalid = copy.deepcopy(data)
+            mutate(invalid)
+            with self.subTest(invalid=invalid), self.assertRaises(r.ReviewError):
+                r.normalize_response(self.state, invalid)
+
+    def test_advisory_artifact_retains_full_canonical_findings(self):
+        self.accept(self.response([finding()]))
+        data = self.response()
+        data['findings'][0].update(disposition='ACCEPTED', rationale='Accept the reproduced defect.')
+        self.accept(data)
+        artifact = r.read_json(self.run/'artifacts/revision-002.json')
+        self.assertEqual(artifact['response']['findings'][0]['evidence'], finding()['evidence'])
+        self.assertEqual(artifact['response']['findings'][0]['disposition'], 'ACCEPTED')
+        self.assertEqual(self.state['findings'][0]['disposition'], 'OPEN')
+
     def test_no_findings_cannot_bypass_configured_checks(self):
         r.perform_checks(self.run, self.state)
         self.assertNotEqual(self.state['checks'][0]['exit_code'], 0)
@@ -633,6 +686,58 @@ class ReviewTests(unittest.TestCase):
         self.assertEqual(self.state['status'], 'unresolved')
         with self.assertRaises(r.ReviewError): self.accept(self.response([]))
         self.assertFalse((self.run/'final.md').exists())
+
+    def test_check_rerun_preserves_receipts_and_invalidates_stale_handoffs(self):
+        marker = self.root/'check-ready'
+        self.state['check_commands'] = [[
+            sys.executable, '-c',
+            f'import pathlib,sys; sys.exit(0 if pathlib.Path({str(marker)!r}).exists() else 1)',
+        ]]
+        r.perform_checks(self.run, self.state)
+        self.assertFalse(r.checks_pass(self.state))
+        old_receipts = set((self.run/'checks').glob('*.json'))
+        self.state.update(stage='respond', findings=[finding()])
+        stale = self.response()
+        stale['findings'][0].update(disposition='ACCEPTED', rationale='Stale recommendation.')
+        previous_revision = self.state['handoff_revision']
+        marker.write_text('ready')
+
+        r.rerun_checks(self.run, self.state)
+
+        self.assertEqual(self.state['handoff_revision'], previous_revision + 1)
+        self.assertTrue(r.checks_pass(self.state))
+        self.assertEqual(self.state['checks'][0]['id'], 'CHECK-0-R1-1')
+        self.assertTrue(old_receipts < set((self.run/'checks').glob('*.json')))
+        artifact = r.read_json(self.run/'artifacts/revision-001.json')
+        self.assertNotEqual(artifact['checks_before'][0]['exit_code'], 0)
+        self.assertEqual(artifact['checks_after'][0]['exit_code'], 0)
+        self.assertEqual(self.state['ledger'][-1]['stage'], 'rerun-checks')
+        with self.assertRaises(r.ReviewError):
+            r.normalize_response(self.state, stale)
+
+    def test_check_rerun_reopens_only_check_blocked_finalization(self):
+        self.state['check_commands'] = [[sys.executable, '-c', 'pass']]
+        self.state.update(stage='finalize', status='unresolved', findings=[],
+                          error='Configured checks are missing or failing; no successful completion is claimed.')
+        r.rerun_checks(self.run, self.state)
+        self.assertEqual(self.state['status'], 'ready')
+        self.assertIsNone(self.state['error'])
+        self.assertEqual(self.state['stage'], 'finalize')
+
+    def test_check_rerun_rejects_changed_targets_and_write_stages(self):
+        self.state.update(stage='repair', status='ready')
+        with self.assertRaisesRegex(r.ReviewError, 'read-only recoverable'):
+            r.rerun_checks(self.run, self.state)
+        self.state.update(stage='respond', status='blocked')
+        (self.project/'calculator.py').write_text('changed')
+        before = self.state['handoff_revision']
+        with self.assertRaisesRegex(r.ReviewError, 'Project changed'):
+            r.rerun_checks(self.run, self.state)
+        self.assertEqual(self.state['handoff_revision'], before)
+
+    def test_parser_exposes_check_rerun(self):
+        args = r.build_parser().parse_args(['rerun-checks', str(self.run)])
+        self.assertEqual(args.action, 'rerun-checks')
 
     def test_old_check_receipts_do_not_prove_new_target(self):
         self.state['checks'] = [{'argv': self.state['check_commands'][0], 'exit_code': 0,

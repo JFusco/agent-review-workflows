@@ -29,11 +29,31 @@ and acceptance check form an immutable definition after introduction.
 
 The implementer response and independent reviewer reply are advisory
 assessments preserved per finding in the revision ledger and rendered handoff.
+Their provider contract exposes only each existing finding ID, recommended
+disposition, and rationale in canonical order. The helper merges those fields
+into the frozen canonical finding records, so advisory agents cannot mutate
+definitions or verification evidence, introduce findings, or omit existing
+ones.
+
 The canonical finding remains open while those assessments are collected. The
 coordinator receives both assessments and alone sets the authoritative
 `ACCEPTED`, `REJECTED`, or `PENDING_USER` disposition. Only accepted findings
 enter repair, only the designated implementer may write within the authorized
 scope, and only independent recheck may change verification fields.
+
+## Check recovery
+
+Configured checks may rerun only for a current implementation review in a
+read-only recoverable state and only while the target fingerprint and complete
+project inventory remain unchanged. A rerun preserves the previous receipt
+files, gives new receipts unique attempt-qualified IDs, records both receipt
+sets in an immutable revision artifact, and increments the handoff revision so
+older model output is stale. It never changes configured commands, findings,
+the repair count, or the target.
+
+When failed checks are the sole reason finalization is unresolved, a fully
+passing rerun makes that same finalization ready. Other blocked or unresolved
+states retain their status and use their existing recovery path.
 
 ## Compatibility and evidence policy
 
