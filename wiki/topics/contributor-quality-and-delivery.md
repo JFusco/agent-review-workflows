@@ -67,5 +67,5 @@ and production evidence remain distinct so validation claims stay legible.
 
 The repository contains no `ai-commit` or `ai-pr` dependency, command, hook, or
 workflow. The wiki's synchronization writers remain separately scoped bot
-workflows using reviewable `bot/wiki-*` branches and `PR_BOT_TOKEN`; they do not
+workflows using reviewable `bot/wiki-*` branches and `BOT_TOKEN`; they do not
 replace the human-readable issue-to-PR delivery flow.

@@ -27,7 +27,11 @@ deterministic bot bodies. `bot/wiki-*` branches are excluded from the human
 issue-to-PR body validator because they reconcile work that has already merged;
 contributor branches cannot use that exception.
 
+During delivery, the repository bot secret was refreshed and renamed from
+`PR_BOT_TOKEN` to `BOT_TOKEN`. Both wiki writer workflows, checkout credentials,
+failure messages, tests, and durable wiki guidance now use the configured name.
+
 Contributor and agent guidance now names the exact format and requires validation
 before opening a PR. Focused unit coverage exercises valid bodies and each
 failure boundary. The complete local gate passed Ruff, ESLint, 38 Python tests,
-16 tooling tests, and wiki integrity before delivery.
+17 tooling tests, and wiki integrity before delivery.

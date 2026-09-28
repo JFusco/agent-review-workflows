@@ -27,6 +27,14 @@ test("GitHub workflows run the explicit quality and commit-range gates", () => {
   assert.match(commitlint, /pnpm run lint:commit --from "\$BASE_SHA" --to "\$HEAD_SHA" --verbose/);
 });
 
+test("wiki writers use the configured bot token", () => {
+  for (const file of [".github/workflows/wiki-sync.yml", ".github/workflows/wiki-issue-sync.yml"]) {
+    const workflow = read(file);
+    assert.match(workflow, /secrets\.BOT_TOKEN/);
+    assert.doesNotMatch(workflow, /PR_BOT_TOKEN/);
+  }
+});
+
 test("developer automation contains no AI commit or PR helper", () => {
   const manifest = JSON.parse(read("package.json"));
   const packages = { ...manifest.dependencies, ...manifest.devDependencies };

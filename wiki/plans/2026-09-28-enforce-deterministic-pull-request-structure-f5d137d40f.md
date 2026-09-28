@@ -1,7 +1,7 @@
 ---
 status: "implemented"
 executed: true
-evidence: ["JFusco/agent-review-workflows#4; codex/4-deterministic-pr-structure; pnpm run verify:ci (38 Python tests, 16 tooling tests)"]
+evidence: ["JFusco/agent-review-workflows#4; codex/4-deterministic-pr-structure; pnpm run verify:ci (38 Python tests, 17 tooling tests)"]
 source_tool: "repository"
 source: "/private/tmp/agent-review-pr-structure-plan.md"
 topics: ["contributor-quality-and-delivery"]

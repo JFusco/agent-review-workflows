@@ -28,17 +28,17 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     env:
-      GH_TOKEN: ${{ secrets.PR_BOT_TOKEN }}
+      GH_TOKEN: ${{ secrets.BOT_TOKEN }}
     steps:
       - name: Require bot token
         run: |
-          test -n "$GH_TOKEN" || { echo 'PR_BOT_TOKEN is required'; exit 1; }
+          test -n "$GH_TOKEN" || { echo 'BOT_TOKEN is required'; exit 1; }
           gh api rate_limit >/dev/null
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.PR_BOT_TOKEN }}
+          token: ${{ secrets.BOT_TOKEN }}
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
