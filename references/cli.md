@@ -51,6 +51,7 @@ Artifact root precedence: `--runs-dir`, `AGENT_REVIEW_RUNS_DIR`, `$CODEX_HOME/re
 ```text
 PYTHON HELPER run /path/to/run
 PYTHON HELPER status /path/to/run
+PYTHON HELPER rerun-checks /path/to/run
 ```
 
 The helper serializes the protocol and launches all three provider roles through the CLIs. Inspect `handoff.md`, `final.md`, `artifacts/`, and `calls/` within the run. `step` runs one stage. Stop at `complete`, `unresolved`, `needs_user`, or a reported blocker. No automatic model fallback, recursive agent delegation, or publication occurs.
@@ -66,13 +67,14 @@ External configuration is recorded as caller-attested, not provider-verified. Th
 
 The current packet contains the full plan or implementation diff, scoped sources, verbatim governing requirements, current checks, all finding dispositions, revision ledger, and current evidence references. Treat older sessions as supplemental context. Retain every finding ID even if rejected. Review/recheck can introduce new IDs, and no findings is a valid review. In new implementation runs, never rewrite an existing finding's severity, location, evidence, correction, or acceptance check. New implementation findings are OPEN/UNVERIFIED and use a scoped project-relative `path`, `path:line`, or `path:start-end` location with `BLOCKER`, `WARN`, or `SUGGESTION` severity. Only independent recheck can newly mark PASSED, with current evidence and a supporting rationale.
 
-The implementer response and reviewer reply are advisory recommendations recorded per finding in the decision ledger. The canonical finding remains `OPEN` until the coordinator sees both and makes the authoritative `ACCEPTED`, `REJECTED`, or `PENDING_USER` disposition. Only that adjudication can enter repair, and only independent recheck can change verification fields; repair and recheck cannot change the adjudicated disposition.
+The implementer response and reviewer reply are advisory recommendations recorded per finding in the decision ledger. Their provider schema contains only each existing finding ID, recommended disposition, and rationale, once and in canonical order. The helper deterministically merges those assessments into the frozen finding records before ordinary validation and artifact persistence. Advisory agents cannot send definition or verification fields, introduce findings, or omit or reorder existing IDs. The canonical finding remains `OPEN` until the coordinator sees both and makes the authoritative `ACCEPTED`, `REJECTED`, or `PENDING_USER` disposition. Only that adjudication can enter repair, and only independent recheck can change verification fields; repair and recheck cannot change the adjudicated disposition.
 
 Every response echoes the run, stage, target fingerprint, and handoff revision. The revision changes after an accepted response, reconciliation, or user decision, preventing an old response from answering a new instruction. Plan acceptance checks assess the revised document; passing means the plan is ready to implement, not that its code or future tests already passed. Implementation checks run before initial review and after repair, including when no findings remain. Failing or missing configured checks prevent completion.
 
 ## Recovery
 
 - `blocked`, or an orphaned read-only `running` stage: inspect the saved process output. `retry RUN` only resets a read-only stage after target freshness checks; then run again. Never change models to clear a blocker.
+- A transient configured-check failure on an unchanged current implementation target: run `rerun-checks RUN`. The command is allowed only in a read-only recoverable state, retains prior receipt files in the artifact history, writes uniquely identified current receipts, increments the handoff revision, and invalidates stale agent output. It does not change the configured commands, target, findings, stage, or repair count. A check-only unresolved finalization becomes ready only after every configured check passes; other blocked or unresolved states retain their status and still require their normal recovery.
 - `interrupted` repair: inspect actual changes, Git state, process output, and scope. Stop any still-running process first. Then `reconcile RUN --note "actual inspected partial changes"`. This advances to independent recheck, counts a repair pass, and never reruns the write automatically.
 - `needs_user`: obtain the user's actual decision, then `decide RUN --instruction "user decision"` and run again. Do not invent approval.
 - Unexpected target changes or out-of-scope writes: preserve them, report the discrepancy, and start a new appropriately scoped run only after inspection. No automatic reset, checkout, or rollback.

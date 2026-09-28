@@ -2,12 +2,12 @@
   "version": 1,
   "wikiRoot": "wiki",
   "counts": {
-    "nodes": 15,
-    "edges": 23,
+    "nodes": 17,
+    "edges": 27,
     "byType": {
       "index": 3,
-      "journal": 4,
-      "plan": 5,
+      "journal": 5,
+      "plan": 6,
       "topic": 3
     }
   },
@@ -25,6 +25,25 @@
       "size": 12
     },
     {
+      "id": "wiki/journal/2026-09-28-advisory-handoff-and-check-recovery.md",
+      "label": "2026-09-28 — Advisory handoff and check recovery",
+      "type": "journal",
+      "aliases": [],
+      "githubRefs": [
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 12,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/12"
+        }
+      ],
+      "bytes": 2186,
+      "degree": 2,
+      "x": 0.739009,
+      "y": 0.673696,
+      "size": 8
+    },
+    {
       "id": "wiki/journal/2026-09-28-configurable-review-agent-profiles.md",
       "label": "2026-09-28 — Configurable review agent profiles",
       "type": "journal",
@@ -39,8 +58,8 @@
       ],
       "bytes": 2103,
       "degree": 3,
-      "x": 0.669131,
-      "y": 0.743145,
+      "x": 0.445738,
+      "y": 0.895163,
       "size": 8
     },
     {
@@ -58,8 +77,8 @@
       ],
       "bytes": 4200,
       "degree": 3,
-      "x": 0.309017,
-      "y": 0.951057,
+      "x": 0.092268,
+      "y": 0.995734,
       "size": 8
     },
     {
@@ -77,8 +96,8 @@
       ],
       "bytes": 2180,
       "degree": 2,
-      "x": -0.104528,
-      "y": 0.994522,
+      "x": -0.273663,
+      "y": 0.961826,
       "size": 8
     },
     {
@@ -96,8 +115,8 @@
       ],
       "bytes": 2766,
       "degree": 2,
-      "x": -0.5,
-      "y": 0.866025,
+      "x": -0.602635,
+      "y": 0.798017,
       "size": 8
     },
     {
@@ -108,8 +127,8 @@
       "githubRefs": [],
       "bytes": 2904,
       "degree": 2,
-      "x": 0.913545,
-      "y": 0.406737,
+      "x": 0.932472,
+      "y": 0.361242,
       "size": 12
     },
     {
@@ -127,8 +146,8 @@
       ],
       "bytes": 1235,
       "degree": 4,
-      "x": -0.809017,
-      "y": 0.587785,
+      "x": -0.850217,
+      "y": 0.526432,
       "size": 8
     },
     {
@@ -139,8 +158,8 @@
       "githubRefs": [],
       "bytes": 4084,
       "degree": 3,
-      "x": -0.978148,
-      "y": 0.207912,
+      "x": -0.982973,
+      "y": 0.18375,
       "size": 8
     },
     {
@@ -158,8 +177,8 @@
       ],
       "bytes": 4673,
       "degree": 3,
-      "x": -0.978148,
-      "y": -0.207912,
+      "x": -0.982973,
+      "y": -0.18375,
       "size": 8
     },
     {
@@ -177,8 +196,8 @@
       ],
       "bytes": 1060,
       "degree": 3,
-      "x": -0.809017,
-      "y": -0.587785,
+      "x": -0.850217,
+      "y": -0.526432,
       "size": 8
     },
     {
@@ -189,8 +208,27 @@
       "githubRefs": [],
       "bytes": 4946,
       "degree": 3,
-      "x": -0.5,
-      "y": -0.866025,
+      "x": -0.602635,
+      "y": -0.798017,
+      "size": 8
+    },
+    {
+      "id": "wiki/plans/2026-09-28-repair-advisory-handoffs-and-check-recovery-17c39fac0c.md",
+      "label": "Repair advisory handoffs and check recovery",
+      "type": "plan",
+      "aliases": [],
+      "githubRefs": [
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 12,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/12"
+        }
+      ],
+      "bytes": 1341,
+      "degree": 3,
+      "x": -0.273663,
+      "y": -0.961826,
       "size": 8
     },
     {
@@ -199,6 +237,12 @@
       "type": "index",
       "aliases": [],
       "githubRefs": [
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 12,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/12"
+        },
         {
           "repository": "jfusco/agent-review-workflows",
           "kind": "issue",
@@ -212,10 +256,10 @@
           "url": "https://github.com/jfusco/agent-review-workflows/pull/8"
         }
       ],
-      "bytes": 19286,
-      "degree": 7,
-      "x": -0.104528,
-      "y": -0.994522,
+      "bytes": 19652,
+      "degree": 8,
+      "x": 0.092268,
+      "y": -0.995734,
       "size": 12
     },
     {
@@ -239,8 +283,8 @@
       ],
       "bytes": 4290,
       "degree": 4,
-      "x": 0.309017,
-      "y": -0.951057,
+      "x": 0.445738,
+      "y": -0.895163,
       "size": 8
     },
     {
@@ -256,10 +300,10 @@
           "url": "https://github.com/jfusco/agent-review-workflows/issues/9"
         }
       ],
-      "bytes": 2433,
-      "degree": 2,
-      "x": 0.669131,
-      "y": -0.743145,
+      "bytes": 3477,
+      "degree": 4,
+      "x": 0.739009,
+      "y": -0.673696,
       "size": 8
     },
     {
@@ -277,8 +321,8 @@
       ],
       "bytes": 2238,
       "degree": 3,
-      "x": 0.913545,
-      "y": -0.406737,
+      "x": 0.932472,
+      "y": -0.361242,
       "size": 8
     }
   ],
@@ -286,6 +330,13 @@
     {
       "id": "0a36c528abcc3a4d",
       "source": "wiki/journal/2026-09-28-implementation-review-evidence.md",
+      "target": "wiki/topics/implementation-review-evidence.md",
+      "type": "topic",
+      "relation": "topic"
+    },
+    {
+      "id": "1a258fe58d6a3246",
+      "source": "wiki/journal/2026-09-28-advisory-handoff-and-check-recovery.md",
       "target": "wiki/topics/implementation-review-evidence.md",
       "type": "topic",
       "relation": "topic"
@@ -331,6 +382,13 @@
       "target": "wiki/plans/2026-09-28-add-contributor-quality-gates-and-repository-wiki-00cc492088.md",
       "type": "plan",
       "relation": "plan"
+    },
+    {
+      "id": "60eb20a5bc36a56a",
+      "source": "wiki/plans/INDEX.md",
+      "target": "wiki/plans/2026-09-28-repair-advisory-handoffs-and-check-recovery-17c39fac0c.md",
+      "type": "link",
+      "relation": "link"
     },
     {
       "id": "617abcb418a4f365",
@@ -389,6 +447,13 @@
       "relation": "topic"
     },
     {
+      "id": "d17b5d4dbc71f662",
+      "source": "wiki/plans/2026-09-28-repair-advisory-handoffs-and-check-recovery-17c39fac0c.md",
+      "target": "wiki/topics/implementation-review-evidence.md",
+      "type": "topic",
+      "relation": "topic"
+    },
+    {
       "id": "d266270b83e2b26e",
       "source": "wiki/journal/2026-09-28-configurable-review-agent-profiles.md",
       "target": "wiki/plans/2026-09-28-configurable-per-skill-agent-profiles-7f6f47fa15.md",
@@ -429,6 +494,13 @@
       "target": "wiki/plans/INDEX.md",
       "type": "link",
       "relation": "link"
+    },
+    {
+      "id": "ec61bc11b861d344",
+      "source": "wiki/journal/2026-09-28-advisory-handoff-and-check-recovery.md",
+      "target": "wiki/plans/2026-09-28-repair-advisory-handoffs-and-check-recovery-17c39fac0c.md",
+      "type": "plan",
+      "relation": "plan"
     },
     {
       "id": "fac009f8a6934a44",
