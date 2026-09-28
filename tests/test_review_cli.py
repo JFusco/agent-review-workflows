@@ -57,7 +57,7 @@ class ReviewTests(unittest.TestCase):
 
     def response(self, fs=None):
         findings = copy.deepcopy(self.state['findings'] if fs is None else fs)
-        if r.advisory_stage(self.state):
+        if r.decision_stage(self.state):
             findings = [
                 {key: item[key] for key in ('id', 'disposition', 'rationale')}
                 for item in findings
@@ -345,6 +345,9 @@ class ReviewTests(unittest.TestCase):
         self.accept(coordinator)
         self.assertEqual(self.state['stage'], 'repair')
         self.assertEqual(self.state['findings'][0]['disposition'], 'ACCEPTED')
+        artifact = r.read_json(self.run/'artifacts/revision-004.json')
+        self.assertEqual(artifact['response']['findings'][0]['evidence'], finding()['evidence'])
+        self.assertEqual(artifact['response']['findings'][0]['disposition'], 'ACCEPTED')
 
     def test_only_recheck_can_change_implementation_verification(self):
         self.accept(self.response([finding()]))
@@ -634,40 +637,42 @@ class ReviewTests(unittest.TestCase):
         data.pop('handoff_revision')
         self.assertFalse(validator.is_valid(data))
 
-    def test_advisory_schema_and_normalization_freeze_findings(self):
+    def test_decision_schema_and_normalization_freeze_findings(self):
         first = finding()
         second = finding()
         second.update(id='FIND-002', location='test_calculator.py:4')
-        self.state.update(stage='respond', findings=[first, second])
-        schema = r.provider_schema(self.state)
-        item = schema['properties']['findings']['items']
-        self.assertEqual(set(item['properties']), {'id', 'disposition', 'rationale'})
-        self.assertEqual(item['properties']['id']['enum'], ['FIND-001', 'FIND-002'])
-        self.assertEqual(schema['properties']['findings']['minItems'], 2)
-        self.assertEqual(schema['properties']['findings']['maxItems'], 2)
-        self.assertIn('return only id, disposition, and rationale', r.prompt(self.state))
+        for stage in ('respond', 'reply', 'adjudicate'):
+            with self.subTest(stage=stage):
+                self.state.update(stage=stage, findings=[first, second])
+                schema = r.provider_schema(self.state)
+                item = schema['properties']['findings']['items']
+                self.assertEqual(set(item['properties']), {'id', 'disposition', 'rationale'})
+                self.assertEqual(item['properties']['id']['enum'], ['FIND-001', 'FIND-002'])
+                self.assertEqual(schema['properties']['findings']['minItems'], 2)
+                self.assertEqual(schema['properties']['findings']['maxItems'], 2)
+                self.assertIn('return only id, disposition, and rationale', r.prompt(self.state))
 
-        data = self.response()
-        data['findings'][0].update(disposition='ACCEPTED', rationale='The defect is reproduced.')
-        data['findings'][1].update(disposition='REJECTED', rationale='The evidence disproves this finding.')
-        normalized = r.normalize_response(self.state, data)
-        self.assertEqual(normalized['findings'][0]['evidence'], first['evidence'])
-        self.assertEqual(normalized['findings'][1]['location'], second['location'])
-        self.assertEqual(normalized['findings'][0]['disposition'], 'ACCEPTED')
-        self.assertEqual(normalized['findings'][1]['disposition'], 'REJECTED')
+                data = self.response()
+                data['findings'][0].update(disposition='ACCEPTED', rationale='The defect is reproduced.')
+                data['findings'][1].update(disposition='REJECTED', rationale='The evidence disproves this finding.')
+                normalized = r.normalize_response(self.state, data)
+                self.assertEqual(normalized['findings'][0]['evidence'], first['evidence'])
+                self.assertEqual(normalized['findings'][1]['location'], second['location'])
+                self.assertEqual(normalized['findings'][0]['disposition'], 'ACCEPTED')
+                self.assertEqual(normalized['findings'][1]['disposition'], 'REJECTED')
 
-        mutations = [
-            lambda value: value['findings'].pop(),
-            lambda value: value['findings'].append(copy.deepcopy(value['findings'][0])),
-            lambda value: value['findings'].reverse(),
-            lambda value: value['findings'][0].update(id='FIND-999'),
-            lambda value: value['findings'][0].update(evidence='Changed definition.'),
-        ]
-        for mutate in mutations:
-            invalid = copy.deepcopy(data)
-            mutate(invalid)
-            with self.subTest(invalid=invalid), self.assertRaises(r.ReviewError):
-                r.normalize_response(self.state, invalid)
+                mutations = [
+                    lambda value: value['findings'].pop(),
+                    lambda value: value['findings'].append(copy.deepcopy(value['findings'][0])),
+                    lambda value: value['findings'].reverse(),
+                    lambda value: value['findings'][0].update(id='FIND-999'),
+                    lambda value: value['findings'][0].update(evidence='Changed definition.'),
+                ]
+                for mutate in mutations:
+                    invalid = copy.deepcopy(data)
+                    mutate(invalid)
+                    with self.assertRaises(r.ReviewError):
+                        r.normalize_response(self.state, invalid)
 
     def test_advisory_artifact_retains_full_canonical_findings(self):
         self.accept(self.response([finding()]))

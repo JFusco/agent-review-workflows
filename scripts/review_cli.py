@@ -356,9 +356,9 @@ def packet(state):
             'checks': state.get('checks', []), 'agent_profile': effective_profile(state)}
 
 
-def advisory_stage(state):
+def decision_stage(state):
     return (state.get('implementation_evidence_version') == 1 and
-            state['stage'] in ('respond', 'reply'))
+            state['stage'] in ('respond', 'reply', 'adjudicate'))
 
 
 def prompt(state):
@@ -382,8 +382,8 @@ def prompt(state):
     finding_instructions = (
         'Return each existing finding exactly once and in its current order. For each finding, return only id, '
         'disposition, and rationale; the helper retains the immutable definition and verification fields. '
-        'Do not introduce findings in this advisory stage. '
-        if advisory_stage(state) else
+        'Do not introduce findings in this decision stage. '
+        if decision_stage(state) else
         'Preserve every existing finding ID; assign new sequential FIND-001 style IDs. '
         'Include a substantive rationale for every disposition. verification_evidence contains exact '
         'evidence_catalog keys only, without line suffixes or explanatory prose; put explanations in rationale. '
@@ -421,7 +421,7 @@ def provider_schema(state):
     schema = copy.deepcopy(PROVIDER_SCHEMA)
     for key in ('run_id', 'target_fingerprint', 'handoff_revision', 'stage'):
         schema['properties'][key]['enum'] = [state[key]]
-    if advisory_stage(state):
+    if decision_stage(state):
         findings = schema['properties']['findings']
         item = findings['items']
         item['properties'] = {
@@ -645,16 +645,16 @@ def validate_response(state, data):
 
 
 def normalize_response(state, data):
-    if not advisory_stage(state):
+    if not decision_stage(state):
         return data
     errors = sorted(Draft202012Validator(provider_schema(state)).iter_errors(data),
                     key=lambda error: str(list(error.path)))
     if errors:
-        raise ReviewError('Invalid advisory handoff: ' + errors[0].message)
+        raise ReviewError('Invalid decision handoff: ' + errors[0].message)
     expected = [finding['id'] for finding in state['findings']]
     received = [assessment['id'] for assessment in data['findings']]
     if received != expected:
-        raise ReviewError('Advisory findings must contain every existing ID exactly once and in current order.')
+        raise ReviewError('Decision findings must contain every existing ID exactly once and in current order.')
     normalized = copy.deepcopy(data)
     normalized['findings'] = []
     for finding, assessment in zip(state['findings'], data['findings']):

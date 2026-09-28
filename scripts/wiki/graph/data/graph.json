@@ -2,12 +2,12 @@
   "version": 1,
   "wikiRoot": "wiki",
   "counts": {
-    "nodes": 17,
-    "edges": 27,
+    "nodes": 19,
+    "edges": 32,
     "byType": {
       "index": 3,
-      "journal": 5,
-      "plan": 6,
+      "journal": 6,
+      "plan": 7,
       "topic": 3
     }
   },
@@ -39,8 +39,8 @@
       ],
       "bytes": 2186,
       "degree": 2,
-      "x": 0.739009,
-      "y": 0.673696,
+      "x": 0.789141,
+      "y": 0.614213,
       "size": 8
     },
     {
@@ -58,8 +58,27 @@
       ],
       "bytes": 2103,
       "degree": 3,
-      "x": 0.445738,
-      "y": 0.895163,
+      "x": 0.546948,
+      "y": 0.837166,
+      "size": 8
+    },
+    {
+      "id": "wiki/journal/2026-09-28-constrain-adjudication-findings.md",
+      "label": "Constrain adjudication findings",
+      "type": "journal",
+      "aliases": [],
+      "githubRefs": [
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 14,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/14"
+        }
+      ],
+      "bytes": 1412,
+      "degree": 3,
+      "x": 0.245485,
+      "y": 0.9694,
       "size": 8
     },
     {
@@ -77,8 +96,8 @@
       ],
       "bytes": 4200,
       "degree": 3,
-      "x": 0.092268,
-      "y": 0.995734,
+      "x": -0.082579,
+      "y": 0.996584,
       "size": 8
     },
     {
@@ -96,8 +115,8 @@
       ],
       "bytes": 2180,
       "degree": 2,
-      "x": -0.273663,
-      "y": 0.961826,
+      "x": -0.401695,
+      "y": 0.915773,
       "size": 8
     },
     {
@@ -115,8 +134,8 @@
       ],
       "bytes": 2766,
       "degree": 2,
-      "x": -0.602635,
-      "y": 0.798017,
+      "x": -0.677282,
+      "y": 0.735724,
       "size": 8
     },
     {
@@ -127,8 +146,8 @@
       "githubRefs": [],
       "bytes": 2904,
       "degree": 2,
-      "x": 0.932472,
-      "y": 0.361242,
+      "x": 0.945817,
+      "y": 0.324699,
       "size": 12
     },
     {
@@ -146,8 +165,8 @@
       ],
       "bytes": 1235,
       "degree": 4,
-      "x": -0.850217,
-      "y": 0.526432,
+      "x": -0.879474,
+      "y": 0.475947,
       "size": 8
     },
     {
@@ -158,8 +177,8 @@
       "githubRefs": [],
       "bytes": 4084,
       "degree": 3,
-      "x": -0.982973,
-      "y": 0.18375,
+      "x": -0.986361,
+      "y": 0.164595,
       "size": 8
     },
     {
@@ -177,8 +196,27 @@
       ],
       "bytes": 4673,
       "degree": 3,
-      "x": -0.982973,
-      "y": -0.18375,
+      "x": -0.986361,
+      "y": -0.164595,
+      "size": 8
+    },
+    {
+      "id": "wiki/plans/2026-09-28-constrain-implementation-review-adjudication-findings-7eeb3aeff9.md",
+      "label": "Constrain implementation-review adjudication findings",
+      "type": "plan",
+      "aliases": [],
+      "githubRefs": [
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 14,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/14"
+        }
+      ],
+      "bytes": 1396,
+      "degree": 3,
+      "x": -0.879474,
+      "y": -0.475947,
       "size": 8
     },
     {
@@ -196,8 +234,8 @@
       ],
       "bytes": 1060,
       "degree": 3,
-      "x": -0.850217,
-      "y": -0.526432,
+      "x": -0.677282,
+      "y": -0.735724,
       "size": 8
     },
     {
@@ -208,8 +246,8 @@
       "githubRefs": [],
       "bytes": 4946,
       "degree": 3,
-      "x": -0.602635,
-      "y": -0.798017,
+      "x": -0.401695,
+      "y": -0.915773,
       "size": 8
     },
     {
@@ -227,8 +265,8 @@
       ],
       "bytes": 1341,
       "degree": 3,
-      "x": -0.273663,
-      "y": -0.961826,
+      "x": -0.082579,
+      "y": -0.996584,
       "size": 8
     },
     {
@@ -246,6 +284,12 @@
         {
           "repository": "jfusco/agent-review-workflows",
           "kind": "issue",
+          "number": 14,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/14"
+        },
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
           "number": 38,
           "url": "https://github.com/jfusco/agent-review-workflows/issues/38"
         },
@@ -256,10 +300,10 @@
           "url": "https://github.com/jfusco/agent-review-workflows/pull/8"
         }
       ],
-      "bytes": 19652,
-      "degree": 8,
-      "x": 0.092268,
-      "y": -0.995734,
+      "bytes": 20059,
+      "degree": 9,
+      "x": 0.245485,
+      "y": -0.9694,
       "size": 12
     },
     {
@@ -283,8 +327,8 @@
       ],
       "bytes": 4290,
       "degree": 4,
-      "x": 0.445738,
-      "y": -0.895163,
+      "x": 0.546948,
+      "y": -0.837166,
       "size": 8
     },
     {
@@ -300,10 +344,10 @@
           "url": "https://github.com/jfusco/agent-review-workflows/issues/9"
         }
       ],
-      "bytes": 3477,
-      "degree": 4,
-      "x": 0.739009,
-      "y": -0.673696,
+      "bytes": 3631,
+      "degree": 7,
+      "x": 0.789141,
+      "y": -0.614213,
       "size": 8
     },
     {
@@ -321,8 +365,8 @@
       ],
       "bytes": 2238,
       "degree": 3,
-      "x": 0.932472,
-      "y": -0.361242,
+      "x": 0.945817,
+      "y": -0.324699,
       "size": 8
     }
   ],
@@ -342,6 +386,13 @@
       "relation": "topic"
     },
     {
+      "id": "22c4a298b9310116",
+      "source": "wiki/journal/2026-09-28-constrain-adjudication-findings.md",
+      "target": "wiki/topics/implementation-review-evidence.md",
+      "type": "link",
+      "relation": "link"
+    },
+    {
       "id": "28b4f48e0f9586ea",
       "source": "wiki/plans/2026-09-28-configurable-per-skill-agent-profiles-1dacf57a38.md",
       "target": "wiki/topics/review-agent-profiles.md",
@@ -349,11 +400,25 @@
       "relation": "topic"
     },
     {
+      "id": "290be7a8662523e9",
+      "source": "wiki/journal/2026-09-28-constrain-adjudication-findings.md",
+      "target": "wiki/plans/2026-09-28-constrain-implementation-review-adjudication-findings-7eeb3aeff9.md",
+      "type": "plan",
+      "relation": "plan"
+    },
+    {
       "id": "2e6bd05b0933c7c5",
       "source": "wiki/journal/2026-09-28-deterministic-pull-request-structure.md",
       "target": "wiki/topics/contributor-quality-and-delivery.md",
       "type": "topic",
       "relation": "topic"
+    },
+    {
+      "id": "30ad350e3fbc2aa4",
+      "source": "wiki/plans/INDEX.md",
+      "target": "wiki/plans/2026-09-28-constrain-implementation-review-adjudication-findings-7eeb3aeff9.md",
+      "type": "link",
+      "relation": "link"
     },
     {
       "id": "3166aaa41f584e1f",
@@ -368,6 +433,13 @@
       "target": "wiki/MECHANICS.md",
       "type": "link",
       "relation": "link"
+    },
+    {
+      "id": "4e9927cdaedf5601",
+      "source": "wiki/plans/2026-09-28-constrain-implementation-review-adjudication-findings-7eeb3aeff9.md",
+      "target": "wiki/topics/implementation-review-evidence.md",
+      "type": "topic",
+      "relation": "topic"
     },
     {
       "id": "6054eb89bc06ebe2",
@@ -396,6 +468,13 @@
       "target": "wiki/plans/2026-09-28-make-review-implementation-evidence-complete-6f0a1ea9f8.md",
       "type": "plan",
       "relation": "plan"
+    },
+    {
+      "id": "69527ca3d812a4c9",
+      "source": "wiki/journal/2026-09-28-constrain-adjudication-findings.md",
+      "target": "wiki/topics/implementation-review-evidence.md",
+      "type": "topic",
+      "relation": "topic"
     },
     {
       "id": "85f6271a2480ec14",

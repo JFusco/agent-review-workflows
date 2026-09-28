@@ -37,7 +37,9 @@ ones.
 
 The canonical finding remains open while those assessments are collected. The
 coordinator receives both assessments and alone sets the authoritative
-`ACCEPTED`, `REJECTED`, or `PENDING_USER` disposition. Only accepted findings
+`ACCEPTED`, `REJECTED`, or `PENDING_USER` disposition. Its provider contract
+uses the same constrained finding shape and canonical restoration, so it can
+decide findings but cannot introduce or redefine them. Only accepted findings
 enter repair, only the designated implementer may write within the authorized
 scope, and only independent recheck may change verification fields.
 
