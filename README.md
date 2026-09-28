@@ -33,7 +33,10 @@ Requires macOS or Linux, Python 3.11+, Git for Git projects, authenticated `clau
 
 ```sh
 python3 -m venv .venv
-.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python -m pip install -r requirements-dev.lock
+corepack enable
+corepack install
+pnpm install --frozen-lockfile
 .venv/bin/python scripts/install_skills.py
 ```
 
@@ -46,9 +49,16 @@ If the Codex executable on PATH cannot access a selected model, install with `--
 ## Validate
 
 ```sh
-.venv/bin/python -m unittest discover -s tests -v
+pnpm run verify:ci
 .venv/bin/python scripts/create_trial.py
 ```
+
+The complete quality gate runs Python and JavaScript lint, the workflow unit
+suite, temporary-repository hook and commit-policy tests, and context-wiki
+integrity. Husky applies staged checks before commits, Commitlint enforces scoped
+conventional messages, and the pre-push hook runs the same full gate. GitHub runs
+the quality gate and validates both pull-request titles and introduced commits.
+No `ai-commit` or `ai-pr` tool is installed or used.
 
 The trial creator makes separate disposable Git projects and prints their run directories. It does not call models. Running `review_cli.py run RUN` invokes paid/subscription provider sessions according to your existing CLI authentication. Keep trial runs separate from production projects. See [VALIDATION.md](VALIDATION.md) for executed results and limits.
 

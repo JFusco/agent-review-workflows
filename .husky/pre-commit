@@ -1,0 +1,18 @@
+#!/usr/bin/env sh
+legacy_hook="$(git rev-parse --git-common-dir)/hooks/pre-commit"
+if [ -x "$legacy_hook" ] && ! [ "$legacy_hook" -ef "$0" ]; then
+  "$legacy_hook" "$@" || exit $?
+fi
+
+pnpm run lint:staged || exit $?
+
+# wiki-skill:start
+wiki_skill_previous_status=$?
+if ! node scripts/wiki/pre-commit.cjs; then
+  echo "warning: wiki lifecycle failed; continuing" >&2
+fi
+if [ "$wiki_skill_previous_status" -ne 0 ]; then
+  exit "$wiki_skill_previous_status"
+fi
+unset wiki_skill_previous_status
+# wiki-skill:end

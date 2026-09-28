@@ -1,0 +1,34 @@
+{
+  "name": "agent-review-workflows",
+  "version": "0.1.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "packageManager": "pnpm@11.1.1",
+  "engines": {
+    "node": ">=24.14.0"
+  },
+  "scripts": {
+    "prepare": "husky",
+    "test": "node scripts/python.cjs -m unittest discover -s tests -v",
+    "test:tooling": "node --test tests/tooling/*.test.cjs",
+    "lint": "pnpm run lint:python && pnpm run lint:js",
+    "lint:python": "node scripts/python.cjs -m ruff check scripts tests",
+    "lint:js": "eslint . --max-warnings=0",
+    "lint:staged": "lint-staged",
+    "lint:commit": "commitlint --config commitlint.config.cjs",
+    "verify:ci": "pnpm run lint && pnpm run test && pnpm run test:tooling && pnpm run wiki:check",
+    "verify:push": "pnpm run verify:ci",
+    "wiki:check": "node scripts/wiki/check.cjs",
+    "wiki:graph": "node scripts/wiki/build-graph.cjs",
+    "wiki:serve": "node scripts/wiki/serve-graph.cjs"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "20.5.3",
+    "@commitlint/config-conventional": "20.5.3",
+    "@eslint/js": "10.0.1",
+    "eslint": "10.9.0",
+    "globals": "16.5.0",
+    "husky": "9.1.7",
+    "lint-staged": "17.3.0"
+  }
+}

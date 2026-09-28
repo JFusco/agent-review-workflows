@@ -1,0 +1,25 @@
+{
+  "edgeCosts": {
+    "topic": 1,
+    "plan": 1,
+    "link": 3
+  },
+  "hubPenalty": 0.5,
+  "bytePenaltyPerKiB": 0.05,
+  "excludedIntermediateTypes": ["index"],
+  "intents": {
+    "why": {
+      "preferredSourceTypes": ["topic", "journal", "plan", "index"],
+      "preferredTargetTypes": ["topic", "journal", "plan"],
+      "allowSourceAsTarget": true
+    },
+    "wiring": {
+      "preferredSourceTypes": ["topic", "journal", "plan", "index"],
+      "preferredTargetTypes": ["topic", "journal", "plan", "index"]
+    },
+    "impact": {
+      "preferredSourceTypes": ["topic", "journal", "plan", "index"],
+      "preferredTargetTypes": ["topic", "journal", "plan", "index"]
+    }
+  }
+}
