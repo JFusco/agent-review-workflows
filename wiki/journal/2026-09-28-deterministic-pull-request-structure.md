@@ -1,6 +1,8 @@
 ---
 topics: [contributor-quality-and-delivery]
 plans: [2026-09-28-enforce-deterministic-pull-request-structure-f5d137d40f.md]
+issue: 'https://github.com/jfusco/agent-review-workflows/issues/4'
+issues: ['https://github.com/jfusco/agent-review-workflows/issues/4']
 ---
 
 # 2026-09-28 — Deterministic pull request structure
