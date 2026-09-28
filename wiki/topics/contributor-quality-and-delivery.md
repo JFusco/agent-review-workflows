@@ -41,6 +41,21 @@ Git commit and push, and a conventional pull request. The PR body must include
 merge. Delivery finishes only after verifying the merged PR, closed issue,
 updated local `main`, and clean worktree.
 
+[JFusco/agent-review-workflows issue #4](https://github.com/JFusco/agent-review-workflows/issues/4)
+turns that prose policy into a deterministic pull-request contract. GitHub's
+canonical `.github/pull_request_template.md` provides six ordered sections:
+Summary, Linked issue, Changes, Verification, Risk and rollback, and Checklist.
+The body validator requires meaningful review context, a GitHub closing keyword,
+explicit risk and rollback notes, and every repository checklist item checked.
+The Commitlint workflow validates both the conventional title and this body on
+every supported pull-request event; contributors can run the same body check as
+`pnpm run lint:pr` with `PR_BODY` or standard input.
+
+Installer-managed `bot/wiki-*` pull requests retain their separately scoped,
+deterministic maintenance body and are excluded from the human issue-to-PR body
+validator. Contributor branches receive no exception from the closing-issue or
+review-evidence requirements.
+
 `AGENTS.md` also makes skill maintainability a repository contract. Skill changes
 must use progressive disclosure, keep one source of truth, reserve deterministic
 code for fragile boundaries, and justify every new abstraction, dependency,
@@ -52,5 +67,5 @@ and production evidence remain distinct so validation claims stay legible.
 
 The repository contains no `ai-commit` or `ai-pr` dependency, command, hook, or
 workflow. The wiki's synchronization writers remain separately scoped bot
-workflows using reviewable `bot/wiki-*` branches and `PR_BOT_TOKEN`; they do not
+workflows using reviewable `bot/wiki-*` branches and `BOT_TOKEN`; they do not
 replace the human-readable issue-to-PR delivery flow.

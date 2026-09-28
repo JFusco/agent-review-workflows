@@ -59,9 +59,12 @@ For repository changes that include delivery, complete this sequence:
    same delivery, and run `pnpm run verify:ci`.
 5. Commit with a valid conventional message, then push the issue branch with
    ordinary Git commands.
-6. Open a pull request with a conventional title. The body must summarize the
-   change and verification and include `Closes #<issue-number>` so GitHub visibly
-   links the PR to the issue and closes the issue when the PR merges.
+6. Open a pull request with a conventional title and the canonical
+   `.github/pull_request_template.md` body. Keep its level-two headings exactly
+   once and in order; replace every placeholder with meaningful content, include
+   `Closes #<issue-number>`, record verification and risk/rollback, and complete
+   every required checkbox. `pnpm run lint:pr` enforces this structure so GitHub
+   visibly links the PR to the issue and closes the issue when the PR merges.
 7. Wait for required checks, merge the PR, and verify both the merged PR state and
    the issue's automatic closed state.
 8. Return the local checkout to `main`, run `git pull --ff-only`, and verify it

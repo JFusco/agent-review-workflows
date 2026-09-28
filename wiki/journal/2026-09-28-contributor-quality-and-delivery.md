@@ -30,7 +30,7 @@ pre-push propagation.
 GitHub now has separate `Quality` and `Commit message lint` workflows patterned
 after the reference repository. The wiki installer added integrity, merge-sync,
 and issue-state workflows; the two writer workflows require a configured
-`PR_BOT_TOKEN` and create reviewable `bot/wiki-*` pull requests. Contributor
+`BOT_TOKEN` and create reviewable `bot/wiki-*` pull requests. Contributor
 workflows use read-only permissions, disable Husky, and run their checks explicitly.
 
 `AGENTS.md` now requires a verified labeled issue, an issue-numbered branch from

@@ -35,12 +35,12 @@ jobs:
       (github.event.pull_request.merged == true && !startsWith(github.event.pull_request.head.ref, 'bot/wiki-'))
     runs-on: ubuntu-latest
     env:
-      GH_TOKEN: ${{ secrets.PR_BOT_TOKEN }}
+      GH_TOKEN: ${{ secrets.BOT_TOKEN }}
     steps:
       - name: Validate request and credentials
         id: context
         run: |
-          test -n "$GH_TOKEN" || { echo 'PR_BOT_TOKEN is required'; exit 1; }
+          test -n "$GH_TOKEN" || { echo 'BOT_TOKEN is required'; exit 1; }
           gh api rate_limit >/dev/null
           if [ -n "$PR_NUMBER" ] && [ -n "$SINCE" ]; then
             echo 'pr_number and since are mutually exclusive'
@@ -60,7 +60,7 @@ jobs:
         with:
           ref: ${{ steps.context.outputs.base }}
           fetch-depth: 0
-          token: ${{ secrets.PR_BOT_TOKEN }}
+          token: ${{ secrets.BOT_TOKEN }}
       - name: Setup Node
         uses: actions/setup-node@v4
         with:

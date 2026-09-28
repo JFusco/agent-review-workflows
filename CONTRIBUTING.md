@@ -76,6 +76,21 @@ Allowed types are `build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`,
 subjects are at most 50 characters and do not end in a period. This setup contains
 no `ai-commit` or `ai-pr` package, generator, hook, or workflow.
 
+## Pull request format
+
+Use `.github/pull_request_template.md` without renaming, duplicating, or
+reordering its level-two headings. Replace every HTML-comment placeholder with
+concise, specific content. The body must include a GitHub closing reference,
+concrete verification outcomes, nonempty risk and rollback entries, and every
+required checklist item marked complete.
+
+The Commit message lint workflow validates this body on pull-request open,
+update, reopen, and edit events, alongside the conventional title and introduced
+commit range. Installer-managed `bot/wiki-*` maintenance PRs retain their
+separately scoped deterministic body and are excluded from this human
+issue-to-PR contract. To validate a proposed contributor body locally, set
+`PR_BODY` to its exact Markdown and run `pnpm run lint:pr`.
+
 You can also create disposable fixture projects without contacting a model provider:
 
 ```sh
@@ -91,9 +106,10 @@ Before opening a pull request:
 1. Create and verify a labeled GitHub issue, then branch from updated `main`.
 2. Run `pnpm run verify:ci`.
 3. Confirm `git status` contains no local runtime configuration, credentials, or run artifacts.
-4. Summarize the behavior changed, the checks run, and any live-provider evidence separately.
-5. Include `Closes #<issue-number>` in the pull-request body so the PR is linked
-   and the issue closes on merge.
+4. Complete the canonical pull-request template with the behavior changed, checks
+   run, risks, rollback, and any live-provider evidence kept separate.
+5. Include `Closes #<issue-number>` in its Linked issue section so the PR is
+   linked and the issue closes on merge.
 6. Keep unrelated cleanup out of the pull request.
 
 Bug reports and proposals should include the affected workflow, the observed state or error, reproduction steps, expected behavior, and any non-sensitive handoff evidence that helps explain the issue.
