@@ -2,12 +2,12 @@
   "version": 1,
   "wikiRoot": "wiki",
   "counts": {
-    "nodes": 6,
-    "edges": 8,
+    "nodes": 8,
+    "edges": 12,
     "byType": {
       "index": 3,
-      "journal": 1,
-      "plan": 1,
+      "journal": 2,
+      "plan": 2,
       "topic": 1
     }
   },
@@ -39,8 +39,27 @@
       ],
       "bytes": 4203,
       "degree": 3,
-      "x": -0.5,
-      "y": 0.866025,
+      "x": 0,
+      "y": 1,
+      "size": 8
+    },
+    {
+      "id": "wiki/journal/2026-09-28-deterministic-pull-request-structure.md",
+      "label": "2026-09-28 — Deterministic pull request structure",
+      "type": "journal",
+      "aliases": [],
+      "githubRefs": [
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 4,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/4"
+        }
+      ],
+      "bytes": 1807,
+      "degree": 2,
+      "x": -0.707107,
+      "y": 0.707107,
       "size": 8
     },
     {
@@ -51,8 +70,8 @@
       "githubRefs": [],
       "bytes": 2907,
       "degree": 2,
-      "x": 0.5,
-      "y": 0.866025,
+      "x": 0.707107,
+      "y": 0.707107,
       "size": 12
     },
     {
@@ -75,6 +94,25 @@
       "size": 8
     },
     {
+      "id": "wiki/plans/2026-09-28-enforce-deterministic-pull-request-structure-f5d137d40f.md",
+      "label": "Enforce deterministic pull request structure",
+      "type": "plan",
+      "aliases": [],
+      "githubRefs": [
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 4,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/4"
+        }
+      ],
+      "bytes": 1060,
+      "degree": 3,
+      "x": -0.707107,
+      "y": -0.707107,
+      "size": 8
+    },
+    {
       "id": "wiki/plans/INDEX.md",
       "label": "Plan ledger",
       "type": "index",
@@ -87,10 +125,10 @@
           "url": "https://github.com/jfusco/agent-review-workflows/issues/38"
         }
       ],
-      "bytes": 17814,
-      "degree": 3,
-      "x": -0.5,
-      "y": -0.866025,
+      "bytes": 18205,
+      "degree": 4,
+      "x": 0,
+      "y": -1,
       "size": 12
     },
     {
@@ -104,16 +142,29 @@
           "kind": "issue",
           "number": 1,
           "url": "https://github.com/jfusco/agent-review-workflows/issues/1"
+        },
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 4,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/4"
         }
       ],
-      "bytes": 3320,
-      "degree": 2,
-      "x": 0.5,
-      "y": -0.866025,
+      "bytes": 4293,
+      "degree": 4,
+      "x": 0.707107,
+      "y": -0.707107,
       "size": 8
     }
   ],
   "edges": [
+    {
+      "id": "2e6bd05b0933c7c5",
+      "source": "wiki/journal/2026-09-28-deterministic-pull-request-structure.md",
+      "target": "wiki/topics/contributor-quality-and-delivery.md",
+      "type": "topic",
+      "relation": "topic"
+    },
     {
       "id": "355b085344694472",
       "source": "wiki/INDEX.md",
@@ -145,6 +196,27 @@
     {
       "id": "91bb1144dc1bd669",
       "source": "wiki/journal/2026-09-28-contributor-quality-and-delivery.md",
+      "target": "wiki/topics/contributor-quality-and-delivery.md",
+      "type": "topic",
+      "relation": "topic"
+    },
+    {
+      "id": "98fb17e8e68315df",
+      "source": "wiki/journal/2026-09-28-deterministic-pull-request-structure.md",
+      "target": "wiki/plans/2026-09-28-enforce-deterministic-pull-request-structure-f5d137d40f.md",
+      "type": "plan",
+      "relation": "plan"
+    },
+    {
+      "id": "b2bceae9f273189d",
+      "source": "wiki/plans/INDEX.md",
+      "target": "wiki/plans/2026-09-28-enforce-deterministic-pull-request-structure-f5d137d40f.md",
+      "type": "link",
+      "relation": "link"
+    },
+    {
+      "id": "c7cb743b2d89a3c2",
+      "source": "wiki/plans/2026-09-28-enforce-deterministic-pull-request-structure-f5d137d40f.md",
       "target": "wiki/topics/contributor-quality-and-delivery.md",
       "type": "topic",
       "relation": "topic"

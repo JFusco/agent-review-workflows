@@ -21,6 +21,9 @@ test("GitHub workflows run the explicit quality and commit-range gates", () => {
   const commitlint = read(".github/workflows/commitlint.yml");
   assert.match(commitlint, /types: \[opened, synchronize, reopened, edited\]/);
   assert.match(commitlint, /printf '%s\\n' "\$PR_TITLE" \| pnpm run lint:commit --verbose/);
+  assert.match(commitlint, /PR_BODY: \$\{\{ github\.event\.pull_request\.body \}\}/);
+  assert.match(commitlint, /if: \$\{\{ !startsWith\(github\.event\.pull_request\.head\.ref, 'bot\/wiki-'\) \}\}/);
+  assert.match(commitlint, /run: pnpm run lint:pr/);
   assert.match(commitlint, /pnpm run lint:commit --from "\$BASE_SHA" --to "\$HEAD_SHA" --verbose/);
 });
 

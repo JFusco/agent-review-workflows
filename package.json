@@ -16,6 +16,7 @@
     "lint:js": "eslint . --max-warnings=0",
     "lint:staged": "lint-staged",
     "lint:commit": "commitlint --config commitlint.config.cjs",
+    "lint:pr": "node scripts/validate_pr_body.cjs",
     "verify:ci": "pnpm run lint && pnpm run test && pnpm run test:tooling && pnpm run wiki:check",
     "verify:push": "pnpm run verify:ci",
     "wiki:check": "node scripts/wiki/check.cjs",
