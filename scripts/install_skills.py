@@ -30,7 +30,12 @@ for source,link in pairs:
     print(f'{link} -> {source.resolve()}')
 if codex_binary:
     config_path = root/'runtime.local.json'
-    config = json.loads(config_path.read_text()) if config_path.exists() else {}
+    try:
+        config = json.loads(config_path.read_text()) if config_path.exists() else {}
+    except (OSError, ValueError) as exc:
+        parser.error(f'Cannot read {config_path}: {exc}')
+    if not isinstance(config, dict):
+        parser.error(f'{config_path} must contain a JSON object')
     config['codex_binary'] = str(Path(codex_binary).resolve())
     temporary = config_path.with_suffix('.tmp')
     temporary.write_text(json.dumps(config,indent=2)+'\n')

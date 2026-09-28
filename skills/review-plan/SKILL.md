@@ -1,17 +1,17 @@
 ---
 name: review-plan
-description: Reviews a draft plan with Opus 5.5 High and refines it with Astra 6 Max before implementation. Use when the user requests adversarial plan review or refinement.
+description: Independently reviews and refines a draft plan before implementation. Use when the user requests adversarial plan review or refinement.
 ---
 
 # Review a plan
 
-Use Claude Code and Codex CLI to independently review a draft, resolve supported objections, and return a complete refined plan. All Astra work uses `gpt-6-astra` at `max`; Opus uses `claude-opus-5-5` at `high`. Never substitute another configuration.
+Use a Claude reviewer and Codex coordinator to independently review a draft, resolve supported objections, and return a complete refined plan. Resolve their model and effort from the configured `review-plan` profile and explicit start overrides. Freeze that profile into the run and never substitute another configuration.
 
 Read [the CLI procedure](references/cli.md) when starting or resuming a cycle. [Authoring principles](references/authoring.md) apply when changing this skill.
 
 Capture the original request, complete draft, scope, constraints, success criteria, and relevant source evidence. Read applicable project instructions. Ask only for material information the conversation and project cannot establish.
 
-Run the plan mode. Opus independently reviews; Astra evaluates its handoff, exchanges a rebuttal where needed, and refines the whole plan; Opus rechecks material revisions; Astra returns the final plan. Use the current conversation for Astra stages only when its actual configuration is Astra 6 Max. Otherwise use the helper's pinned CLI sessions.
+Run the plan mode. The reviewer independently critiques; the coordinator evaluates its handoff, exchanges a rebuttal where needed, and refines the whole plan; the reviewer rechecks material revisions; the coordinator returns the final plan. Use the current conversation for coordinator stages only when its actual model and effort exactly match the frozen run profile. Otherwise use the helper's pinned CLI sessions.
 
 Refine deliberately. Keep changes precise, surgical, and in scope. Prefer existing components and straightforward mechanics. Challenge unnecessary abstractions, dependencies, configuration, and workflow stages. Require added complexity to solve a concrete need. Retain sound decisions; a review need not manufacture defects. Make the final choices and acceptance criteria clear enough for another engineer to implement.
 

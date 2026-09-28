@@ -2,13 +2,13 @@
   "version": 1,
   "wikiRoot": "wiki",
   "counts": {
-    "nodes": 8,
-    "edges": 12,
+    "nodes": 11,
+    "edges": 16,
     "byType": {
       "index": 3,
-      "journal": 2,
-      "plan": 2,
-      "topic": 1
+      "journal": 3,
+      "plan": 3,
+      "topic": 2
     }
   },
   "nodes": [
@@ -25,6 +25,25 @@
       "size": 12
     },
     {
+      "id": "wiki/journal/2026-09-28-configurable-review-agent-profiles.md",
+      "label": "2026-09-28 — Configurable review agent profiles",
+      "type": "journal",
+      "aliases": [],
+      "githubRefs": [
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 7,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/7"
+        }
+      ],
+      "bytes": 2039,
+      "degree": 2,
+      "x": 0.415415,
+      "y": 0.909632,
+      "size": 8
+    },
+    {
       "id": "wiki/journal/2026-09-28-contributor-quality-and-delivery.md",
       "label": "2026-09-28 — Contributor quality and delivery",
       "type": "journal",
@@ -39,8 +58,8 @@
       ],
       "bytes": 4200,
       "degree": 3,
-      "x": 0,
-      "y": 1,
+      "x": -0.142315,
+      "y": 0.989821,
       "size": 8
     },
     {
@@ -58,8 +77,8 @@
       ],
       "bytes": 2180,
       "degree": 2,
-      "x": -0.707107,
-      "y": 0.707107,
+      "x": -0.654861,
+      "y": 0.75575,
       "size": 8
     },
     {
@@ -70,8 +89,8 @@
       "githubRefs": [],
       "bytes": 2904,
       "degree": 2,
-      "x": 0.707107,
-      "y": 0.707107,
+      "x": 0.841254,
+      "y": 0.540641,
       "size": 12
     },
     {
@@ -89,8 +108,20 @@
       ],
       "bytes": 1235,
       "degree": 4,
-      "x": -1,
-      "y": 0,
+      "x": -0.959493,
+      "y": 0.281733,
+      "size": 8
+    },
+    {
+      "id": "wiki/plans/2026-09-28-configurable-per-skill-agent-profiles-1dacf57a38.md",
+      "label": "Configurable Per-Skill Agent Profiles",
+      "type": "plan",
+      "aliases": [],
+      "githubRefs": [],
+      "bytes": 4084,
+      "degree": 3,
+      "x": -0.959493,
+      "y": -0.281733,
       "size": 8
     },
     {
@@ -108,8 +139,8 @@
       ],
       "bytes": 1060,
       "degree": 3,
-      "x": -0.707107,
-      "y": -0.707107,
+      "x": -0.654861,
+      "y": -0.75575,
       "size": 8
     },
     {
@@ -125,10 +156,10 @@
           "url": "https://github.com/jfusco/agent-review-workflows/issues/38"
         }
       ],
-      "bytes": 18205,
-      "degree": 4,
-      "x": 0,
-      "y": -1,
+      "bytes": 18522,
+      "degree": 5,
+      "x": -0.142315,
+      "y": -0.989821,
       "size": 12
     },
     {
@@ -152,12 +183,38 @@
       ],
       "bytes": 4290,
       "degree": 4,
-      "x": 0.707107,
-      "y": -0.707107,
+      "x": 0.415415,
+      "y": -0.909632,
+      "size": 8
+    },
+    {
+      "id": "wiki/topics/review-agent-profiles.md",
+      "label": "Review agent profiles",
+      "type": "topic",
+      "aliases": [],
+      "githubRefs": [
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 7,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/7"
+        }
+      ],
+      "bytes": 2238,
+      "degree": 2,
+      "x": 0.841254,
+      "y": -0.540641,
       "size": 8
     }
   ],
   "edges": [
+    {
+      "id": "28b4f48e0f9586ea",
+      "source": "wiki/plans/2026-09-28-configurable-per-skill-agent-profiles-1dacf57a38.md",
+      "target": "wiki/topics/review-agent-profiles.md",
+      "type": "topic",
+      "relation": "topic"
+    },
     {
       "id": "2e6bd05b0933c7c5",
       "source": "wiki/journal/2026-09-28-deterministic-pull-request-structure.md",
@@ -201,9 +258,23 @@
       "relation": "topic"
     },
     {
+      "id": "94f7cf5a474f62a8",
+      "source": "wiki/journal/2026-09-28-configurable-review-agent-profiles.md",
+      "target": "wiki/topics/review-agent-profiles.md",
+      "type": "topic",
+      "relation": "topic"
+    },
+    {
       "id": "98fb17e8e68315df",
       "source": "wiki/journal/2026-09-28-deterministic-pull-request-structure.md",
       "target": "wiki/plans/2026-09-28-enforce-deterministic-pull-request-structure-f5d137d40f.md",
+      "type": "plan",
+      "relation": "plan"
+    },
+    {
+      "id": "a76d2da173da8c53",
+      "source": "wiki/journal/2026-09-28-configurable-review-agent-profiles.md",
+      "target": "wiki/plans/2026-09-28-configurable-per-skill-agent-profiles-1dacf57a38.md",
       "type": "plan",
       "relation": "plan"
     },
@@ -239,6 +310,13 @@
       "id": "e56d58329e2a8982",
       "source": "wiki/MECHANICS.md",
       "target": "wiki/plans/INDEX.md",
+      "type": "link",
+      "relation": "link"
+    },
+    {
+      "id": "fac009f8a6934a44",
+      "source": "wiki/plans/INDEX.md",
+      "target": "wiki/plans/2026-09-28-configurable-per-skill-agent-profiles-1dacf57a38.md",
       "type": "link",
       "relation": "link"
     }

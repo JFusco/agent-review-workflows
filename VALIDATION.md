@@ -2,7 +2,7 @@
 
 Executed 2026-09-28 using disposable, credential-free Python fixture projects. These results establish local workflow behavior and live provider CLI execution, not production verification.
 
-## Configuration
+## Default-profile configuration
 
 | Role | Requested configuration | Observed evidence |
 | --- | --- | --- |
@@ -10,7 +10,7 @@ Executed 2026-09-28 using disposable, credential-free Python fixture projects. T
 | Reviewer | Opus 5.5 High | Claude `modelUsage` identifies `claude-opus-5-5`; every initial/resumed invocation explicitly requests `--effort high`. The CLI result does not independently report effort. |
 | Implementation responder and writer | Sol 6 XHigh | Codex session records confirm `gpt-6-sol`, `xhigh`; response is read-only, repair uses the fixture project as an explicit writable root with execution network access disabled. |
 
-Claude Code version: **2.1.283**. The working Codex runtime is the app-bundled **0.158.0-alpha.2**. PATH Codex **0.153.4** rejected Sol 6 for the current ChatGPT account. The implementation uses the newer executable through installation-local configuration; it does not change model pins, the user's PATH, or global Codex settings. Astra also executed successfully through 0.153.4 during the plan trial.
+Claude Code version: **2.1.283**. The working Codex runtime is the app-bundled **0.158.0-alpha.2**. PATH Codex **0.153.4** rejected Sol 6 for the current ChatGPT account. These live trials used the newer executable through installation-local configuration and the built-in model profile; they did not change the user's PATH or global Codex settings. Astra also executed successfully through 0.153.4 during the plan trial.
 
 CLI configuration records are observations from the local runtime, not independent provider attestation of internal reasoning.
 
@@ -19,6 +19,10 @@ CLI configuration records are observations from the local runtime, not independe
 - **33 tests passed**, covering strict schema handling, duplicates, stale targets and context revisions, rejected findings, evidence references, required check gates, plan-only behavior, initial/resumed model settings, scope protection, interrupted persistence, reconciliation, process groups, inherited locks, and symlink installation.
 - Both skills passed the official `skill-creator` frontmatter and scaffold validator.
 - Independent read-only helper review found concrete completion and recovery gaps. The fixes received regression tests; the reviewer confirmed the reported gaps addressed, including surviving child processes.
+
+### Configurable-profile extension
+
+Issue [#7](https://github.com/JFusco/agent-review-workflows/issues/7) added installation-local per-skill profiles and explicit per-run overrides. The expanded 49-test Python suite deterministically covers defaults, precedence, profile freezing, malformed configuration, provider and write boundaries, exact external-coordinator attestation, version-1 compatibility, and installer preservation. No new provider-backed trial was run: the live results below remain evidence for the built-in profile only, while custom-profile behavior is fixture evidence.
 
 ## Live trials
 
@@ -41,4 +45,4 @@ This one small fixture does **not** establish a general quality advantage for th
 
 [Machine-readable results](validation/summary.json) retain call counts, observed local session configuration, provider elapsed time and actual check output. `validation/` contains ignored local copies of native prompts, outputs, process receipts, original targets, handoffs and immutable revisions. [The manifest](validation/manifest.json) records their file hashes. Invocation paths intentionally retain the original temporary locations; these are evidence archives, not relocated resumable runs.
 
-The installed helper also supports using an already configured Astra Max chat for its Astra stages. Local tests cover yielding the external Astra request; the submit path was not exercised. Live trials used CLI Astra. Linux portability, large repositories, other programming languages, future CLI releases and production systems were not exercised. Parser tests establish covered rejection cases, not perfect handling of every possible malformed output.
+The installed helper also supports using a conversation whose model and effort exactly match the frozen coordinator profile. Local tests cover yielding the external request and rejecting a mismatched submission; the provider-backed submit path was not exercised. Live trials used CLI Astra. Linux portability, large repositories, other programming languages, future CLI releases and production systems were not exercised. Parser tests establish covered rejection cases, not perfect handling of every possible malformed output.

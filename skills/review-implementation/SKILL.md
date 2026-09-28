@@ -1,17 +1,17 @@
 ---
 name: review-implementation
-description: Reviews an implementation with Opus 5.5 High, resolves findings with Astra 6 Max, and repairs accepted defects with Sol 6 XHigh. Use when the user requests an adversarial implementation review and repair cycle.
+description: Independently reviews an implementation, resolves findings, and repairs accepted defects. Use when the user requests an adversarial implementation review and repair cycle.
 ---
 
 # Review an implementation
 
-Astra `gpt-6-astra` at `max` coordinates and adjudicates. Opus `claude-opus-5-5` at `high` independently reviews and rechecks. Sol `gpt-6-sol` at `xhigh` responds and implements accepted repairs. Pin these settings on every launch and resumption.
+A Claude reviewer independently reviews and rechecks. A Codex coordinator adjudicates and finalizes. A separate Codex implementer responds and makes accepted repairs. Resolve each model and effort from the configured `review-implementation` profile and explicit start overrides. Freeze that profile into the run and never substitute another configuration.
 
 Read [the CLI procedure](references/cli.md) to start or resume. [Authoring principles](references/authoring.md) apply when changing this skill.
 
 Establish the requested change, exact review target, acceptance criteria, authorized repair scope, and project checks from the conversation and repository. Inspect applicable project instructions and Git state. Preserve intentional and unrelated changes. Follow project issue/branch/worktree requirements before a repair. This skill grants no authority to merge, publish, deploy, or expand the assignment.
 
-Run implementation mode with explicit scoped files and authorized local check commands. Opus reviews independently; Sol accepts or challenges each finding; Opus responds; Astra decides from evidence; Sol makes accepted scoped repairs; Opus checks the actual result. Only Sol writes implementation files. Use the current conversation for Astra stages only when it is already Astra 6 Max; otherwise the helper launches pinned sessions.
+Run implementation mode with explicit scoped files and authorized local check commands. The reviewer critiques independently; the implementer accepts or challenges each finding; the reviewer responds; the coordinator decides from evidence; the implementer makes accepted scoped repairs; the reviewer checks the actual result. Only the implementer writes implementation files. Use the current conversation for coordinator stages only when its actual model and effort exactly match the frozen run profile; otherwise the helper launches pinned sessions.
 
 Keep repairs precise and surgical. Prefer existing components and simple mechanisms. Do not broaden the assignment to speculative cleanup or unrelated architecture work. Source, reproduced failures, and actual checks support decisions; agent agreement is insufficient verification.
 
