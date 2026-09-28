@@ -356,9 +356,9 @@ def packet(state):
             'checks': state.get('checks', []), 'agent_profile': effective_profile(state)}
 
 
-def decision_stage(state):
+def advisory_stage(state):
     return (state.get('implementation_evidence_version') == 1 and
-            state['stage'] in ('respond', 'reply', 'adjudicate'))
+            state['stage'] in ('respond', 'reply'))
 
 
 def prompt(state):
@@ -382,8 +382,8 @@ def prompt(state):
     finding_instructions = (
         'Return each existing finding exactly once and in its current order. For each finding, return only id, '
         'disposition, and rationale; the helper retains the immutable definition and verification fields. '
-        'Do not introduce findings in this decision stage. '
-        if decision_stage(state) else
+        'Do not introduce findings in this advisory stage. '
+        if advisory_stage(state) else
         'Preserve every existing finding ID; assign new sequential FIND-001 style IDs. '
         'Include a substantive rationale for every disposition. verification_evidence contains exact '
         'evidence_catalog keys only, without line suffixes or explanatory prose; put explanations in rationale. '
@@ -421,7 +421,7 @@ def provider_schema(state):
     schema = copy.deepcopy(PROVIDER_SCHEMA)
     for key in ('run_id', 'target_fingerprint', 'handoff_revision', 'stage'):
         schema['properties'][key]['enum'] = [state[key]]
-    if decision_stage(state):
+    if advisory_stage(state):
         findings = schema['properties']['findings']
         item = findings['items']
         item['properties'] = {
@@ -595,13 +595,24 @@ def validate_response(state, data):
     old = {f['id']: f for f in state['findings']}
     if not old.keys() <= set(ids):
         raise ReviewError('Existing findings were omitted; retain rejected and resolved records.')
-    if state['stage'] not in ('review', 'recheck') and set(ids) != old.keys():
-        raise ReviewError('Only independent review/recheck may introduce new findings.')
+    if state['stage'] not in ('review', 'recheck', 'adjudicate') and set(ids) != old.keys():
+        raise ReviewError('Only review, adjudication, or recheck may introduce new findings.')
+    new_ids = [finding_id for finding_id in ids if finding_id not in old]
+    if new_ids:
+        last_number = max((int(finding_id.split('-')[1]) for finding_id in old), default=0)
+        expected = [f'FIND-{number:03d}' for number in range(last_number + 1, last_number + len(new_ids) + 1)]
+        if new_ids != expected:
+            raise ReviewError('New findings require sequential IDs after the existing finding set.')
+    if state['stage'] == 'adjudicate' and ids[:len(old)] != list(old):
+        raise ReviewError('Adjudication must retain existing findings in canonical order before new findings.')
     catalog = evidence_catalog(state)
     definition_fields = ('severity', 'location', 'evidence', 'correction_recommended', 'acceptance_check')
     for f in data['findings']:
-        if f['id'] not in old and (f['disposition'] != 'OPEN' or f['verification_status'] != 'UNVERIFIED'):
-            raise ReviewError('New reviewer findings must start OPEN and UNVERIFIED.')
+        if f['id'] not in old and state['stage'] == 'adjudicate':
+            if f['verification_status'] != 'UNVERIFIED' or f['verification_evidence']:
+                raise ReviewError('New adjudication findings must start UNVERIFIED without verification evidence.')
+        elif f['id'] not in old and (f['disposition'] != 'OPEN' or f['verification_status'] != 'UNVERIFIED'):
+            raise ReviewError('New review findings must start OPEN and UNVERIFIED.')
         if f['id'] not in old and state.get('implementation_evidence_version') == 1:
             if not valid_scoped_location(state, f['location']):
                 raise ReviewError('New implementation findings require a scoped project-relative file location with an optional line or line range.')
@@ -645,16 +656,16 @@ def validate_response(state, data):
 
 
 def normalize_response(state, data):
-    if not decision_stage(state):
+    if not advisory_stage(state):
         return data
     errors = sorted(Draft202012Validator(provider_schema(state)).iter_errors(data),
                     key=lambda error: str(list(error.path)))
     if errors:
-        raise ReviewError('Invalid decision handoff: ' + errors[0].message)
+        raise ReviewError('Invalid advisory handoff: ' + errors[0].message)
     expected = [finding['id'] for finding in state['findings']]
     received = [assessment['id'] for assessment in data['findings']]
     if received != expected:
-        raise ReviewError('Decision findings must contain every existing ID exactly once and in current order.')
+        raise ReviewError('Advisory findings must contain every existing ID exactly once and in current order.')
     normalized = copy.deepcopy(data)
     normalized['findings'] = []
     for finding, assessment in zip(state['findings'], data['findings']):

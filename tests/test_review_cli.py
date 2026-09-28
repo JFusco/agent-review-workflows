@@ -57,7 +57,7 @@ class ReviewTests(unittest.TestCase):
 
     def response(self, fs=None):
         findings = copy.deepcopy(self.state['findings'] if fs is None else fs)
-        if r.decision_stage(self.state):
+        if r.advisory_stage(self.state):
             findings = [
                 {key: item[key] for key in ('id', 'disposition', 'rationale')}
                 for item in findings
@@ -637,11 +637,11 @@ class ReviewTests(unittest.TestCase):
         data.pop('handoff_revision')
         self.assertFalse(validator.is_valid(data))
 
-    def test_decision_schema_and_normalization_freeze_findings(self):
+    def test_advisory_schema_and_normalization_freeze_findings(self):
         first = finding()
         second = finding()
         second.update(id='FIND-002', location='test_calculator.py:4')
-        for stage in ('respond', 'reply', 'adjudicate'):
+        for stage in ('respond', 'reply'):
             with self.subTest(stage=stage):
                 self.state.update(stage=stage, findings=[first, second])
                 schema = r.provider_schema(self.state)
@@ -673,6 +673,56 @@ class ReviewTests(unittest.TestCase):
                     mutate(invalid)
                     with self.assertRaises(r.ReviewError):
                         r.normalize_response(self.state, invalid)
+
+    def test_adjudication_can_add_a_scoped_finding_without_mutating_existing_findings(self):
+        existing = finding()
+        self.state.update(stage='adjudicate', findings=[existing])
+        data = self.response()
+        data['findings'][0].update(
+            disposition='ACCEPTED', rationale='The original defect remains supported.',
+        )
+        discovered = finding()
+        discovered.update(
+            id='FIND-002', location='test_calculator.py:4',
+            evidence='Adjudication found a second in-scope defect in the reviewed source.',
+            correction_recommended='Correct the second defect within the authorized scope.',
+            acceptance_check='The focused regression covers the second defect.',
+            disposition='ACCEPTED', rationale='Current scoped evidence establishes the missed gap.',
+        )
+        data['findings'].append(discovered)
+        r.validate_response(self.state, data)
+        invalid_cases = []
+        omitted = copy.deepcopy(data)
+        omitted['findings'].pop(0)
+        invalid_cases.append(omitted)
+        reordered = copy.deepcopy(data)
+        reordered['findings'].reverse()
+        invalid_cases.append(reordered)
+        mutated = copy.deepcopy(data)
+        mutated['findings'][0]['evidence'] = 'Changed existing evidence.'
+        invalid_cases.append(mutated)
+        duplicate = copy.deepcopy(data)
+        duplicate['findings'].append(copy.deepcopy(duplicate['findings'][-1]))
+        invalid_cases.append(duplicate)
+        out_of_scope = copy.deepcopy(data)
+        out_of_scope['findings'][-1]['location'] = 'outside.py:1'
+        invalid_cases.append(out_of_scope)
+        verified = copy.deepcopy(data)
+        verified['findings'][-1].update(
+            verification_status='PASSED', verification_evidence=['SOURCE:test_calculator.py'],
+        )
+        invalid_cases.append(verified)
+        nonsequential = copy.deepcopy(data)
+        nonsequential['findings'][-1]['id'] = 'FIND-003'
+        invalid_cases.append(nonsequential)
+        for invalid in invalid_cases:
+            with self.assertRaises(r.ReviewError):
+                r.validate_response(self.state, invalid)
+
+        self.accept(data)
+        self.assertEqual(self.state['stage'], 'repair')
+        self.assertEqual([item['id'] for item in self.state['findings']], ['FIND-001', 'FIND-002'])
+        self.assertEqual(self.state['findings'][0]['evidence'], existing['evidence'])
 
     def test_advisory_artifact_retains_full_canonical_findings(self):
         self.accept(self.response([finding()]))
