@@ -49,6 +49,14 @@ Local verification passed Ruff, ESLint, 38 Python unit tests, 13 tooling tests,
 and wiki integrity. Hosted workflow execution, merge reconciliation, and automatic
 issue closure remain to be verified on the pull request and after merge.
 
+The first hosted Quality run exposed an implicit local dependency in the Python
+fixtures: setup resolved the real `codex` and `claude` executables before any
+provider stage was exercised. GitHub runners intentionally have neither. Test
+setup now points the documented executable overrides at the current test
+interpreter, keeping fixtures credential-free and provider-independent while
+leaving production executable resolution unchanged. The complete local gate
+passed again after this repair.
+
 Historical plan discovery initially recovered three planning variants for this
 repository without merged-PR evidence, so they remain `not-implemented` ledger
 rows rather than executed archives. After the new generic hook, workflow, and wiki
