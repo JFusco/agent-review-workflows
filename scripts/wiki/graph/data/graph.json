@@ -37,7 +37,7 @@
           "url": "https://github.com/jfusco/agent-review-workflows/issues/1"
         }
       ],
-      "bytes": 3046,
+      "bytes": 3571,
       "degree": 3,
       "x": -0.5,
       "y": 0.866025,
@@ -79,8 +79,15 @@
       "label": "Plan ledger",
       "type": "index",
       "aliases": [],
-      "githubRefs": [],
-      "bytes": 1346,
+      "githubRefs": [
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 38,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/38"
+        }
+      ],
+      "bytes": 17814,
       "degree": 3,
       "x": -0.5,
       "y": -0.866025,

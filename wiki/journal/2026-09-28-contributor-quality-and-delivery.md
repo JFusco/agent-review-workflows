@@ -48,3 +48,11 @@ deterministic fixtures and are not run merely to claim configuration coverage.
 Local verification passed Ruff, ESLint, 38 Python unit tests, 13 tooling tests,
 and wiki integrity. Hosted workflow execution, merge reconciliation, and automatic
 issue closure remain to be verified on the pull request and after merge.
+
+Historical plan discovery initially recovered three planning variants for this
+repository without merged-PR evidence, so they remain `not-implemented` ledger
+rows rather than executed archives. After the new generic hook, workflow, and wiki
+paths became tracked, discovery produced 56 cross-repository false associations.
+Their titles, sources, and path-only evidence were reviewed and recorded as
+`out-of-scope`; a final discovery reported 824 unmatched candidates and no matched
+or ambiguous work requiring another audit.
