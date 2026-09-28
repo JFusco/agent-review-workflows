@@ -10,8 +10,7 @@ publication, deployment, or merge behavior to the review workflows themselves.
 Run `pnpm run verify:ci` before delivery. This checks maintained Python and
 JavaScript, the Python unit suite, temporary-repository hook tests, and wiki
 integrity. Use `type(scope): subject` commit messages. Keep wiki hook failures
-advisory after blocking staged-file checks. Do not install or invoke `ai-commit`
-or `ai-pr`.
+advisory after blocking staged-file checks.
 
 ## Skill change quality
 

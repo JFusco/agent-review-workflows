@@ -14,8 +14,8 @@ Each workflow keeps a revision-bound decision ledger, separates review from repa
 ## How it works
 
 1. The helper snapshots an explicitly scoped target and records its fingerprint.
-2. The configured Claude reviewer independently reviews the plan or implementation.
-3. Codex agents respond to findings, adjudicate disagreements, and make only authorized changes.
+2. For implementations, it runs the configured checks and gives the reviewer the frozen-base diff, scoped sources, verbatim requirements, and exact check receipts.
+3. The configured Claude reviewer independently reports located, severity-ranked findings; the implementer and reviewer advise, the coordinator adjudicates, and only the implementer repairs accepted defects.
 4. The same reviewer rechecks the resulting target and configured checks gate completion.
 5. The workflow writes a readable handoff and immutable revision artifacts outside the reviewed project.
 
@@ -24,6 +24,8 @@ No model is silently substituted, and publication, deployment, or merge actions 
 ## Use
 
 From any project in Codex CLI, invoke `$review-plan` with the draft or `$review-implementation` with the change to review. A plain skill cannot change the invoking conversation's model; current-chat coordinator stages are allowed only when that conversation exactly matches the run's frozen coordinator profile.
+
+New implementation runs require Git, an explicit local `--base`, one or more `--scope` files, and at least one `--check`. They fail before creating artifacts if the base is invalid or the initial scoped diff is empty. Plan runs and previously created review runs retain their existing contracts.
 
 ## Configure models and effort
 
@@ -49,7 +51,7 @@ Add any desired partial overrides to the ignored `runtime.local.json` beside thi
 
 ## Install
 
-Requires macOS or Linux, Python 3.11+, Git for Git projects, authenticated `claude` and `codex` CLIs, and access to the configured models. From this directory:
+Requires macOS or Linux, Python 3.11+, Git for implementation reviews, authenticated `claude` and `codex` CLIs, and access to the configured models. From this directory:
 
 ```sh
 python3 -m venv .venv

@@ -24,6 +24,22 @@ CLI configuration records are observations from the local runtime, not independe
 
 Issue [#7](https://github.com/JFusco/agent-review-workflows/issues/7) added installation-local per-skill profiles and explicit per-run overrides. The expanded 49-test Python suite deterministically covers defaults, precedence, profile freezing, malformed configuration, provider and write boundaries, exact external-coordinator attestation, version-1 compatibility, and installer preservation. No new provider-backed trial was run: the live results below remain evidence for the built-in profile only, while custom-profile behavior is fixture evidence.
 
+### Evidence-complete implementation review
+
+Issue [#9](https://github.com/JFusco/agent-review-workflows/issues/9) makes the
+review input and decision boundary explicit for newly started implementation
+runs. The expanded 58-test Python suite verifies mandatory local bases and
+check commands, pre-artifact rejection, tracked and scoped-untracked diff capture,
+deletions, unrelated-change exclusion, complete reviewer packets, located
+findings, immutable finding definitions, advisory role assessments,
+coordinator-only adjudication, recheck-only verification, and legacy
+compatibility.
+
+This extension uses credential-free temporary Git repositories and local check
+commands. No new provider-backed trial was run. The live results below remain
+evidence for the built-in role and permission behavior only; they do not attest
+the new evidence contract.
+
 ## Live trials
 
 | Workflow | Result | Evidence |
