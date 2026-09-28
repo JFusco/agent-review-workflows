@@ -2,13 +2,13 @@
   "version": 1,
   "wikiRoot": "wiki",
   "counts": {
-    "nodes": 11,
-    "edges": 16,
+    "nodes": 15,
+    "edges": 23,
     "byType": {
       "index": 3,
-      "journal": 3,
-      "plan": 3,
-      "topic": 2
+      "journal": 4,
+      "plan": 5,
+      "topic": 3
     }
   },
   "nodes": [
@@ -37,10 +37,10 @@
           "url": "https://github.com/jfusco/agent-review-workflows/issues/7"
         }
       ],
-      "bytes": 2039,
-      "degree": 2,
-      "x": 0.415415,
-      "y": 0.909632,
+      "bytes": 2103,
+      "degree": 3,
+      "x": 0.669131,
+      "y": 0.743145,
       "size": 8
     },
     {
@@ -58,8 +58,8 @@
       ],
       "bytes": 4200,
       "degree": 3,
-      "x": -0.142315,
-      "y": 0.989821,
+      "x": 0.309017,
+      "y": 0.951057,
       "size": 8
     },
     {
@@ -77,8 +77,27 @@
       ],
       "bytes": 2180,
       "degree": 2,
-      "x": -0.654861,
-      "y": 0.75575,
+      "x": -0.104528,
+      "y": 0.994522,
+      "size": 8
+    },
+    {
+      "id": "wiki/journal/2026-09-28-implementation-review-evidence.md",
+      "label": "2026-09-28 — Evidence-complete implementation review",
+      "type": "journal",
+      "aliases": [],
+      "githubRefs": [
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 9,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/9"
+        }
+      ],
+      "bytes": 2766,
+      "degree": 2,
+      "x": -0.5,
+      "y": 0.866025,
       "size": 8
     },
     {
@@ -89,8 +108,8 @@
       "githubRefs": [],
       "bytes": 2904,
       "degree": 2,
-      "x": 0.841254,
-      "y": 0.540641,
+      "x": 0.913545,
+      "y": 0.406737,
       "size": 12
     },
     {
@@ -108,8 +127,8 @@
       ],
       "bytes": 1235,
       "degree": 4,
-      "x": -0.959493,
-      "y": 0.281733,
+      "x": -0.809017,
+      "y": 0.587785,
       "size": 8
     },
     {
@@ -120,8 +139,27 @@
       "githubRefs": [],
       "bytes": 4084,
       "degree": 3,
-      "x": -0.959493,
-      "y": -0.281733,
+      "x": -0.978148,
+      "y": 0.207912,
+      "size": 8
+    },
+    {
+      "id": "wiki/plans/2026-09-28-configurable-per-skill-agent-profiles-7f6f47fa15.md",
+      "label": "Configurable Per-Skill Agent Profiles",
+      "type": "plan",
+      "aliases": [],
+      "githubRefs": [
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "pull-request",
+          "number": 8,
+          "url": "https://github.com/jfusco/agent-review-workflows/pull/8"
+        }
+      ],
+      "bytes": 4673,
+      "degree": 3,
+      "x": -0.978148,
+      "y": -0.207912,
       "size": 8
     },
     {
@@ -139,8 +177,20 @@
       ],
       "bytes": 1060,
       "degree": 3,
-      "x": -0.654861,
-      "y": -0.75575,
+      "x": -0.809017,
+      "y": -0.587785,
+      "size": 8
+    },
+    {
+      "id": "wiki/plans/2026-09-28-make-review-implementation-evidence-complete-6f0a1ea9f8.md",
+      "label": "Make `review-implementation` evidence-complete",
+      "type": "plan",
+      "aliases": [],
+      "githubRefs": [],
+      "bytes": 4946,
+      "degree": 3,
+      "x": -0.5,
+      "y": -0.866025,
       "size": 8
     },
     {
@@ -154,12 +204,18 @@
           "kind": "issue",
           "number": 38,
           "url": "https://github.com/jfusco/agent-review-workflows/issues/38"
+        },
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "pull-request",
+          "number": 8,
+          "url": "https://github.com/jfusco/agent-review-workflows/pull/8"
         }
       ],
-      "bytes": 18522,
-      "degree": 5,
-      "x": -0.142315,
-      "y": -0.989821,
+      "bytes": 19286,
+      "degree": 7,
+      "x": -0.104528,
+      "y": -0.994522,
       "size": 12
     },
     {
@@ -183,8 +239,27 @@
       ],
       "bytes": 4290,
       "degree": 4,
-      "x": 0.415415,
-      "y": -0.909632,
+      "x": 0.309017,
+      "y": -0.951057,
+      "size": 8
+    },
+    {
+      "id": "wiki/topics/implementation-review-evidence.md",
+      "label": "Implementation review evidence",
+      "type": "topic",
+      "aliases": [],
+      "githubRefs": [
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 9,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/9"
+        }
+      ],
+      "bytes": 2433,
+      "degree": 2,
+      "x": 0.669131,
+      "y": -0.743145,
       "size": 8
     },
     {
@@ -201,13 +276,20 @@
         }
       ],
       "bytes": 2238,
-      "degree": 2,
-      "x": 0.841254,
-      "y": -0.540641,
+      "degree": 3,
+      "x": 0.913545,
+      "y": -0.406737,
       "size": 8
     }
   ],
   "edges": [
+    {
+      "id": "0a36c528abcc3a4d",
+      "source": "wiki/journal/2026-09-28-implementation-review-evidence.md",
+      "target": "wiki/topics/implementation-review-evidence.md",
+      "type": "topic",
+      "relation": "topic"
+    },
     {
       "id": "28b4f48e0f9586ea",
       "source": "wiki/plans/2026-09-28-configurable-per-skill-agent-profiles-1dacf57a38.md",
@@ -219,6 +301,13 @@
       "id": "2e6bd05b0933c7c5",
       "source": "wiki/journal/2026-09-28-deterministic-pull-request-structure.md",
       "target": "wiki/topics/contributor-quality-and-delivery.md",
+      "type": "topic",
+      "relation": "topic"
+    },
+    {
+      "id": "3166aaa41f584e1f",
+      "source": "wiki/plans/2026-09-28-make-review-implementation-evidence-complete-6f0a1ea9f8.md",
+      "target": "wiki/topics/implementation-review-evidence.md",
       "type": "topic",
       "relation": "topic"
     },
@@ -240,6 +329,13 @@
       "id": "60a712e77f83829c",
       "source": "wiki/journal/2026-09-28-contributor-quality-and-delivery.md",
       "target": "wiki/plans/2026-09-28-add-contributor-quality-gates-and-repository-wiki-00cc492088.md",
+      "type": "plan",
+      "relation": "plan"
+    },
+    {
+      "id": "617abcb418a4f365",
+      "source": "wiki/journal/2026-09-28-implementation-review-evidence.md",
+      "target": "wiki/plans/2026-09-28-make-review-implementation-evidence-complete-6f0a1ea9f8.md",
       "type": "plan",
       "relation": "plan"
     },
@@ -293,9 +389,30 @@
       "relation": "topic"
     },
     {
+      "id": "d266270b83e2b26e",
+      "source": "wiki/journal/2026-09-28-configurable-review-agent-profiles.md",
+      "target": "wiki/plans/2026-09-28-configurable-per-skill-agent-profiles-7f6f47fa15.md",
+      "type": "plan",
+      "relation": "plan"
+    },
+    {
+      "id": "d68febad601fd984",
+      "source": "wiki/plans/2026-09-28-configurable-per-skill-agent-profiles-7f6f47fa15.md",
+      "target": "wiki/topics/review-agent-profiles.md",
+      "type": "topic",
+      "relation": "topic"
+    },
+    {
       "id": "de1b869690c70313",
       "source": "wiki/plans/INDEX.md",
       "target": "wiki/plans/2026-09-28-add-contributor-quality-gates-and-repository-wiki-00cc492088.md",
+      "type": "link",
+      "relation": "link"
+    },
+    {
+      "id": "e2f82439f8f1ca71",
+      "source": "wiki/plans/INDEX.md",
+      "target": "wiki/plans/2026-09-28-make-review-implementation-evidence-complete-6f0a1ea9f8.md",
       "type": "link",
       "relation": "link"
     },
@@ -317,6 +434,13 @@
       "id": "fac009f8a6934a44",
       "source": "wiki/plans/INDEX.md",
       "target": "wiki/plans/2026-09-28-configurable-per-skill-agent-profiles-1dacf57a38.md",
+      "type": "link",
+      "relation": "link"
+    },
+    {
+      "id": "feda2b8ab5046bcb",
+      "source": "wiki/plans/INDEX.md",
+      "target": "wiki/plans/2026-09-28-configurable-per-skill-agent-profiles-7f6f47fa15.md",
       "type": "link",
       "relation": "link"
     }

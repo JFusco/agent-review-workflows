@@ -1,6 +1,6 @@
 ---
 topics: [review-agent-profiles]
-plans: [2026-09-28-configurable-per-skill-agent-profiles-1dacf57a38.md]
+plans: [2026-09-28-configurable-per-skill-agent-profiles-1dacf57a38.md, 2026-09-28-configurable-per-skill-agent-profiles-7f6f47fa15.md]
 issue: 'https://github.com/jfusco/agent-review-workflows/issues/7'
 issues: ['https://github.com/jfusco/agent-review-workflows/issues/7']
 ---

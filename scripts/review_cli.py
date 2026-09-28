@@ -10,6 +10,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import shlex
 import shutil
 import signal
@@ -266,6 +267,29 @@ def text_file(path):
         raise ReviewError(f'Cannot snapshot text input: {path}') from exc
 
 
+def scoped_diff(project, base, scope):
+    result = command(['git', 'diff', '--no-ext-diff', '--no-textconv', base, '--', *scope], project)
+    if result.returncode:
+        raise ReviewError('Cannot produce scoped diff against the recorded base.')
+    sections = [result.stdout.rstrip('\n')] if result.stdout else []
+    for name in scope:
+        path = project / name
+        if not path.exists():
+            continue
+        tracked = command(['git', 'ls-files', '--error-unmatch', '--', name], project)
+        if tracked.returncode == 0:
+            continue
+        addition = command(
+            ['git', 'diff', '--no-index', '--no-ext-diff', '--no-textconv', '--', '/dev/null', name],
+            project,
+        )
+        if addition.returncode not in (0, 1):
+            raise ReviewError(f'Cannot produce scoped diff for untracked file: {name}')
+        if addition.stdout:
+            sections.append(addition.stdout.rstrip('\n'))
+    return '\n'.join(sections) + ('\n' if sections else '')
+
+
 def target(state):
     project = Path(state['project'])
     files = {}
@@ -280,10 +304,13 @@ def target(state):
         plan = text_file(Path(state['plan_file']))
     data = {'files': files, 'plan': plan, 'base': state.get('base')}
     if state.get('base'):
-        result = command(['git', 'diff', '--no-ext-diff', '--no-textconv', state['base'], '--', *state['scope']], project)
-        if result.returncode:
-            raise ReviewError('Cannot produce scoped diff against the recorded base.')
-        data['diff'] = result.stdout
+        if state.get('implementation_evidence_version') == 1:
+            data['diff'] = scoped_diff(project, state['base'], state['scope'])
+        else:
+            result = command(['git', 'diff', '--no-ext-diff', '--no-textconv', state['base'], '--', *state['scope']], project)
+            if result.returncode:
+                raise ReviewError('Cannot produce scoped diff against the recorded base.')
+            data['diff'] = result.stdout
     if len(dumps(data).encode()) > MAX_BYTES:
         raise ReviewError('Scoped target exceeds 4 MiB. Narrow the scope; input was not truncated.')
     return data
@@ -340,6 +367,13 @@ def prompt(state):
         'recheck': 'Independently verify the revised target and evidence. Retain all previous finding IDs. Mark accepted findings PASSED only with specific current evidence references; otherwise FAILED, BLOCKED or UNVERIFIED. New findings remain OPEN.',
         'finalize': 'Summarize the reviewed outcome and remaining limitations. Do not edit anything. Copy the entire findings array verbatim, preserving every field, string, and ordering exactly. For plan mode return the current plan verbatim in plan_markdown.',
     }
+    if state.get('implementation_evidence_version') == 1:
+        stage_text.update({
+            'review': 'Independently review the requirements, actual target diff, scoped sources, and check results. New findings must be OPEN and UNVERIFIED. No findings is valid.',
+            'respond': 'Recommend ACCEPTED, REJECTED, or PENDING_USER for every finding and explain the evidence. This recommendation is advisory; propose surgical corrections and do not edit files.',
+            'reply': 'Independently answer the implementer recommendation for every finding. This reply is advisory; test its reasoning against source and do not edit files.',
+            'adjudicate': 'Make the authoritative finding decisions from the review, implementer recommendation, reviewer reply, source, and checks. Every finding must be ACCEPTED, REJECTED, or PENDING_USER. Do not edit files.',
+        })
     header = ('You are the ' + ROLE_LABELS[role(state)] + ' in a bounded adversarial review. '
               + stage_text[state['stage']] + '\n'
               'Precise, surgical changes; stay in scope; no over-architecting or complex mechanics. '
@@ -359,6 +393,11 @@ def prompt(state):
                    'An existing code defect is evidence for improving the plan, not an obligation to fix code now. '
                    'At recheck, PASSED means the revised plan addresses the objection; it never claims implementation or tests passed. '
                    'Do not execute project code or test commands during plan review.\n')
+    elif state.get('implementation_evidence_version') == 1:
+        header += ('This is an IMPLEMENTATION review. Every new finding location must be an exact scoped project-relative '
+                   'file path, optionally followed by :line or :start-end. BLOCKER, WARN, and SUGGESTION are the only '
+                   'severity values. Locate the defect in the reviewed change, provide concrete evidence, recommend the '
+                   'smallest correction, and state an observable acceptance check.\n')
     result = header + '\nCURRENT HANDOFF\n' + dumps(packet(state))
     if len(result.encode()) > MAX_BYTES:
         raise ReviewError('Full handoff exceeds 4 MiB; narrow the review scope. Nothing was truncated.')
@@ -504,6 +543,20 @@ def extract_response(state, call_dir):
     return data, session, {'model': model, 'effort': effort, 'observed': observed}
 
 
+def valid_scoped_location(state, location):
+    for name in sorted(state['scope'], key=len, reverse=True):
+        if location == name:
+            return True
+        prefix = name + ':'
+        if not location.startswith(prefix):
+            continue
+        match = re.fullmatch(r'([1-9][0-9]*)(?:-([1-9][0-9]*))?', location[len(prefix):])
+        if not match:
+            return False
+        return match.group(2) is None or int(match.group(2)) >= int(match.group(1))
+    return False
+
+
 def validate_response(state, data):
     errors = sorted(VALIDATOR.iter_errors(data), key=lambda e: str(list(e.path)))
     if errors:
@@ -520,9 +573,16 @@ def validate_response(state, data):
     if state['stage'] not in ('review', 'recheck') and set(ids) != old.keys():
         raise ReviewError('Only independent review/recheck may introduce new findings.')
     catalog = evidence_catalog(state)
+    definition_fields = ('severity', 'location', 'evidence', 'correction_recommended', 'acceptance_check')
     for f in data['findings']:
         if f['id'] not in old and (f['disposition'] != 'OPEN' or f['verification_status'] != 'UNVERIFIED'):
             raise ReviewError('New reviewer findings must start OPEN and UNVERIFIED.')
+        if f['id'] not in old and state.get('implementation_evidence_version') == 1:
+            if not valid_scoped_location(state, f['location']):
+                raise ReviewError('New implementation findings require a scoped project-relative file location with an optional line or line range.')
+        if (state.get('implementation_evidence_version') == 1 and f['id'] in old and
+                any(f[field] != old[f['id']][field] for field in definition_fields)):
+            raise ReviewError('Existing finding definitions are immutable; respond through disposition and rationale.')
         if f['disposition'] != 'OPEN' and not f['rationale'].strip():
             raise ReviewError('Decisions require a rationale.')
         if any(ref not in catalog for ref in f['verification_evidence']):
@@ -534,6 +594,14 @@ def validate_response(state, data):
                 raise ReviewError('Only independent recheck may newly mark a finding PASSED.')
         if state['stage'] == 'adjudicate' and f['disposition'] == 'OPEN':
             raise ReviewError('Adjudication must decide each finding or identify a user decision.')
+        if (state.get('implementation_evidence_version') == 1 and
+                state['stage'] in ('respond', 'reply') and f['disposition'] == 'OPEN'):
+            raise ReviewError('Implementer and reviewer recommendations must assess every finding.')
+        if (state.get('implementation_evidence_version') == 1 and f['id'] in old and
+                state['stage'] != 'recheck' and
+                (f['verification_status'] != old[f['id']]['verification_status'] or
+                 f['verification_evidence'] != old[f['id']]['verification_evidence'])):
+            raise ReviewError('Only independent recheck may change implementation verification fields.')
     if state['stage'] in ('repair', 'refine', 'recheck'):
         if any(f['id'] in old and f['disposition'] != old[f['id']]['disposition'] for f in data['findings']):
             raise ReviewError('Repair/refinement/recheck cannot change the adjudicated dispositions.')
@@ -593,10 +661,27 @@ def complete_findings(state):
 
 
 def checks_pass(state):
-    return state['mode'] == 'plan' or (
+    if state['mode'] == 'plan':
+        return True
+    if state.get('implementation_evidence_version') == 1 and not state['check_commands']:
+        return False
+    return (
         len(state['checks']) == len(state['check_commands']) and
         all(c['exit_code'] == 0 and c['target_fingerprint'] == state['target_fingerprint']
             and c['argv'] == argv for c, argv in zip(state['checks'], state['check_commands'])))
+
+
+def finding_assessments(findings):
+    return [
+        {
+            'id': finding['id'],
+            'disposition': finding['disposition'],
+            'rationale': finding['rationale'],
+            'verification_status': finding['verification_status'],
+            'verification_evidence': copy.deepcopy(finding['verification_evidence']),
+        }
+        for finding in findings
+    ]
 
 
 def next_artifact(run, state):
@@ -619,7 +704,10 @@ def accept(run, state, data, config, session=None):
     state['inventory'] = after
     if session:
         state['sessions'][role(state)] = session
-    state['findings'] = copy.deepcopy(data['findings'])
+    submitted_findings = copy.deepcopy(data['findings'])
+    advisory = state.get('implementation_evidence_version') == 1 and stage in ('respond', 'reply')
+    if not advisory:
+        state['findings'] = copy.deepcopy(submitted_findings)
     if stage == 'refine':
         state['current_plan'] = data['plan_markdown']
     if stage in ('refine', 'repair'):
@@ -635,8 +723,10 @@ def accept(run, state, data, config, session=None):
     artifact_id, orphaned = next_artifact(run, state)
     entry = {'artifact_id': artifact_id, 'parent_artifact_id': state['ledger'][-1]['artifact_id'] if state['ledger'] else None,
              'stage': stage, 'agent': config, 'summary': data['summary'], 'target_before': previous_fingerprint,
-             'target_after': state['target_fingerprint'], 'finding_ids': [f['id'] for f in state['findings']],
+             'target_after': state['target_fingerprint'], 'finding_ids': [f['id'] for f in submitted_findings],
              'orphaned_artifacts': orphaned, 'handoff_revision': state['handoff_revision']}
+    if state.get('implementation_evidence_version') == 1:
+        entry['finding_assessments'] = finding_assessments(submitted_findings)
     artifact = {'schema_version': 1, 'run_id': state['run_id'], **entry, 'response': data,
                 'target': new_target, 'findings': state['findings']}
     write_new(run / 'artifacts' / f'{artifact_id}.json', artifact)
@@ -696,6 +786,8 @@ def reconcile(run, state, note):
              'target_before': before, 'target_after': state['target_fingerprint'],
              'finding_ids': [f['id'] for f in state['findings']], 'orphaned_artifacts': orphaned,
              'handoff_revision': state['handoff_revision']}
+    if state.get('implementation_evidence_version') == 1:
+        entry['finding_assessments'] = finding_assessments(state['findings'])
     state['checks'] = []
     for finding in state['findings']:
         if finding['disposition'] == 'ACCEPTED':
@@ -726,6 +818,12 @@ def render(run, state):
         lines += [f'## {entry["artifact_id"]}: {entry["stage"]}', '',
                   f'By {model} ({entry["agent"]["effort"]}); parent: {entry["parent_artifact_id"] or "original"}.',
                   entry['summary'], 'Related findings: ' + (', '.join(entry['finding_ids']) or 'none'), '']
+        for assessment in entry.get('finding_assessments', []):
+            rationale = assessment['rationale'] or 'No rationale recorded.'
+            lines += [f'- {assessment["id"]}: {assessment["disposition"]} / '
+                      f'{assessment["verification_status"]} — {rationale}']
+        if entry.get('finding_assessments'):
+            lines.append('')
     for f in state['findings']:
         lines += [f'## {f["id"]}: {f["severity"]}', '', f'Location: {f["location"]}',
                   f'Evidence: {f["evidence"]}', f'Correction: {f["correction_recommended"]}',
@@ -864,11 +962,6 @@ def initialize(args):
     root = runs_root(args.runs_dir)
     if root == project or root.is_relative_to(project):
         raise ReviewError('Run artifacts must be outside the target project.')
-    root.mkdir(parents=True, exist_ok=True)
-    run = root / str(uuid.uuid4())
-    run.mkdir(mode=0o700)
-    (run / 'calls').mkdir()
-    (run / 'executor').mkdir()
     # Include ancestor/root and scoped-path instructions without bulk-loading unrelated docs.
     instruction_paths = set()
     for directory in [*reversed(project.parents), project]:
@@ -884,28 +977,47 @@ def initialize(args):
                 p = directory / instruction
                 if p.is_file():
                     instruction_paths.add(p)
-    state = {'schema_version': 2, 'run_id': run.name, 'project': str(project), 'mode': args.mode,
-             'codex_binary': codex_binary, 'claude_binary': claude_binary,
-             'agent_profile': agent_profile,
-             'scope': sorted(set(scope)), 'requirements': requirements, 'plan_file': str(Path(args.plan).expanduser().resolve()) if args.plan else None,
-             'current_plan': None, 'original_plan_hash': digest(text_file(Path(args.plan).expanduser().resolve())) if args.plan else None,
-             'base': None, 'timeout': args.timeout, 'stage': 'review', 'status': 'ready', 'round': 0,
-             'findings': [], 'ledger': [], 'sessions': {}, 'checks': [], 'error': None, 'handoff_revision': 0,
-             'instructions': {str(p): text_file(p) for p in sorted(instruction_paths)},
-             'check_commands': [shlex.split(c) for c in args.check]}
-    if any(not c for c in state['check_commands']):
+    check_commands = [shlex.split(check) for check in args.check]
+    if any(not check for check in check_commands):
         raise ReviewError('Check commands cannot be empty.')
+    if args.mode == 'implementation' and not args.base:
+        raise ReviewError('Implementation reviews require an explicit --base resolving to a local commit.')
+    if args.mode == 'implementation' and not check_commands:
+        raise ReviewError('Implementation reviews require at least one explicit --check command.')
+    base = None
     if args.base:
         result = command(['git', 'rev-parse', '--verify', args.base + '^{commit}'], project)
         if result.returncode:
             raise ReviewError('Base must resolve to a local commit.')
-        state['base'] = result.stdout.strip()
+        base = result.stdout.strip()
+    run_id = str(uuid.uuid4())
+    state = {'schema_version': 2, 'run_id': run_id, 'project': str(project), 'mode': args.mode,
+             'codex_binary': codex_binary, 'claude_binary': claude_binary,
+             'agent_profile': agent_profile,
+             'scope': sorted(set(scope)), 'requirements': requirements, 'plan_file': str(Path(args.plan).expanduser().resolve()) if args.plan else None,
+             'current_plan': None, 'original_plan_hash': digest(text_file(Path(args.plan).expanduser().resolve())) if args.plan else None,
+             'base': base, 'timeout': args.timeout, 'stage': 'review', 'status': 'ready', 'round': 0,
+             'findings': [], 'ledger': [], 'sessions': {}, 'checks': [], 'error': None, 'handoff_revision': 0,
+             'instructions': {str(p): text_file(p) for p in sorted(instruction_paths)},
+             'check_commands': check_commands}
+    if args.mode == 'implementation':
+        state['implementation_evidence_version'] = 1
     state['inventory'] = inventory(project)
     initial = target(state)
+    if args.mode == 'implementation' and not initial['diff'].strip():
+        raise ReviewError('Implementation reviews require a nonempty scoped diff against --base.')
     state['target_fingerprint'] = digest(initial)
-    write_new(run / 'original.json', {'requirements': requirements, 'target': initial,
-              'inventory': state['inventory'], 'instructions': state['instructions'],
-              'agent_profile': agent_profile})
+    root.mkdir(parents=True, exist_ok=True)
+    run = root / run_id
+    run.mkdir(mode=0o700)
+    (run / 'calls').mkdir()
+    (run / 'executor').mkdir()
+    original = {'requirements': requirements, 'target': initial,
+                'inventory': state['inventory'], 'instructions': state['instructions'],
+                'agent_profile': agent_profile}
+    if state.get('implementation_evidence_version') == 1:
+        original.update(check_commands=check_commands, implementation_evidence_version=1)
+    write_new(run / 'original.json', original)
     save(run, state)
     render(run, state)
     return run, state
@@ -920,9 +1032,9 @@ def build_parser():
     start.add_argument('--requirements', required=True, help='Text file describing scope, requirements, authorization and acceptance checks.')
     start.add_argument('--plan')
     start.add_argument('--scope', action='append', default=[])
-    start.add_argument('--base', help='Local Git ref for a branch diff; resolved once to a commit.')
+    start.add_argument('--base', help='Local Git ref for a branch diff; required for implementation and resolved once to a commit.')
     start.add_argument('--runs-dir')
-    start.add_argument('--check', action='append', default=[], help='Authorized local check command, split into argv; shell operators are not executed.')
+    start.add_argument('--check', action='append', default=[], help='Authorized local check command; at least one is required for implementation and shell operators are not executed.')
     start.add_argument('--timeout', type=int, default=900, help='Per-agent/check seconds; default 15 minutes, bounded to 1–3600.')
     start.add_argument('--reviewer-model')
     start.add_argument('--reviewer-effort', choices=sorted(PROVIDER_EFFORTS['claude']))

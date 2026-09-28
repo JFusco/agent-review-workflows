@@ -42,12 +42,14 @@ class ReviewTests(unittest.TestCase):
         self.addCleanup(cli_environment.stop)
         self.project = self.root / 'project'
         self.project.mkdir()
-        for name in ('calculator.py', 'test_calculator.py'):
-            (self.project / name).write_text((ROOT / 'tests/fixtures' / name).read_text())
+        buggy_calculator = (ROOT/'tests/fixtures/calculator.py').read_text()
+        (self.project/'calculator.py').write_text(buggy_calculator.replace('(len(values) + 1)', 'len(values)'))
+        (self.project/'test_calculator.py').write_text((ROOT/'tests/fixtures/test_calculator.py').read_text())
         (self.project / '.gitignore').write_text('__pycache__/\n')
         subprocess.run(['git', 'init', '-q', str(self.project)], check=True)
         subprocess.run(['git', '-C', str(self.project), 'add', '.'], check=True)
         subprocess.run(['git', '-C', str(self.project), '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'Fixture'], check=True)
+        (self.project/'calculator.py').write_text(buggy_calculator)
         self.args = argparse.Namespace(project=str(self.project), mode='implementation', scope=['calculator.py','test_calculator.py'],
                     requirements=str(ROOT/'tests/fixtures/requirements.md'), plan=None, runs_dir=str(self.root/'runs'),
                     base='HEAD', timeout=60, check=[f'{sys.executable} -m unittest -v'])
@@ -65,13 +67,21 @@ class ReviewTests(unittest.TestCase):
         r.accept(self.run, self.state, data,
                  {'model': model, 'effort': effort, 'observed': {'source': 'fixture'}})
 
+    def use_passing_check(self):
+        self.state['check_commands'] = [[sys.executable, '-c', 'pass']]
+        r.perform_checks(self.run, self.state)
+
     def to_repair(self):
         self.accept(self.response([finding()]))
         data=self.response()
-        data['findings'][0].update(disposition='ACCEPTED', rationale='Confirmed numerical defect.')
+        data['findings'][0].update(disposition='ACCEPTED', rationale='Implementer recommends the evidenced correction.')
         self.accept(data)
-        self.accept(self.response())
-        self.accept(self.response())
+        data=self.response()
+        data['findings'][0].update(disposition='ACCEPTED', rationale='Reviewer agrees that the evidence demonstrates the defect.')
+        self.accept(data)
+        data=self.response()
+        data['findings'][0].update(disposition='ACCEPTED', rationale='Coordinator accepts the defect for repair.')
+        self.accept(data)
         self.assertEqual(self.state['stage'], 'repair')
 
     def test_schema_valid(self):
@@ -94,6 +104,43 @@ class ReviewTests(unittest.TestCase):
         self.assertEqual(self.state['stage'], 'review')
         self.assertEqual(self.state['ledger'], [])
 
+    def test_new_implementation_findings_require_scoped_locations(self):
+        for location in ('calculator.py', 'calculator.py:5', 'calculator.py:5-8'):
+            with self.subTest(valid=location):
+                item = finding()
+                item['location'] = location
+                r.validate_response(self.state, self.response([item]))
+        for location in ('N/A', 'unrelated.py:1', 'calculator.py:0', 'calculator.py:8-5'):
+            with self.subTest(invalid=location):
+                item = finding()
+                item['location'] = location
+                with self.assertRaisesRegex(r.ReviewError, 'scoped project-relative file location'):
+                    r.validate_response(self.state, self.response([item]))
+
+    def test_existing_finding_definition_is_immutable(self):
+        self.accept(self.response([finding()]))
+        data = self.response()
+        data['findings'][0].update(
+            disposition='ACCEPTED', rationale='Recommendation with altered evidence.', evidence='Rewritten evidence.',
+        )
+        with self.assertRaisesRegex(r.ReviewError, 'definitions are immutable'):
+            r.validate_response(self.state, data)
+
+    def test_reviewer_packet_contains_requirements_diff_and_check_receipt(self):
+        r.perform_checks(self.run, self.state)
+        current = r.packet(self.state)
+        self.assertEqual(current['requirements'], (ROOT/'tests/fixtures/requirements.md').read_text())
+        self.assertIn('diff --git a/calculator.py b/calculator.py', current['target']['diff'])
+        self.assertEqual(current['target']['files']['calculator.py'], (ROOT/'tests/fixtures/calculator.py').read_text())
+        self.assertEqual(current['findings'], [])
+        self.assertEqual(current['decision_ledger'], [])
+        self.assertEqual(len(current['checks']), 1)
+        self.assertEqual(current['checks'][0]['argv'], self.state['check_commands'][0])
+        self.assertNotEqual(current['checks'][0]['exit_code'], 0)
+        self.assertIn('FAILED', current['checks'][0]['output'])
+        self.assertEqual(current['checks'][0]['target_fingerprint'], self.state['target_fingerprint'])
+        self.assertIn('actual target diff', r.prompt(self.state))
+
     def test_duplicate_json_keys_rejected(self):
         p=self.root/'duplicate.json'
         p.write_text('{"a":1,"a":2}')
@@ -103,10 +150,77 @@ class ReviewTests(unittest.TestCase):
         (self.project/'calculator.py').write_text('changed')
         with self.assertRaises(r.ReviewError): r.assert_fresh(self.state)
 
+    def test_implementation_evidence_preflight_fails_before_run_creation(self):
+        cases = [
+            ('missing-base', {'base': None}, 'explicit --base'),
+            ('invalid-base', {'base': 'missing-ref'}, 'local commit'),
+            ('missing-check', {'check': []}, 'at least one explicit --check'),
+        ]
+        for name, changes, message in cases:
+            with self.subTest(name=name):
+                args = copy.deepcopy(self.args)
+                args.runs_dir = str(self.root/f'{name}-runs')
+                for field, value in changes.items():
+                    setattr(args, field, value)
+                with self.assertRaisesRegex(r.ReviewError, message):
+                    r.initialize(args)
+                self.assertFalse(Path(args.runs_dir).exists())
+
+        clean = subprocess.run(
+            ['git', '-C', str(self.project), 'show', 'HEAD:calculator.py'],
+            check=True, capture_output=True, text=True,
+        ).stdout
+        (self.project/'calculator.py').write_text(clean)
+        args = copy.deepcopy(self.args)
+        args.runs_dir = str(self.root/'empty-diff-runs')
+        with self.assertRaisesRegex(r.ReviewError, 'nonempty scoped diff'):
+            r.initialize(args)
+        self.assertFalse(Path(args.runs_dir).exists())
+
+    def test_plan_start_remains_base_and_check_optional(self):
+        args = copy.deepcopy(self.args)
+        args.mode = 'plan'
+        args.plan = str(ROOT/'tests/fixtures/sound-plan.md')
+        args.base = None
+        args.check = []
+        args.runs_dir = str(self.root/'base-less-plan-runs')
+        _, state = r.initialize(args)
+        self.assertIsNone(state['base'])
+        self.assertEqual(state['check_commands'], [])
+        self.assertNotIn('implementation_evidence_version', state)
+        original = r.read_json(Path(args.runs_dir)/state['run_id']/'original.json')
+        self.assertNotIn('implementation_evidence_version', original)
+        self.assertNotIn('check_commands', original)
+        self.assertNotIn('actual target diff', r.prompt(state))
+
+    def test_scoped_diff_includes_untracked_empty_and_deleted_files(self):
+        (self.project/'added.py').write_text('VALUE = 1\n')
+        (self.project/'empty.py').write_text('')
+        (self.project/'unrelated.py').write_text('OUTSIDE = True\n')
+        (self.project/'test_calculator.py').unlink()
+        args = copy.deepcopy(self.args)
+        args.scope = ['calculator.py', 'test_calculator.py', 'added.py', 'empty.py']
+        args.runs_dir = str(self.root/'complete-diff-runs')
+        _, state = r.initialize(args)
+        current = r.target(state)
+        expected_base = subprocess.run(
+            ['git', '-C', str(self.project), 'rev-parse', 'HEAD'],
+            check=True, capture_output=True, text=True,
+        ).stdout.strip()
+        self.assertEqual(current['base'], expected_base)
+        self.assertIn('diff --git a/calculator.py b/calculator.py', current['diff'])
+        self.assertIn('deleted file mode', current['diff'])
+        self.assertIn('diff --git a/added.py b/added.py', current['diff'])
+        self.assertIn('new file mode', current['diff'])
+        self.assertIn('diff --git a/empty.py b/empty.py', current['diff'])
+        self.assertNotIn('unrelated.py', current['diff'])
+        self.assertIsNone(current['files']['test_calculator.py'])
+        self.assertEqual(current['files']['empty.py'], '')
+        self.assertEqual(state['requirements'], (ROOT/'tests/fixtures/requirements.md').read_text())
+
     def test_initialize_rejects_symlinked_scope_parent(self):
         (self.project/'.gitignore').write_text('__pycache__/\nbuild/\n')
         (self.project/'build').mkdir()
-        self.args.base = None
         for alias, destination, leaf in (('gitlink', '.git', 'hooks/pre-commit'),
                                           ('buildlink', 'build', 'output.py')):
             with self.subTest(destination=destination):
@@ -118,7 +232,6 @@ class ReviewTests(unittest.TestCase):
     def test_freshness_rejects_ignored_symlinked_scope_parent(self):
         (self.project/'.gitignore').write_text('__pycache__/\nbuild/\nalias\n')
         (self.project/'build').mkdir()
-        self.args.base = None
         self.args.scope = ['calculator.py', 'alias/leaf.py']
         _, state = r.initialize(self.args)
         self.assertIsNotNone(r.target(state)['files']['calculator.py'])
@@ -193,6 +306,49 @@ class ReviewTests(unittest.TestCase):
         data=self.response(); data['findings'][0].update(disposition='REJECTED',rationale='Changed mind')
         with self.assertRaises(r.ReviewError): r.validate_response(self.state,data)
 
+    def test_coordinator_receives_both_advisory_assessments(self):
+        self.accept(self.response([finding()]))
+        implementer = self.response()
+        implementer['findings'][0].update(
+            disposition='ACCEPTED', rationale='Implementer recommends accepting the reproduced defect.',
+        )
+        self.accept(implementer)
+        self.assertEqual(self.state['findings'][0]['disposition'], 'OPEN')
+        reviewer = self.response()
+        reviewer['findings'][0].update(
+            disposition='ACCEPTED', rationale='Reviewer independently agrees with the recommendation.',
+        )
+        self.accept(reviewer)
+        self.assertEqual(self.state['stage'], 'adjudicate')
+        self.assertEqual(self.state['findings'][0]['disposition'], 'OPEN')
+        history = r.packet(self.state)['decision_ledger']
+        self.assertEqual([entry['stage'] for entry in history], ['review', 'respond', 'reply'])
+        self.assertEqual(
+            history[1]['finding_assessments'][0]['rationale'],
+            'Implementer recommends accepting the reproduced defect.',
+        )
+        self.assertEqual(
+            history[2]['finding_assessments'][0]['rationale'],
+            'Reviewer independently agrees with the recommendation.',
+        )
+        coordinator = self.response()
+        coordinator['findings'][0].update(
+            disposition='ACCEPTED', rationale='Coordinator authoritatively accepts the finding.',
+        )
+        self.accept(coordinator)
+        self.assertEqual(self.state['stage'], 'repair')
+        self.assertEqual(self.state['findings'][0]['disposition'], 'ACCEPTED')
+
+    def test_only_recheck_can_change_implementation_verification(self):
+        self.accept(self.response([finding()]))
+        implementer = self.response()
+        implementer['findings'][0].update(
+            disposition='ACCEPTED', rationale='Recommendation cannot set verification.',
+            verification_status='FAILED',
+        )
+        with self.assertRaisesRegex(r.ReviewError, 'Only independent recheck'):
+            r.validate_response(self.state, implementer)
+
     def test_recheck_preserves_dispositions_and_allows_new_findings(self):
         accepted=finding(); accepted.update(disposition='ACCEPTED',rationale='Adjudicated defect.')
         self.state.update(stage='recheck',findings=[accepted])
@@ -204,10 +360,14 @@ class ReviewTests(unittest.TestCase):
         r.validate_response(self.state,data)
 
     def test_false_positive_retained(self):
-        self.state['check_commands'] = []
+        self.use_passing_check()
         self.accept(self.response([finding()]))
         data=self.response(); data['findings'][0].update(disposition='REJECTED',rationale='Independent reproduction disproves the claimed defect.')
-        self.accept(data); self.accept(self.response()); self.accept(self.response())
+        self.accept(data)
+        data=self.response(); data['findings'][0].update(disposition='REJECTED',rationale='Reviewer agrees the finding is unsupported.')
+        self.accept(data)
+        data=self.response(); data['findings'][0].update(disposition='REJECTED',rationale='Coordinator rejects the unsupported finding.')
+        self.accept(data)
         self.assertEqual(self.state['stage'],'finalize')
         self.accept(self.response())
         self.assertEqual(self.state['findings'][0]['disposition'],'REJECTED')
@@ -349,7 +509,7 @@ class ReviewTests(unittest.TestCase):
         payload = r.status_payload(self.run, self.state)
         self.assertEqual(payload['agent_profile'], self.state['agent_profile'])
         self.assertEqual(r.packet(self.state)['agent_profile'], self.state['agent_profile'])
-        self.state['check_commands'] = []
+        self.use_passing_check()
         self.accept(self.response([]))
         self.assertEqual(self.state['ledger'][0]['agent']['model'], 'claude-visible-reviewer')
         handoff = (self.run/'handoff.md').read_text()
@@ -479,6 +639,28 @@ class ReviewTests(unittest.TestCase):
                                 'target_fingerprint': '0'*64}]
         self.assertFalse(r.checks_pass(self.state))
 
+    def test_legacy_runs_keep_base_less_and_check_less_compatibility(self):
+        legacy = copy.deepcopy(self.state)
+        legacy.pop('implementation_evidence_version')
+        legacy['base'] = None
+        legacy['check_commands'] = []
+        legacy['checks'] = []
+        self.assertNotIn('diff', r.target(legacy))
+        self.assertTrue(r.checks_pass(legacy))
+        legacy['stage'] = 'respond'
+        legacy['findings'] = [finding()]
+        response = {
+            'run_id': legacy['run_id'], 'target_fingerprint': legacy['target_fingerprint'],
+            'handoff_revision': legacy['handoff_revision'], 'stage': legacy['stage'],
+            'summary': 'Legacy-compatible response.', 'findings': copy.deepcopy(legacy['findings']),
+            'plan_markdown': None,
+        }
+        response['findings'][0]['evidence'] = 'Legacy runs retain their prior mutable definition behavior.'
+        r.validate_response(legacy, response)
+        self.state['check_commands'] = []
+        self.state['checks'] = []
+        self.assertFalse(r.checks_pass(self.state))
+
     def test_context_revision_prevents_replay_after_user_decision(self):
         self.state['stage'] = 'adjudicate'
         stale = self.response([])
@@ -584,7 +766,7 @@ class ReviewTests(unittest.TestCase):
         self.assertEqual(self.state, before)
 
     def test_final_view_regenerates_from_accepted_artifact(self):
-        self.state['check_commands'] = []
+        self.use_passing_check()
         self.accept(self.response([]))
         self.accept(self.response([]))
         expected = (self.run/'final.md').read_text()
