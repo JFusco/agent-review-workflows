@@ -1,0 +1,6 @@
+interface:
+  display_name: "Review a plan"
+  short_description: "Adversarial review and surgical plan refinement"
+  default_prompt: "Use $review-plan to review this draft with Opus and return the complete refined plan."
+policy:
+  allow_implicit_invocation: true

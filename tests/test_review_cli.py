@@ -1,0 +1,439 @@
+import argparse
+import copy
+import importlib.util
+import json
+import os
+from pathlib import Path
+import subprocess
+import signal
+import sys
+import tempfile
+import unittest
+from unittest.mock import patch
+
+ROOT = Path(__file__).resolve().parents[1]
+spec = importlib.util.spec_from_file_location('review_cli', ROOT / 'scripts/review_cli.py')
+r = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(r)
+
+
+def finding():
+    return {'id': 'FIND-001', 'severity': 'WARN', 'location': 'calculator.py:5',
+            'evidence': 'For [2,4], dividing 6 by 3 returns 2.', 'correction_recommended': 'Divide by the number of values.',
+            'acceptance_check': 'average([2,4]) == 3', 'disposition': 'OPEN', 'rationale': '',
+            'verification_status': 'UNVERIFIED', 'verification_evidence': []}
+
+
+class ReviewTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name).resolve()
+        self.lock_root = self.root / 'locks'
+        self.lock_root.mkdir()
+        lock_root_patch = patch.object(r, 'LOCK_ROOT', self.lock_root)
+        lock_root_patch.start()
+        self.addCleanup(lock_root_patch.stop)
+        self.project = self.root / 'project'
+        self.project.mkdir()
+        for name in ('calculator.py', 'test_calculator.py'):
+            (self.project / name).write_text((ROOT / 'tests/fixtures' / name).read_text())
+        (self.project / '.gitignore').write_text('__pycache__/\n')
+        subprocess.run(['git', 'init', '-q', str(self.project)], check=True)
+        subprocess.run(['git', '-C', str(self.project), 'add', '.'], check=True)
+        subprocess.run(['git', '-C', str(self.project), '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'Fixture'], check=True)
+        self.args = argparse.Namespace(project=str(self.project), mode='implementation', scope=['calculator.py','test_calculator.py'],
+                    requirements=str(ROOT/'tests/fixtures/requirements.md'), plan=None, runs_dir=str(self.root/'runs'),
+                    base='HEAD', timeout=60, check=[f'{sys.executable} -m unittest -v'])
+        self.run, self.state = r.initialize(self.args)
+
+    def response(self, fs=None):
+        return {'run_id': self.state['run_id'], 'target_fingerprint': self.state['target_fingerprint'],
+                'handoff_revision': self.state['handoff_revision'],
+                'stage': self.state['stage'], 'summary': 'Fixture result, not provider evidence.',
+                'findings': copy.deepcopy(self.state['findings'] if fs is None else fs), 'plan_markdown': None}
+
+    def accept(self, data):
+        who = r.role(self.state)
+        r.accept(self.run, self.state, data, {'model': r.MODELS[who][0], 'effort': r.MODELS[who][1], 'observed': {'source':'fixture'}})
+
+    def to_repair(self):
+        self.accept(self.response([finding()]))
+        data=self.response()
+        data['findings'][0].update(disposition='ACCEPTED', rationale='Confirmed numerical defect.')
+        self.accept(data)
+        self.accept(self.response())
+        self.accept(self.response())
+        self.assertEqual(self.state['stage'], 'repair')
+
+    def test_schema_valid(self):
+        r.Draft202012Validator.check_schema(r.SCHEMA)
+        r.validate_response(self.state, self.response([finding()]))
+
+    def test_invalid_handoffs_fail(self):
+        base=self.response([finding()])
+        mutations=[lambda x:x.update(run_id='wrong'), lambda x:x.update(target_fingerprint='0'*64),
+                   lambda x:x.update(stage='repair'), lambda x:x.update(unexpected=True),
+                   lambda x:x['findings'].append(copy.deepcopy(x['findings'][0])),
+                   lambda x:x['findings'][0].update(evidence='   '), lambda x:x['findings'][0].pop('correction_recommended'),
+                   lambda x:x['findings'][0].update(verification_status='PASSED'),
+                   lambda x:x['findings'][0].update(disposition='ACCEPTED')]
+        for mutate in mutations:
+            data=copy.deepcopy(base)
+            mutate(data)
+            with self.subTest(data=data), self.assertRaises(r.ReviewError):
+                r.validate_response(self.state, data)
+        self.assertEqual(self.state['stage'], 'review')
+        self.assertEqual(self.state['ledger'], [])
+
+    def test_duplicate_json_keys_rejected(self):
+        p=self.root/'duplicate.json'
+        p.write_text('{"a":1,"a":2}')
+        with self.assertRaises(r.ReviewError): r.read_json(p)
+
+    def test_drift_rejected(self):
+        (self.project/'calculator.py').write_text('changed')
+        with self.assertRaises(r.ReviewError): r.assert_fresh(self.state)
+
+    def test_initialize_rejects_symlinked_scope_parent(self):
+        (self.project/'.gitignore').write_text('__pycache__/\nbuild/\n')
+        (self.project/'build').mkdir()
+        self.args.base = None
+        for alias, destination, leaf in (('gitlink', '.git', 'hooks/pre-commit'),
+                                          ('buildlink', 'build', 'output.py')):
+            with self.subTest(destination=destination):
+                (self.project/alias).symlink_to(destination, target_is_directory=True)
+                self.args.scope = [f'{alias}/{leaf}']
+                with self.assertRaisesRegex(r.ReviewError, 'Scope escapes project or uses symlink'):
+                    r.initialize(self.args)
+
+    def test_freshness_rejects_ignored_symlinked_scope_parent(self):
+        (self.project/'.gitignore').write_text('__pycache__/\nbuild/\nalias\n')
+        (self.project/'build').mkdir()
+        self.args.base = None
+        self.args.scope = ['calculator.py', 'alias/leaf.py']
+        _, state = r.initialize(self.args)
+        self.assertIsNotNone(r.target(state)['files']['calculator.py'])
+        self.assertIsNone(r.target(state)['files']['alias/leaf.py'])
+        r.assert_fresh(state)
+        (self.project/'alias').symlink_to('build', target_is_directory=True)
+        self.assertEqual(r.inventory(self.project), state['inventory'])
+        with self.assertRaisesRegex(r.ReviewError, 'Scope escapes project or uses symlink'):
+            r.target(state)
+        with self.assertRaisesRegex(r.ReviewError, 'Scope escapes project or uses symlink'):
+            r.assert_fresh(state)
+
+    def test_no_readonly_writes(self):
+        (self.project/'calculator.py').write_text('changed')
+        with self.assertRaises(r.ReviewError): self.accept(self.response([]))
+
+    def test_out_of_scope_writes_rejected(self):
+        self.to_repair()
+        (self.project/'unrelated.py').write_text('changed')
+        with self.assertRaises(r.ReviewError): self.accept(self.response())
+
+    def test_implementation_cycle(self):
+        self.to_repair()
+        p=self.project/'calculator.py'
+        p.write_text(p.read_text().replace('(len(values) + 1)', 'len(values)'))
+        self.accept(self.response())
+        self.assertEqual(self.state['checks'][0]['exit_code'],0)
+        data=self.response()
+        data['findings'][0].update(verification_status='PASSED', verification_evidence=['SOURCE:calculator.py','CHECK-1-1'], rationale='Current source and actual fixture check agree.')
+        self.accept(data)
+        self.assertEqual(self.state['stage'],'finalize')
+        self.accept(self.response())
+        self.assertEqual(self.state['status'],'complete')
+        artifacts=list((self.run/'artifacts').glob('*.json'))
+        self.assertEqual(len(artifacts),7)
+        last=json.loads(sorted(artifacts)[-1].read_text())
+        self.assertEqual(last['parent_artifact_id'],'revision-006')
+        self.assertTrue((self.run/'final.md').exists())
+
+    def test_plan_never_repairs(self):
+        self.args.mode='plan'
+        self.args.plan=str(ROOT/'tests/fixtures/sound-plan.md')
+        self.run,self.state=r.initialize(self.args)
+        self.accept(self.response([]))
+        self.assertEqual(self.state['stage'],'refine')
+        data=self.response([])
+        data['plan_markdown']='A complete fixture plan preserving scope and meaningful acceptance checks.'
+        self.accept(data)
+        self.accept(self.response([]))
+        data=self.response([])
+        data['plan_markdown']=self.state['current_plan']
+        self.accept(data)
+        self.assertEqual(self.state['status'],'complete')
+        self.assertFalse(any(x['stage']=='repair' for x in self.state['ledger']))
+        self.assertEqual(r.inventory(self.project),self.state['inventory'])
+
+    def test_final_plan_cannot_change_after_recheck(self):
+        self.args.mode='plan'; self.args.plan=str(ROOT/'tests/fixtures/sound-plan.md')
+        self.run,self.state=r.initialize(self.args)
+        self.state.update(stage='finalize',current_plan='Reviewed plan')
+        data=self.response([]); data['plan_markdown']='Different plan'
+        with self.assertRaises(r.ReviewError): r.validate_response(self.state,data)
+
+    def test_missing_findings_and_invented_evidence_rejected(self):
+        self.state['findings']=[finding()]; self.state['stage']='recheck'
+        with self.assertRaises(r.ReviewError): r.validate_response(self.state,self.response([]))
+        data=self.response(); data['findings'][0].update(disposition='ACCEPTED',rationale='Claim', verification_status='PASSED',verification_evidence=['invented'])
+        with self.assertRaises(r.ReviewError): r.validate_response(self.state,data)
+
+    def test_closed_dispositions_cannot_be_overridden_by_repair(self):
+        self.to_repair()
+        data=self.response(); data['findings'][0].update(disposition='REJECTED',rationale='Changed mind')
+        with self.assertRaises(r.ReviewError): r.validate_response(self.state,data)
+
+    def test_recheck_preserves_dispositions_and_allows_new_findings(self):
+        accepted=finding(); accepted.update(disposition='ACCEPTED',rationale='Adjudicated defect.')
+        self.state.update(stage='recheck',findings=[accepted])
+        data=self.response()
+        data['findings'][0].update(disposition='REJECTED',rationale='Changed mind at recheck.')
+        with self.assertRaises(r.ReviewError): r.validate_response(self.state,data)
+        new=finding(); new.update(id='FIND-002')
+        data=self.response([accepted,new])
+        r.validate_response(self.state,data)
+
+    def test_false_positive_retained(self):
+        self.state['check_commands'] = []
+        self.accept(self.response([finding()]))
+        data=self.response(); data['findings'][0].update(disposition='REJECTED',rationale='Independent reproduction disproves the claimed defect.')
+        self.accept(data); self.accept(self.response()); self.accept(self.response())
+        self.assertEqual(self.state['stage'],'finalize')
+        self.accept(self.response())
+        self.assertEqual(self.state['findings'][0]['disposition'],'REJECTED')
+
+    def test_model_settings_on_resume(self):
+        for who,stage in [('opus','review'),('astra','adjudicate'),('sol','repair')]:
+            self.state['stage']=stage; self.state['sessions'][who]='11111111-1111-4111-8111-111111111111'
+            argv=r.cli_argv(self.state,self.run)
+            self.assertIn(r.MODELS[who][0],argv)
+            self.assertNotIn('--last',argv)
+            if who=='opus':
+                self.assertIn('--safe-mode',argv); self.assertIn('Read,Glob,Grep',argv)
+                self.assertIn('--restricted',argv); self.assertIn('mcp__*',argv)
+                self.assertEqual(argv[argv.index('--effort')+1],'high')
+            else:
+                self.assertIn(f'model_reasoning_effort="{r.MODELS[who][1]}"',argv)
+                self.assertIn('sandbox_mode="'+('workspace-write' if who=='sol' else 'read-only')+'"',argv)
+                if who=='sol': self.assertIn('sandbox_workspace_write.writable_roots='+json.dumps([str(self.project)]),argv)
+
+    def test_plan_stage_wont_get_write_permissions(self):
+        self.state.update(mode='plan',stage='repair')
+        argv=r.cli_argv(self.state,self.run)
+        self.assertIn('sandbox_mode="read-only"',argv)
+
+    def test_paths_and_symlink_execution(self):
+        with patch.dict(os.environ,{'CODEX_HOME':str(self.root/'codex')},clear=True):
+            self.assertEqual(r.runs_root(),self.root/'codex/review-runs')
+            with patch.dict(os.environ,{'AGENT_REVIEW_RUNS_DIR':str(self.root/'env')}):
+                self.assertEqual(r.runs_root(),self.root/'env')
+                self.assertEqual(r.runs_root(str(self.root/'cli')),self.root/'cli')
+        link=self.root/'helper.py'; link.symlink_to(ROOT/'scripts/review_cli.py')
+        result=subprocess.run([sys.executable,str(link),'--help'],capture_output=True,text=True)
+        self.assertEqual(result.returncode,0,result.stderr)
+
+    def test_single_project_lock(self):
+        with r.project_lock(self.project):
+            with self.assertRaises(r.ReviewError):
+                with r.project_lock(self.project): pass
+
+    def test_unsafe_lock_directories_rejected(self):
+        lock_root=self.root/'lock-root'; lock_root.mkdir()
+        uid=os.getuid()
+        locks=lock_root/f'agent-review-locks-{uid}'
+        with patch.object(r,'LOCK_ROOT',lock_root):
+            locks.mkdir(mode=0o700)
+            locks.chmod(0o770)
+            with self.assertRaises(r.ReviewError):
+                with r.project_lock(self.project): pass
+            locks.chmod(0o700)
+            locks.rmdir()
+            private=self.root/'private'; private.mkdir(mode=0o700)
+            locks.symlink_to(private,target_is_directory=True)
+            with self.assertRaises(r.ReviewError):
+                with r.project_lock(self.project): pass
+            locks.unlink()
+            foreign=lock_root/f'agent-review-locks-{uid+1}'
+            foreign.mkdir(mode=0o700)
+            with patch.object(r.os,'getuid',return_value=uid+1):
+                with self.assertRaises(r.ReviewError):
+                    with r.project_lock(self.project): pass
+
+    def test_symlinked_lock_file_rejected_without_target_write(self):
+        lock_root=self.root/'lock-root'; lock_root.mkdir()
+        locks=lock_root/f'agent-review-locks-{os.getuid()}'
+        locks.mkdir(mode=0o700)
+        target=self.root/'untouched.txt'; target.write_text('keep this content')
+        (locks/(r.digest(str(self.project))+'.lock')).symlink_to(target)
+        with patch.object(r,'LOCK_ROOT',lock_root):
+            with self.assertRaises(r.ReviewError):
+                with r.project_lock(self.project): pass
+        self.assertEqual(target.read_text(),'keep this content')
+
+    def test_two_pass_limit(self):
+        self.state.update(stage='repair',round=2)
+        with self.assertRaises(r.ReviewError): r.advance(self.run,self.state)
+
+    def test_check_failure_does_not_complete(self):
+        self.to_repair(); self.accept(self.response())
+        self.assertNotEqual(self.state['checks'][0]['exit_code'],0)
+        data=self.response(); data['findings'][0].update(verification_status='FAILED',rationale='Acceptance test still fails.')
+        self.accept(data)
+        self.assertEqual(self.state['stage'],'respond')
+
+    def test_external_astra_yield(self):
+        self.state['stage']='adjudicate'
+        r.advance(self.run,self.state,external_astra=True)
+        self.assertEqual(self.state['status'],'awaiting_astra')
+        request=r.read_json(self.run/'external-request.json')
+        self.assertEqual(request['required_effort'],'max')
+        self.assertEqual(request['packet']['run_id'],self.state['run_id'])
+
+    def test_claude_fallback_model_rejected(self):
+        call=self.root/'call'; call.mkdir()
+        (call/'stdout.log').write_text(json.dumps({'structured_output':self.response([]),'session_id':str(__import__('uuid').uuid4()),'modelUsage':{'wrong-model':{}}}))
+        with self.assertRaises(r.ReviewError): r.extract_response(self.state,call)
+
+    def test_provider_schema_preserves_contract(self):
+        self.assertNotIn('$schema', r.PROVIDER_SCHEMA)
+        r.Draft202012Validator.check_schema(r.PROVIDER_SCHEMA)
+        validator = r.Draft202012Validator(r.PROVIDER_SCHEMA)
+        data = self.response([finding()])
+        validator.validate(data)
+        data.pop('handoff_revision')
+        self.assertFalse(validator.is_valid(data))
+
+    def test_no_findings_cannot_bypass_configured_checks(self):
+        r.perform_checks(self.run, self.state)
+        self.assertNotEqual(self.state['checks'][0]['exit_code'], 0)
+        self.accept(self.response([]))
+        self.assertEqual(self.state['status'], 'unresolved')
+        with self.assertRaises(r.ReviewError): self.accept(self.response([]))
+        self.assertFalse((self.run/'final.md').exists())
+
+    def test_old_check_receipts_do_not_prove_new_target(self):
+        self.state['checks'] = [{'argv': self.state['check_commands'][0], 'exit_code': 0,
+                                'target_fingerprint': '0'*64}]
+        self.assertFalse(r.checks_pass(self.state))
+
+    def test_context_revision_prevents_replay_after_user_decision(self):
+        self.state['stage'] = 'adjudicate'
+        stale = self.response([])
+        self.state['requirements'] += '\nActual user decision.'
+        self.state['handoff_revision'] += 1
+        with self.assertRaises(r.ReviewError): r.validate_response(self.state, stale)
+
+    def test_reordering_cannot_transfer_dispositions(self):
+        first, second = finding(), finding()
+        first.update(disposition='ACCEPTED', rationale='Accepted defect.')
+        second.update(id='FIND-002', disposition='REJECTED', rationale='Rejected defect.')
+        self.state.update(stage='repair', findings=[first, second])
+        data = self.response([second, first])
+        r.validate_response(self.state, data)
+        data['findings'][0]['disposition'] = 'ACCEPTED'
+        data['findings'][1]['disposition'] = 'REJECTED'
+        with self.assertRaises(r.ReviewError): r.validate_response(self.state, data)
+
+    def test_reconcile_preserves_orphan_and_resets_verification(self):
+        self.to_repair()
+        self.state['status'] = 'running'
+        r.save(self.run, self.state)
+        p = self.project/'calculator.py'
+        p.write_text(p.read_text().replace('(len(values) + 1)', 'len(values)'))
+        with patch.object(r, 'save', side_effect=OSError('Simulated interrupted state save')):
+            with self.assertRaises(OSError): self.accept(self.response())
+        self.state = r.read_json(self.run/'state.json')
+        r.reconcile(self.run, self.state, 'Inspected scoped numerical fix after interrupted persistence.')
+        self.assertEqual(self.state['ledger'][-1]['orphaned_artifacts'], ['revision-005'])
+        self.assertEqual(self.state['findings'][0]['verification_status'], 'UNVERIFIED')
+        self.assertTrue(r.checks_pass(self.state))
+        data = self.response()
+        data['findings'][0].update(verification_status='PASSED', verification_evidence=['CHECK-1-1'], rationale='Rechecked the recovered revision.')
+        self.accept(data)
+        self.assertEqual(self.state['stage'], 'finalize')
+        self.assertTrue((self.run/'artifacts/revision-007.json').is_file())
+
+    def test_timeout_records_process_exit_and_blocks_checks(self):
+        self.state['check_commands'] = [[sys.executable, '-c', 'import time; time.sleep(20)']]
+        self.state['timeout'] = 0.1
+        with self.assertRaises(r.ReviewError): r.perform_checks(self.run, self.state)
+        saved = r.read_json(self.run/'state.json')
+        self.assertEqual(saved['status'], 'blocked')
+        self.assertEqual(saved['checks'], [])
+        receipts = list((self.run/'checks').glob('*/process.json'))
+        self.assertEqual(len(receipts), 1)
+        self.assertIsNotNone(r.read_json(receipts[0])['exit_code'])
+
+    def test_installed_symlink_resources_and_idempotence(self):
+        destination = self.root/'global-skills'
+        argv = [sys.executable, str(ROOT/'scripts/install_skills.py'), '--skills-dir', str(destination)]
+        for _ in range(2):
+            result = subprocess.run(argv, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+        for name in ('review-plan','review-implementation'):
+            self.assertTrue((destination/name/'references/cli.md').is_file())
+        (destination/'review-plan').unlink()
+        (destination/'review-plan').mkdir()
+        result = subprocess.run(argv, capture_output=True, text=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse((destination/'review-plan').is_symlink())
+
+    def test_child_keeps_lock_after_parent_context_closes(self):
+        with r.project_lock(self.project):
+            child = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(20)'],
+                                     pass_fds=(r.ACTIVE_LOCK.fileno(),))
+        try:
+            with self.assertRaises(r.ReviewError):
+                with r.project_lock(self.project): pass
+        finally:
+            child.terminate()
+            child.wait(timeout=5)
+        with r.project_lock(self.project): pass
+
+    def test_failed_checkpoint_does_not_double_count_repair(self):
+        self.to_repair()
+        before = copy.deepcopy(self.state)
+        p = self.project/'calculator.py'
+        p.write_text(p.read_text().replace('(len(values) + 1)', 'len(values)'))
+        with patch.object(r, 'save', side_effect=OSError('Simulated interrupted state save')):
+            with self.assertRaises(OSError): self.accept(self.response())
+        self.assertEqual(self.state, before)
+
+    def test_final_view_regenerates_from_accepted_artifact(self):
+        self.state['check_commands'] = []
+        self.accept(self.response([]))
+        self.accept(self.response([]))
+        expected = (self.run/'final.md').read_text()
+        (self.run/'final.md').write_text('Interrupted derived output')
+        r.render(self.run, self.state)
+        self.assertEqual((self.run/'final.md').read_text(), expected)
+
+    def test_background_child_blocks_next_stage(self):
+        call = self.root/'background-call'; call.mkdir()
+        next_call = self.root/'next-call'; next_call.mkdir()
+        script = 'import subprocess,sys; subprocess.Popen([sys.executable,"-c","import time; time.sleep(20)"])'
+        group = None
+        try:
+            with r.project_lock(self.project):
+                with self.assertRaises(r.ReviewError):
+                    r.execute_process([sys.executable,'-c',script], self.root, '', call, 10)
+                group = r.read_json(call/'started.json')['process_group']
+                with self.assertRaises(r.ReviewError):
+                    r.execute_process([sys.executable,'-c','pass'], self.root, '', next_call, 10)
+                self.assertFalse((next_call/'started.json').exists())
+        finally:
+            if group is not None: os.killpg(group, signal.SIGTERM)
+
+    def test_provider_schema_limits_references_to_catalog(self):
+        schema = r.provider_schema(self.state)
+        validator = r.Draft202012Validator(schema)
+        data = self.response([finding()])
+        data['findings'][0]['verification_evidence'] = ['SOURCE:calculator.py']
+        self.assertTrue(validator.is_valid(data))
+        data['findings'][0]['verification_evidence'] = ['SOURCE:calculator.py:5: explanatory prose']
+        self.assertFalse(validator.is_valid(data))
+
+
+if __name__=='__main__': unittest.main()

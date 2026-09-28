@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AgentReviewResponse",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "run_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "target_fingerprint": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "stage": {
+      "type": "string",
+      "enum": [
+        "review",
+        "respond",
+        "reply",
+        "adjudicate",
+        "refine",
+        "repair",
+        "recheck",
+        "finalize"
+      ]
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^FIND-[0-9]{3,}$"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "BLOCKER",
+              "WARN",
+              "SUGGESTION"
+            ]
+          },
+          "location": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "evidence": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "correction_recommended": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "acceptance_check": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "disposition": {
+            "type": "string",
+            "enum": [
+              "OPEN",
+              "ACCEPTED",
+              "REJECTED",
+              "PENDING_USER"
+            ]
+          },
+          "rationale": {
+            "type": "string"
+          },
+          "verification_status": {
+            "type": "string",
+            "enum": [
+              "UNVERIFIED",
+              "PASSED",
+              "FAILED",
+              "BLOCKED"
+            ]
+          },
+          "verification_evidence": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "severity",
+          "location",
+          "evidence",
+          "correction_recommended",
+          "acceptance_check",
+          "disposition",
+          "rationale",
+          "verification_status",
+          "verification_evidence"
+        ]
+      }
+    },
+    "plan_markdown": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "handoff_revision": {
+      "type": "integer",
+      "minimum": 0
+    }
+  },
+  "required": [
+    "run_id",
+    "target_fingerprint",
+    "stage",
+    "summary",
+    "findings",
+    "plan_markdown",
+    "handoff_revision"
+  ]
+}
