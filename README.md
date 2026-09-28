@@ -15,7 +15,7 @@ Each workflow keeps a revision-bound decision ledger, separates review from repa
 
 1. The helper snapshots an explicitly scoped target and records its fingerprint.
 2. For implementations, it runs the configured checks and gives the reviewer the frozen-base diff, scoped sources, verbatim requirements, and exact check receipts.
-3. The configured Claude reviewer independently reports located, severity-ranked findings; the implementer and reviewer return schema-limited advisory assessments, the helper retains immutable finding definitions, the coordinator adjudicates, and only the implementer repairs accepted defects.
+3. The configured Claude reviewer independently reports located, severity-ranked findings; the implementer, reviewer, and coordinator return schema-limited decision payloads, the helper retains immutable finding definitions, the coordinator adjudicates authoritatively, and only the implementer repairs accepted defects.
 4. The same reviewer rechecks the resulting target and configured checks gate completion.
 5. The workflow writes a readable handoff and immutable revision artifacts outside the reviewed project.
 
