@@ -27,22 +27,25 @@ and acceptance check form an immutable definition after introduction.
 
 ## Decision and repair authority
 
-The implementer response and independent reviewer reply are advisory
-assessments preserved per finding in the revision ledger and rendered handoff.
-Their provider contract exposes only each existing finding ID, recommended
-disposition, and rationale in canonical order. The helper merges those fields
-into the frozen canonical finding records, so advisory agents cannot mutate
-definitions or verification evidence, introduce findings, or omit existing
-ones.
+New runs use implementation evidence version 2. The independent reviewer finds
+gaps, then the coordinator directly sets each authoritative `ACCEPTED`,
+`REJECTED`, or `PENDING_USER` disposition. It cannot redefine or reverify an
+existing finding, but it may append a sequential, evidenced finding inside the
+authorized scope. An added finding starts unverified and follows the same
+accepted repair and independent recheck path.
 
-The canonical finding remains open while those assessments are collected. The
-coordinator receives both assessments and alone sets the authoritative
-`ACCEPTED`, `REJECTED`, or `PENDING_USER` disposition. It cannot redefine or
-reverify an existing finding, but it may append a sequential, scoped finding
-when the combined evidence establishes a missed gap. That finding starts
-unverified and follows the same accepted repair and independent recheck path.
-Only the designated implementer may write within the authorized scope, and only
-independent recheck may change verification fields.
+The accepted adjudication entry contains a deterministic repair lock with the
+accepted findings in order, authorized files, configured check commands, target
+fingerprint, and handoff revision. The helper compares that lock with current
+state and the saved adjudication artifact before the implementer receives write
+access. The handoff shows the coordinator's decisions, repair lock, and current
+scoped Git diff against the frozen base. The same lock reaches the implementer.
+
+Only the implementer may write within the authorized scope, and only independent
+recheck may mark findings passed. New runs permit one repair and one recheck. An
+incomplete recheck, including a newly discovered gap, ends unresolved without
+another repair or coordinator call. A complete recheck proceeds to coordinator
+finalization, subject to passing checks.
 
 ## Check recovery
 
@@ -61,10 +64,16 @@ states retain their status and use their existing recovery path.
 ## Compatibility and evidence policy
 
 The contract is versioned on new implementation runs. Plan review remains
-read-only and may omit a base and checks. Existing implementation runs retain
-their recorded target and completion behavior, so artifact recovery and prior
-fingerprints do not change.
+read-only and may omit a base and checks. Evidence version 1 runs retain their
+implementer response, reviewer reply, and two-pass behavior, including when
+paused at an advisory stage. Saved implementation-plan data from the unmerged
+issue #20 branch remains readable. Artifact recovery and prior fingerprints do
+not change.
 
-Deterministic temporary-repository fixtures establish the new behavior. No new
-provider-backed trial was run; earlier live trials remain evidence only for the
-built-in agent profile and permission separation.
+Deterministic temporary-repository fixtures establish the boundary cases. Two
+issue #21 live branch trials exercised the provider path. The first stopped
+`unresolved` at recheck after a new documentation finding, without another
+repair or finalizer call. The second completed the five-stage ledger with one
+locked Sol repair, Opus PASS, and Astra finalization. `VALIDATION.md` records
+the run IDs, check results, and limits. These local branch trials do not imply
+production verification.

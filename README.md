@@ -3,7 +3,7 @@
 Agent Review Workflows provides two installable agent skills that coordinate evidence-backed review through Claude Code and Codex CLI:
 
 - `review-plan`: a Claude reviewer critiques; a Codex coordinator refines and finalizes the plan.
-- `review-implementation`: a Claude reviewer critiques; a Codex implementer responds and repairs; a Codex coordinator adjudicates and summarizes.
+- `review-implementation`: a Claude reviewer finds and rechecks defects; a Codex coordinator locks accepted repairs and closes successful reviews; a Codex implementer makes the scoped repair.
 
 The built-in profile remains Opus 5.5 High, Astra 6 Max, and Sol 6 XHigh. Installation-local profiles and explicit per-run overrides can select other model and effort combinations without changing provider or permission boundaries.
 
@@ -15,9 +15,9 @@ Each workflow keeps a revision-bound decision ledger, separates review from repa
 
 1. The helper snapshots an explicitly scoped target and records its fingerprint.
 2. For implementations, it runs the configured checks and gives the reviewer the frozen-base diff, scoped sources, verbatim requirements, and exact check receipts.
-3. The configured Claude reviewer independently reports located, severity-ranked findings; the implementer and reviewer return schema-limited advisory assessments, the helper retains immutable finding definitions, and the coordinator adjudicates authoritatively while retaining any new scoped gap it establishes from the combined evidence. Only the implementer repairs accepted defects.
-4. The same reviewer rechecks the resulting target and configured checks gate completion.
-5. The workflow writes a readable handoff and immutable revision artifacts outside the reviewed project.
+3. The configured Claude reviewer independently reports located, severity-ranked findings. The coordinator decides them, may add an evidenced in-scope gap, and locks the accepted repairs, authorized files, checks, fingerprint, and revision in its adjudication entry.
+4. The implementer alone makes one scoped repair. The reviewer rechecks it once; an incomplete recheck ends unresolved, while a passing recheck proceeds to coordinator finalization.
+5. The workflow writes a readable handoff with the decisions, repair lock, and scoped Git diff, plus immutable revision artifacts outside the reviewed project.
 
 Transient configured-check failures on an unchanged implementation target can be recovered with `rerun-checks`. The command retains old receipts, creates revision-bound current receipts, and never replays model or repair work.
 

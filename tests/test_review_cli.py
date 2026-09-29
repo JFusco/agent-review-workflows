@@ -80,12 +80,6 @@ class ReviewTests(unittest.TestCase):
     def to_repair(self):
         self.accept(self.response([finding()]))
         data=self.response()
-        data['findings'][0].update(disposition='ACCEPTED', rationale='Implementer recommends the evidenced correction.')
-        self.accept(data)
-        data=self.response()
-        data['findings'][0].update(disposition='ACCEPTED', rationale='Reviewer agrees that the evidence demonstrates the defect.')
-        self.accept(data)
-        data=self.response()
         data['findings'][0].update(disposition='ACCEPTED', rationale='Coordinator accepts the defect for repair.')
         self.accept(data)
         self.assertEqual(self.state['stage'], 'repair')
@@ -262,6 +256,20 @@ class ReviewTests(unittest.TestCase):
 
     def test_implementation_cycle(self):
         self.to_repair()
+        lock = self.state['ledger'][-1]['repair_lock']
+        artifact = r.read_json(self.run/'artifacts/revision-002.json')
+        self.assertEqual(artifact['repair_lock'], lock)
+        self.assertEqual(r.packet(self.state)['repair_lock'], lock)
+        self.assertEqual(lock['handoff_revision'], self.state['handoff_revision'])
+        self.assertEqual(lock['target_fingerprint'], self.state['target_fingerprint'])
+        self.assertEqual(lock['scope'], self.state['scope'])
+        self.assertEqual(lock['checks'], self.state['check_commands'])
+        self.assertEqual([item['id'] for item in lock['accepted_findings']], ['FIND-001'])
+        handoff = (self.run/'handoff.md').read_text()
+        self.assertIn('Repair lock:', handoff)
+        self.assertIn('## Scoped diff', handoff)
+        self.assertIn('```diff', handoff)
+        self.assertIn('+    return sum(values) / (len(values) + 1)', handoff)
         p=self.project/'calculator.py'
         p.write_text(p.read_text().replace('(len(values) + 1)', 'len(values)'))
         self.accept(self.response())
@@ -272,11 +280,139 @@ class ReviewTests(unittest.TestCase):
         self.assertEqual(self.state['stage'],'finalize')
         self.accept(self.response())
         self.assertEqual(self.state['status'],'complete')
+        self.assertEqual([entry['stage'] for entry in self.state['ledger']],
+                         ['review', 'adjudicate', 'repair', 'recheck', 'finalize'])
         artifacts=list((self.run/'artifacts').glob('*.json'))
-        self.assertEqual(len(artifacts),7)
+        self.assertEqual(len(artifacts),5)
         last=json.loads(sorted(artifacts)[-1].read_text())
-        self.assertEqual(last['parent_artifact_id'],'revision-006')
+        self.assertEqual(last['parent_artifact_id'],'revision-004')
         self.assertTrue((self.run/'final.md').exists())
+        self.assertNotIn('repair_lock', r.read_json(self.run/'artifacts/revision-003.json'))
+
+    def test_repair_lock_rejects_missing_stale_or_changed_authority(self):
+        self.to_repair()
+        original = copy.deepcopy(self.state['ledger'][-1]['repair_lock'])
+        for mutation in ('missing', 'stale', 'outside'):
+            with self.subTest(mutation=mutation):
+                self.state['ledger'][-1]['repair_lock'] = copy.deepcopy(original)
+                if mutation == 'missing':
+                    del self.state['ledger'][-1]['repair_lock']
+                elif mutation == 'stale':
+                    self.state['ledger'][-1]['repair_lock']['handoff_revision'] -= 1
+                else:
+                    self.state['ledger'][-1]['repair_lock']['scope'] = ['outside.py']
+                with self.assertRaises(r.ReviewError):
+                    r.advance(self.run, self.state)
+        self.state['ledger'][-1]['repair_lock'] = original
+        artifact_path = self.run/'artifacts/revision-002.json'
+        artifact = r.read_json(artifact_path)
+        artifact['repair_lock']['scope'] = ['outside.py']
+        artifact_path.write_text(r.dumps(artifact))
+        with self.assertRaisesRegex(r.ReviewError, 'saved adjudication artifact'):
+            r.advance(self.run, self.state)
+
+    def test_pending_decision_locks_only_after_readjudication(self):
+        self.accept(self.response([finding()]))
+        pending = self.response()
+        pending['findings'][0].update(disposition='PENDING_USER', rationale='User must choose the behavior.')
+        self.accept(pending)
+        self.assertEqual(self.state['status'], 'needs_user')
+        self.assertNotIn('repair_lock', self.state['ledger'][-1])
+        self.state.update(status='ready', stage='adjudicate')
+        self.state['handoff_revision'] += 1
+        decided = self.response()
+        decided['findings'][0].update(disposition='ACCEPTED', rationale='User authorized the scoped correction.')
+        self.accept(decided)
+        self.assertEqual(self.state['stage'], 'repair')
+        self.assertEqual(self.state['ledger'][-1]['repair_lock']['handoff_revision'],
+                         self.state['handoff_revision'])
+
+    def test_new_recheck_finding_ends_unresolved_without_second_repair(self):
+        self.to_repair()
+        p = self.project/'calculator.py'
+        p.write_text(p.read_text().replace('(len(values) + 1)', 'len(values)'))
+        self.accept(self.response())
+        checked = self.response()
+        checked['findings'][0].update(verification_status='PASSED',
+                                      verification_evidence=['CHECK-1-1'],
+                                      rationale='The corrected average passes its focused test.')
+        newly_found = finding()
+        newly_found.update(id='FIND-002', location='test_calculator.py:4',
+                           evidence='A separate in-scope gap is visible at recheck.')
+        checked['findings'].append(newly_found)
+        self.accept(checked)
+        self.assertEqual(self.state['status'], 'unresolved')
+        self.assertEqual([entry['stage'] for entry in self.state['ledger']],
+                         ['review', 'adjudicate', 'repair', 'recheck'])
+
+    def test_check_only_failure_recovers_finalization_without_repair(self):
+        marker = self.root/'check-ready'
+        self.state['check_commands'] = [[
+            sys.executable, '-c',
+            f'import pathlib,sys; sys.exit(0 if pathlib.Path({str(marker)!r}).exists() else 1)',
+        ]]
+        self.to_repair()
+        p = self.project/'calculator.py'
+        p.write_text(p.read_text().replace('(len(values) + 1)', 'len(values)'))
+        self.accept(self.response())
+        checked = self.response()
+        checked['findings'][0].update(verification_status='PASSED',
+                                      verification_evidence=['SOURCE:calculator.py'],
+                                      rationale='The scoped source uses the actual value count.')
+        self.accept(checked)
+        self.assertEqual((self.state['stage'], self.state['status']), ('finalize', 'unresolved'))
+        marker.write_text('ready')
+        r.rerun_checks(self.run, self.state)
+        self.assertEqual((self.state['stage'], self.state['status']), ('finalize', 'ready'))
+        self.accept(self.response())
+        self.assertEqual(self.state['status'], 'complete')
+
+    def test_check_rerun_keeps_cited_receipt_for_finalization(self):
+        marker = self.root/'check-ready'
+        self.state['check_commands'] = [
+            [sys.executable, '-c', 'pass'],
+            [sys.executable, '-c',
+             f'import pathlib,sys; sys.exit(0 if pathlib.Path({str(marker)!r}).exists() else 1)'],
+        ]
+        self.to_repair()
+        p = self.project/'calculator.py'
+        p.write_text(p.read_text().replace('(len(values) + 1)', 'len(values)'))
+        self.accept(self.response())
+        self.assertEqual([check['exit_code'] for check in self.state['checks']], [0, 1])
+        checked = self.response()
+        checked['findings'][0].update(verification_status='PASSED',
+                                      verification_evidence=['CHECK-1-1'],
+                                      rationale='The passing focused check covers the corrected average.')
+        self.accept(checked)
+        self.assertEqual((self.state['stage'], self.state['status']), ('finalize', 'unresolved'))
+        reviewed_findings = copy.deepcopy(self.state['findings'])
+        with self.assertRaisesRegex(r.ReviewError, 'all configured checks passing'):
+            r.validate_response(self.state, self.response())
+
+        r.rerun_checks(self.run, self.state)
+        self.assertEqual(self.state['status'], 'unresolved')
+        self.assertFalse(r.checks_pass(self.state))
+        marker.write_text('ready')
+        r.rerun_checks(self.run, self.state)
+        self.assertEqual((self.state['stage'], self.state['status']), ('finalize', 'ready'))
+        self.state = r.read_json(self.run/'state.json')
+        self.assertEqual(self.state['findings'], reviewed_findings)
+        self.assertIn('CHECK-1-1', r.evidence_catalog(self.state))
+        self.assertIn('CHECK-1-1', r.provider_schema(self.state)['properties']['findings']
+                      ['items']['properties']['verification_evidence']['items']['enum'])
+        stale = copy.deepcopy(self.state['cited_check_receipts']['CHECK-1-1'])
+        stale.update(id='CHECK-stale', target_fingerprint='0'*64)
+        self.state['cited_check_receipts']['CHECK-stale'] = stale
+        self.assertNotIn('CHECK-stale', r.evidence_catalog(self.state))
+        invalid = self.response()
+        invalid['findings'][0]['verification_evidence'] = ['CHECK-stale']
+        with self.assertRaisesRegex(r.ReviewError, 'unavailable or stale'):
+            r.validate_response(self.state, invalid)
+        self.accept(self.response())
+        self.assertEqual(self.state['status'], 'complete')
+        self.assertEqual(self.state['findings'], reviewed_findings)
+        self.assertEqual([entry['stage'] for entry in self.state['ledger'] if entry['stage'] == 'repair'],
+                         ['repair'])
 
     def test_plan_never_repairs(self):
         self.args.mode='plan'
@@ -314,6 +450,7 @@ class ReviewTests(unittest.TestCase):
         with self.assertRaises(r.ReviewError): r.validate_response(self.state,data)
 
     def test_coordinator_receives_both_advisory_assessments(self):
+        self.state['implementation_evidence_version'] = 1
         self.accept(self.response([finding()]))
         implementer = self.response()
         implementer['findings'][0].update(
@@ -351,14 +488,13 @@ class ReviewTests(unittest.TestCase):
 
     def test_only_recheck_can_change_implementation_verification(self):
         self.accept(self.response([finding()]))
-        implementer = self.response()
-        implementer['findings'] = copy.deepcopy(self.state['findings'])
-        implementer['findings'][0].update(
-            disposition='ACCEPTED', rationale='Recommendation cannot set verification.',
+        coordinator = self.response()
+        coordinator['findings'][0].update(
+            disposition='ACCEPTED', rationale='Adjudication cannot set verification.',
             verification_status='FAILED',
         )
         with self.assertRaisesRegex(r.ReviewError, 'Only independent recheck'):
-            r.validate_response(self.state, implementer)
+            r.validate_response(self.state, coordinator)
 
     def test_recheck_preserves_dispositions_and_allows_new_findings(self):
         accepted=finding(); accepted.update(disposition='ACCEPTED',rationale='Adjudicated defect.')
@@ -373,18 +509,17 @@ class ReviewTests(unittest.TestCase):
     def test_false_positive_retained(self):
         self.use_passing_check()
         self.accept(self.response([finding()]))
-        data=self.response(); data['findings'][0].update(disposition='REJECTED',rationale='Independent reproduction disproves the claimed defect.')
-        self.accept(data)
-        data=self.response(); data['findings'][0].update(disposition='REJECTED',rationale='Reviewer agrees the finding is unsupported.')
-        self.accept(data)
         data=self.response(); data['findings'][0].update(disposition='REJECTED',rationale='Coordinator rejects the unsupported finding.')
         self.accept(data)
         self.assertEqual(self.state['stage'],'finalize')
         self.accept(self.response())
         self.assertEqual(self.state['findings'][0]['disposition'],'REJECTED')
+        self.assertEqual([entry['stage'] for entry in self.state['ledger']],
+                         ['review', 'adjudicate', 'finalize'])
 
     def test_default_profile_is_frozen_into_new_runs(self):
         self.assertEqual(self.state['schema_version'], 2)
+        self.assertEqual(self.state['implementation_evidence_version'], 2)
         self.assertEqual(self.state['agent_profile'], r.DEFAULT_PROFILES['review-implementation'])
         original = r.read_json(self.run/'original.json')
         self.assertEqual(original['agent_profile'], self.state['agent_profile'])
@@ -587,16 +722,41 @@ class ReviewTests(unittest.TestCase):
                 with r.project_lock(self.project): pass
         self.assertEqual(target.read_text(),'keep this content')
 
-    def test_two_pass_limit(self):
-        self.state.update(stage='repair',round=2)
-        with self.assertRaises(r.ReviewError): r.advance(self.run,self.state)
+    def test_one_repair_pass_limit(self):
+        self.to_repair()
+        self.state['round'] = 1
+        with self.assertRaisesRegex(r.ReviewError, 'one repair pass'):
+            r.advance(self.run,self.state)
 
     def test_check_failure_does_not_complete(self):
         self.to_repair(); self.accept(self.response())
         self.assertNotEqual(self.state['checks'][0]['exit_code'],0)
         data=self.response(); data['findings'][0].update(verification_status='FAILED',rationale='Acceptance test still fails.')
         self.accept(data)
-        self.assertEqual(self.state['stage'],'respond')
+        self.assertEqual(self.state['stage'],'recheck')
+        self.assertEqual(self.state['status'],'unresolved')
+        self.assertEqual(self.state['ledger'][-1]['stage'], 'recheck')
+
+    def test_version_one_failed_recheck_and_two_pass_limit(self):
+        self.state['implementation_evidence_version'] = 1
+        self.accept(self.response([finding()]))
+        for rationale in ('Implementer recommends repair.', 'Reviewer agrees with repair.'):
+            advisory = self.response()
+            advisory['findings'][0].update(disposition='ACCEPTED', rationale=rationale)
+            self.accept(advisory)
+        decision = self.response()
+        decision['findings'][0].update(disposition='ACCEPTED', rationale='Coordinator accepts repair.')
+        self.accept(decision)
+        self.assertEqual(self.state['stage'], 'repair')
+        self.accept(self.response())
+        recheck = self.response()
+        recheck['findings'][0].update(verification_status='FAILED',
+                                     rationale='The configured acceptance check still fails.')
+        self.accept(recheck)
+        self.assertEqual(self.state['stage'], 'respond')
+        self.state.update(stage='repair', round=2)
+        with self.assertRaisesRegex(r.ReviewError, 'Two-pass limit reached'):
+            r.advance(self.run, self.state)
 
     def test_external_coordinator_yield(self):
         self.state['stage']='adjudicate'
@@ -638,6 +798,7 @@ class ReviewTests(unittest.TestCase):
         self.assertFalse(validator.is_valid(data))
 
     def test_advisory_schema_and_normalization_freeze_findings(self):
+        self.state['implementation_evidence_version'] = 1
         first = finding()
         second = finding()
         second.update(id='FIND-002', location='test_calculator.py:4')
@@ -725,6 +886,7 @@ class ReviewTests(unittest.TestCase):
         self.assertEqual(self.state['findings'][0]['evidence'], existing['evidence'])
 
     def test_advisory_artifact_retains_full_canonical_findings(self):
+        self.state['implementation_evidence_version'] = 1
         self.accept(self.response([finding()]))
         data = self.response()
         data['findings'][0].update(disposition='ACCEPTED', rationale='Accept the reproduced defect.')
@@ -751,9 +913,9 @@ class ReviewTests(unittest.TestCase):
         r.perform_checks(self.run, self.state)
         self.assertFalse(r.checks_pass(self.state))
         old_receipts = set((self.run/'checks').glob('*.json'))
-        self.state.update(stage='respond', findings=[finding()])
+        self.state.update(stage='adjudicate', findings=[finding()])
         stale = self.response()
-        stale['findings'][0].update(disposition='ACCEPTED', rationale='Stale recommendation.')
+        stale['findings'][0].update(disposition='ACCEPTED', rationale='Stale decision.')
         previous_revision = self.state['handoff_revision']
         marker.write_text('ready')
 
@@ -768,7 +930,7 @@ class ReviewTests(unittest.TestCase):
         self.assertEqual(artifact['checks_after'][0]['exit_code'], 0)
         self.assertEqual(self.state['ledger'][-1]['stage'], 'rerun-checks')
         with self.assertRaises(r.ReviewError):
-            r.normalize_response(self.state, stale)
+            r.validate_response(self.state, stale)
 
     def test_check_rerun_reopens_only_check_blocked_finalization(self):
         self.state['check_commands'] = [[sys.executable, '-c', 'pass']]
@@ -849,14 +1011,14 @@ class ReviewTests(unittest.TestCase):
             with self.assertRaises(OSError): self.accept(self.response())
         self.state = r.read_json(self.run/'state.json')
         r.reconcile(self.run, self.state, 'Inspected scoped numerical fix after interrupted persistence.')
-        self.assertEqual(self.state['ledger'][-1]['orphaned_artifacts'], ['revision-005'])
+        self.assertEqual(self.state['ledger'][-1]['orphaned_artifacts'], ['revision-003'])
         self.assertEqual(self.state['findings'][0]['verification_status'], 'UNVERIFIED')
         self.assertTrue(r.checks_pass(self.state))
         data = self.response()
         data['findings'][0].update(verification_status='PASSED', verification_evidence=['CHECK-1-1'], rationale='Rechecked the recovered revision.')
         self.accept(data)
         self.assertEqual(self.state['stage'], 'finalize')
-        self.assertTrue((self.run/'artifacts/revision-007.json').is_file())
+        self.assertTrue((self.run/'artifacts/revision-005.json').is_file())
 
     def test_timeout_records_process_exit_and_blocks_checks(self):
         self.state['check_commands'] = [[sys.executable, '-c', 'import time; time.sleep(20)']]
@@ -929,6 +1091,7 @@ class ReviewTests(unittest.TestCase):
         self.use_passing_check()
         self.accept(self.response([]))
         self.accept(self.response([]))
+        self.assertEqual([entry['stage'] for entry in self.state['ledger']], ['review', 'finalize'])
         expected = (self.run/'final.md').read_text()
         (self.run/'final.md').write_text('Interrupted derived output')
         r.render(self.run, self.state)
