@@ -1,0 +1,30 @@
+# Map maintained code from the repository root.
+*
+!scripts/
+!scripts/**
+
+# Exclude history, tests, generated files, dependencies, and local state.
+**/*.md
+**/*.mdx
+**/*.qmd
+**/test/
+**/tests/
+**/__tests__/
+**/fixtures/
+**/*.test.*
+**/*.spec.*
+**/graph/data/
+**/viewer/vendor/
+**/.DS_Store
+**/generated/
+**/__generated__/
+**/*.generated.*
+**/node_modules/
+**/dist/
+**/build/
+**/__pycache__/
+**/*.pyc
+**/.venv/
+**/.env*
+**/*.json
+**/*.css

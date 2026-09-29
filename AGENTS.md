@@ -44,6 +44,25 @@ relevant sections of `references/cli.md`.
   same delivery. Run `pnpm run verify:ci` and do not describe unexecuted settings
   or requested model configuration as observed provider evidence.
 
+## Commit message standard
+
+Use a specific `type(scope): action` subject with an action verb and a subject
+of at most 50 characters. Leave a blank line before a body when the reason,
+impact, or tradeoff is not clear from the diff; wrap body and footer lines at
+72 characters. Mark breaking changes with `!` or a `BREAKING CHANGE:` footer.
+Follow this repository's commitlint configuration for allowed types, scopes,
+and other enforced rules. Avoid vague or ticket-only subjects.
+
+## Graphify repository workflow
+
+Use the repository-local [Graphify skill](.agents/skills/graphify/SKILL.md)
+for the shared code map of maintained scripts. Exact behavior comes from source;
+history and decisions come from the Markdown-only context wiki. Use Graphify
+0.9.36. After cloning, install dependencies and run `graphify hook install`
+for native Git refresh hooks and the local merge driver. Keep
+`graphify-out/memory/` empty and review background graph changes before
+staging. Do not install Graphify agent tool hooks.
+
 ## Git delivery flow
 
 For repository changes that include delivery, complete this sequence:
