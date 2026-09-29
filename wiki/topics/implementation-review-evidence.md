@@ -70,6 +70,10 @@ paused at an advisory stage. Saved implementation-plan data from the unmerged
 issue #20 branch remains readable. Artifact recovery and prior fingerprints do
 not change.
 
-Deterministic temporary-repository fixtures establish the new behavior. No new
-provider-backed trial was run; earlier live trials remain evidence only for the
-built-in agent profile and permission separation.
+Deterministic temporary-repository fixtures establish the boundary cases. Two
+issue #21 live branch trials exercised the provider path. The first stopped
+`unresolved` at recheck after a new documentation finding, without another
+repair or finalizer call. The second completed the five-stage ledger with one
+locked Sol repair, Opus PASS, and Astra finalization. `VALIDATION.md` records
+the run IDs, check results, and limits. These local branch trials do not imply
+production verification.

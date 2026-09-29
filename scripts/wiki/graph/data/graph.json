@@ -68,7 +68,7 @@
           "url": "https://github.com/jfusco/agent-review-workflows/issues/21"
         }
       ],
-      "bytes": 1369,
+      "bytes": 2013,
       "degree": 2,
       "x": 0.682553,
       "y": 0.730836,
@@ -460,9 +460,15 @@
           "kind": "issue",
           "number": 20,
           "url": "https://github.com/jfusco/agent-review-workflows/issues/20"
+        },
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 21,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/21"
         }
       ],
-      "bytes": 4050,
+      "bytes": 4330,
       "degree": 12,
       "x": 0.854419,
       "y": -0.519584,

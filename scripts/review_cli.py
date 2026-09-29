@@ -344,6 +344,9 @@ def evidence_catalog(state):
               for name, content in target(state)['files'].items() if content is not None}
     if state['mode'] == 'plan':
         result['PLAN:current'] = {'kind': 'plan', 'fingerprint': state['target_fingerprint']}
+    for check in state.get('cited_check_receipts', {}).values():
+        if check['target_fingerprint'] == state['target_fingerprint']:
+            result[check['id']] = check
     for check in state.get('checks', []):
         if check['target_fingerprint'] == state['target_fingerprint']:
             result[check['id']] = check
@@ -898,6 +901,12 @@ def rerun_checks(run, state):
         raise ReviewError('Checks may rerun only while an implementation review is in a read-only recoverable state.')
     assert_fresh(state)
     previous_checks = copy.deepcopy(state['checks'])
+    if collapsed_implementation(state):
+        cited = {ref for finding in state['findings'] for ref in finding['verification_evidence']}
+        retained = state.setdefault('cited_check_receipts', {})
+        for check in previous_checks:
+            if check['id'] in cited:
+                retained[check['id']] = check
     previous_status = state['status']
     previous_error = state['error']
     previous_revision = state['handoff_revision']

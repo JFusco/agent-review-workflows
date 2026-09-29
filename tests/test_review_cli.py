@@ -367,6 +367,53 @@ class ReviewTests(unittest.TestCase):
         self.accept(self.response())
         self.assertEqual(self.state['status'], 'complete')
 
+    def test_check_rerun_keeps_cited_receipt_for_finalization(self):
+        marker = self.root/'check-ready'
+        self.state['check_commands'] = [
+            [sys.executable, '-c', 'pass'],
+            [sys.executable, '-c',
+             f'import pathlib,sys; sys.exit(0 if pathlib.Path({str(marker)!r}).exists() else 1)'],
+        ]
+        self.to_repair()
+        p = self.project/'calculator.py'
+        p.write_text(p.read_text().replace('(len(values) + 1)', 'len(values)'))
+        self.accept(self.response())
+        self.assertEqual([check['exit_code'] for check in self.state['checks']], [0, 1])
+        checked = self.response()
+        checked['findings'][0].update(verification_status='PASSED',
+                                      verification_evidence=['CHECK-1-1'],
+                                      rationale='The passing focused check covers the corrected average.')
+        self.accept(checked)
+        self.assertEqual((self.state['stage'], self.state['status']), ('finalize', 'unresolved'))
+        reviewed_findings = copy.deepcopy(self.state['findings'])
+        with self.assertRaisesRegex(r.ReviewError, 'all configured checks passing'):
+            r.validate_response(self.state, self.response())
+
+        r.rerun_checks(self.run, self.state)
+        self.assertEqual(self.state['status'], 'unresolved')
+        self.assertFalse(r.checks_pass(self.state))
+        marker.write_text('ready')
+        r.rerun_checks(self.run, self.state)
+        self.assertEqual((self.state['stage'], self.state['status']), ('finalize', 'ready'))
+        self.state = r.read_json(self.run/'state.json')
+        self.assertEqual(self.state['findings'], reviewed_findings)
+        self.assertIn('CHECK-1-1', r.evidence_catalog(self.state))
+        self.assertIn('CHECK-1-1', r.provider_schema(self.state)['properties']['findings']
+                      ['items']['properties']['verification_evidence']['items']['enum'])
+        stale = copy.deepcopy(self.state['cited_check_receipts']['CHECK-1-1'])
+        stale.update(id='CHECK-stale', target_fingerprint='0'*64)
+        self.state['cited_check_receipts']['CHECK-stale'] = stale
+        self.assertNotIn('CHECK-stale', r.evidence_catalog(self.state))
+        invalid = self.response()
+        invalid['findings'][0]['verification_evidence'] = ['CHECK-stale']
+        with self.assertRaisesRegex(r.ReviewError, 'unavailable or stale'):
+            r.validate_response(self.state, invalid)
+        self.accept(self.response())
+        self.assertEqual(self.state['status'], 'complete')
+        self.assertEqual(self.state['findings'], reviewed_findings)
+        self.assertEqual([entry['stage'] for entry in self.state['ledger'] if entry['stage'] == 'repair'],
+                         ['repair'])
+
     def test_plan_never_repairs(self):
         self.args.mode='plan'
         self.args.plan=str(ROOT/'tests/fixtures/sound-plan.md')
@@ -689,6 +736,27 @@ class ReviewTests(unittest.TestCase):
         self.assertEqual(self.state['stage'],'recheck')
         self.assertEqual(self.state['status'],'unresolved')
         self.assertEqual(self.state['ledger'][-1]['stage'], 'recheck')
+
+    def test_version_one_failed_recheck_and_two_pass_limit(self):
+        self.state['implementation_evidence_version'] = 1
+        self.accept(self.response([finding()]))
+        for rationale in ('Implementer recommends repair.', 'Reviewer agrees with repair.'):
+            advisory = self.response()
+            advisory['findings'][0].update(disposition='ACCEPTED', rationale=rationale)
+            self.accept(advisory)
+        decision = self.response()
+        decision['findings'][0].update(disposition='ACCEPTED', rationale='Coordinator accepts repair.')
+        self.accept(decision)
+        self.assertEqual(self.state['stage'], 'repair')
+        self.accept(self.response())
+        recheck = self.response()
+        recheck['findings'][0].update(verification_status='FAILED',
+                                     rationale='The configured acceptance check still fails.')
+        self.accept(recheck)
+        self.assertEqual(self.state['stage'], 'respond')
+        self.state.update(stage='repair', round=2)
+        with self.assertRaisesRegex(r.ReviewError, 'Two-pass limit reached'):
+            r.advance(self.run, self.state)
 
     def test_external_coordinator_yield(self):
         self.state['stage']='adjudicate'
