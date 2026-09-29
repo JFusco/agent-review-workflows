@@ -1,6 +1,8 @@
 ---
 topics: [maintainer-workflow]
 plans: [2026-09-29-standardize-commit-messages-and-graphify-across-eight-repositories-e4b953bbda.md]
+issue: 'https://github.com/jfusco/agent-review-workflows/issues/24'
+issues: ['https://github.com/jfusco/agent-review-workflows/issues/24']
 ---
 
 # Maintainer workflow
