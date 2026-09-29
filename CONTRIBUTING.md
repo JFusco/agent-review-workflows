@@ -113,3 +113,14 @@ Before opening a pull request:
 6. Keep unrelated cleanup out of the pull request.
 
 Bug reports and proposals should include the affected workflow, the observed state or error, reproduction steps, expected behavior, and any non-sensitive handoff evidence that helps explain the issue.
+
+## Commit messages
+
+Use a specific scoped Conventional Commit, for example
+`fix(auth): reject expired reset tokens`. Begin the subject with an action verb
+and keep the subject at most 50 characters. Leave a blank line before an
+optional body; explain the reason, impact, or tradeoff when the diff alone does
+not make it clear. Wrap body and footer lines at 72 characters. Mark breaking
+changes with `!` or a `BREAKING CHANGE:` footer. Follow the repository's
+commitlint rules for allowed types and scopes. Avoid vague or ticket-only
+subjects.

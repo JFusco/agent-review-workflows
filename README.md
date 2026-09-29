@@ -100,3 +100,16 @@ The trial creator makes separate disposable Git projects and prints their run di
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for environment setup, test commands, and change boundaries.
+
+## Maintainer code map
+
+Graphify 0.9.36 maps maintained scripts; `.graphifyignore` excludes tests,
+documentation, generated files, dependencies, and local state. This code map
+is separate from the Markdown-only context wiki. The repository-local
+[Graphify skill](.agents/skills/graphify/SKILL.md) covers queries and refreshes.
+After `pnpm install --frozen-lockfile` and installing Graphify 0.9.36, run
+`graphify hook install` and `graphify hook status` once per clone. Native Git
+hooks refresh the map after commits and checkouts; run
+`PYTHONHASHSEED=0 graphify update .` after pulls or merges. Commit the graph,
+HTML, report, manifest, analysis, and labels; keep caches, machine paths, and
+query memory local. No agent tool hooks are installed.

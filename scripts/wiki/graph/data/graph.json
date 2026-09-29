@@ -2,13 +2,13 @@
   "version": 1,
   "wikiRoot": "wiki",
   "counts": {
-    "nodes": 23,
-    "edges": 41,
+    "nodes": 26,
+    "edges": 48,
     "byType": {
       "index": 3,
-      "journal": 8,
-      "plan": 9,
-      "topic": 3
+      "journal": 9,
+      "plan": 10,
+      "topic": 4
     }
   },
   "nodes": [
@@ -18,8 +18,8 @@
       "type": "index",
       "aliases": [],
       "githubRefs": [],
-      "bytes": 1361,
-      "degree": 2,
+      "bytes": 1472,
+      "degree": 3,
       "x": 1,
       "y": 0,
       "size": 12
@@ -39,8 +39,8 @@
       ],
       "bytes": 2186,
       "degree": 2,
-      "x": 0.854419,
-      "y": 0.519584,
+      "x": 0.885456,
+      "y": 0.464723,
       "size": 8
     },
     {
@@ -70,8 +70,8 @@
       ],
       "bytes": 2013,
       "degree": 2,
-      "x": 0.682553,
-      "y": 0.730836,
+      "x": 0.748511,
+      "y": 0.663123,
       "size": 8
     },
     {
@@ -89,8 +89,8 @@
       ],
       "bytes": 2103,
       "degree": 3,
-      "x": 0.460065,
-      "y": 0.887885,
+      "x": 0.568065,
+      "y": 0.822984,
       "size": 8
     },
     {
@@ -108,8 +108,8 @@
       ],
       "bytes": 1412,
       "degree": 3,
-      "x": 0.203456,
-      "y": 0.979084,
+      "x": 0.354605,
+      "y": 0.935016,
       "size": 8
     },
     {
@@ -127,8 +127,8 @@
       ],
       "bytes": 4200,
       "degree": 3,
-      "x": -0.068242,
-      "y": 0.997669,
+      "x": 0.120537,
+      "y": 0.992709,
       "size": 8
     },
     {
@@ -146,8 +146,8 @@
       ],
       "bytes": 2180,
       "degree": 2,
-      "x": -0.33488,
-      "y": 0.942261,
+      "x": -0.120537,
+      "y": 0.992709,
       "size": 8
     },
     {
@@ -165,8 +165,8 @@
       ],
       "bytes": 2766,
       "degree": 2,
-      "x": -0.57668,
-      "y": 0.81697,
+      "x": -0.354605,
+      "y": 0.935016,
       "size": 8
     },
     {
@@ -196,8 +196,27 @@
       ],
       "bytes": 1340,
       "degree": 3,
-      "x": -0.775711,
-      "y": 0.631088,
+      "x": -0.568065,
+      "y": 0.822984,
+      "size": 8
+    },
+    {
+      "id": "wiki/journal/2026-09-29-commit-and-graphify-workflow.md",
+      "label": "Maintainer workflow",
+      "type": "journal",
+      "aliases": [],
+      "githubRefs": [
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 24,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/24"
+        }
+      ],
+      "bytes": 759,
+      "degree": 4,
+      "x": -0.748511,
+      "y": 0.663123,
       "size": 8
     },
     {
@@ -208,8 +227,8 @@
       "githubRefs": [],
       "bytes": 2904,
       "degree": 2,
-      "x": 0.962917,
-      "y": 0.269797,
+      "x": 0.970942,
+      "y": 0.239316,
       "size": 12
     },
     {
@@ -227,8 +246,8 @@
       ],
       "bytes": 1235,
       "degree": 4,
-      "x": -0.917211,
-      "y": 0.398401,
+      "x": -0.885456,
+      "y": 0.464723,
       "size": 8
     },
     {
@@ -252,8 +271,8 @@
       ],
       "bytes": 3057,
       "degree": 3,
-      "x": -0.990686,
-      "y": 0.136167,
+      "x": -0.970942,
+      "y": 0.239316,
       "size": 8
     },
     {
@@ -264,8 +283,8 @@
       "githubRefs": [],
       "bytes": 4084,
       "degree": 3,
-      "x": -0.990686,
-      "y": -0.136167,
+      "x": -1,
+      "y": 0,
       "size": 8
     },
     {
@@ -283,8 +302,8 @@
       ],
       "bytes": 4673,
       "degree": 3,
-      "x": -0.917211,
-      "y": -0.398401,
+      "x": -0.970942,
+      "y": -0.239316,
       "size": 8
     },
     {
@@ -302,8 +321,8 @@
       ],
       "bytes": 1396,
       "degree": 3,
-      "x": -0.775711,
-      "y": -0.631088,
+      "x": -0.885456,
+      "y": -0.464723,
       "size": 8
     },
     {
@@ -321,8 +340,8 @@
       ],
       "bytes": 1060,
       "degree": 3,
-      "x": -0.57668,
-      "y": -0.81697,
+      "x": -0.748511,
+      "y": -0.663123,
       "size": 8
     },
     {
@@ -333,8 +352,8 @@
       "githubRefs": [],
       "bytes": 4946,
       "degree": 3,
-      "x": -0.33488,
-      "y": -0.942261,
+      "x": -0.568065,
+      "y": -0.822984,
       "size": 8
     },
     {
@@ -352,8 +371,8 @@
       ],
       "bytes": 1365,
       "degree": 3,
-      "x": -0.068242,
-      "y": -0.997669,
+      "x": -0.354605,
+      "y": -0.935016,
       "size": 8
     },
     {
@@ -371,8 +390,20 @@
       ],
       "bytes": 1341,
       "degree": 3,
-      "x": 0.203456,
-      "y": -0.979084,
+      "x": -0.120537,
+      "y": -0.992709,
+      "size": 8
+    },
+    {
+      "id": "wiki/plans/2026-09-29-standardize-commit-messages-and-graphify-across-eight-repositories-e4b953bbda.md",
+      "label": "Standardize commit messages and Graphify across eight repositories",
+      "type": "plan",
+      "aliases": [],
+      "githubRefs": [],
+      "bytes": 2229,
+      "degree": 4,
+      "x": 0.120537,
+      "y": -0.992709,
       "size": 8
     },
     {
@@ -412,10 +443,10 @@
           "url": "https://github.com/jfusco/agent-review-workflows/pull/8"
         }
       ],
-      "bytes": 20795,
-      "degree": 11,
-      "x": 0.460065,
-      "y": -0.887885,
+      "bytes": 21163,
+      "degree": 12,
+      "x": 0.354605,
+      "y": -0.935016,
       "size": 12
     },
     {
@@ -439,8 +470,8 @@
       ],
       "bytes": 4290,
       "degree": 4,
-      "x": 0.682553,
-      "y": -0.730836,
+      "x": 0.568065,
+      "y": -0.822984,
       "size": 8
     },
     {
@@ -470,8 +501,27 @@
       ],
       "bytes": 4330,
       "degree": 12,
-      "x": 0.854419,
-      "y": -0.519584,
+      "x": 0.748511,
+      "y": -0.663123,
+      "size": 8
+    },
+    {
+      "id": "wiki/topics/maintainer-workflow.md",
+      "label": "Maintainer workflow",
+      "type": "topic",
+      "aliases": [],
+      "githubRefs": [
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 24,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/24"
+        }
+      ],
+      "bytes": 1245,
+      "degree": 4,
+      "x": 0.885456,
+      "y": -0.464723,
       "size": 8
     },
     {
@@ -489,16 +539,30 @@
       ],
       "bytes": 2238,
       "degree": 3,
-      "x": 0.962917,
-      "y": -0.269797,
+      "x": 0.970942,
+      "y": -0.239316,
       "size": 8
     }
   ],
   "edges": [
     {
+      "id": "09ee3fedbbd1edc3",
+      "source": "wiki/INDEX.md",
+      "target": "wiki/topics/maintainer-workflow.md",
+      "type": "link",
+      "relation": "link"
+    },
+    {
       "id": "0a36c528abcc3a4d",
       "source": "wiki/journal/2026-09-28-implementation-review-evidence.md",
       "target": "wiki/topics/implementation-review-evidence.md",
+      "type": "topic",
+      "relation": "topic"
+    },
+    {
+      "id": "0b2fa31c9021afcb",
+      "source": "wiki/plans/2026-09-29-standardize-commit-messages-and-graphify-across-eight-repositories-e4b953bbda.md",
+      "target": "wiki/topics/maintainer-workflow.md",
       "type": "topic",
       "relation": "topic"
     },
@@ -513,6 +577,20 @@
       "id": "118f705ebaf415cb",
       "source": "wiki/journal/2026-09-28-preserve-in-scope-adjudication-discoveries.md",
       "target": "wiki/topics/implementation-review-evidence.md",
+      "type": "topic",
+      "relation": "topic"
+    },
+    {
+      "id": "1653fcc6f5145e62",
+      "source": "wiki/journal/2026-09-29-commit-and-graphify-workflow.md",
+      "target": "wiki/plans/2026-09-29-standardize-commit-messages-and-graphify-across-eight-repositories-e4b953bbda.md",
+      "type": "link",
+      "relation": "link"
+    },
+    {
+      "id": "17a1c94a46ce43f9",
+      "source": "wiki/journal/2026-09-29-commit-and-graphify-workflow.md",
+      "target": "wiki/topics/maintainer-workflow.md",
       "type": "topic",
       "relation": "topic"
     },
@@ -618,6 +696,13 @@
       "id": "61b344e199f6cf71",
       "source": "wiki/plans/INDEX.md",
       "target": "wiki/plans/2026-09-28-preserve-in-scope-adjudication-discoveries-a85c7cc5ea.md",
+      "type": "link",
+      "relation": "link"
+    },
+    {
+      "id": "66f4b75cbfb4d281",
+      "source": "wiki/journal/2026-09-29-commit-and-graphify-workflow.md",
+      "target": "wiki/topics/maintainer-workflow.md",
       "type": "link",
       "relation": "link"
     },
@@ -734,6 +819,13 @@
       "relation": "link"
     },
     {
+      "id": "dfbf8b3022b7d062",
+      "source": "wiki/plans/INDEX.md",
+      "target": "wiki/plans/2026-09-29-standardize-commit-messages-and-graphify-across-eight-repositories-e4b953bbda.md",
+      "type": "link",
+      "relation": "link"
+    },
+    {
       "id": "e2378af9d6b24c8c",
       "source": "wiki/journal/2026-09-28-collapse-implementation-review.md",
       "target": "wiki/plans/2026-09-28-collapse-implementation-review-to-five-calls-fe6bc3ca4e.md",
@@ -760,6 +852,13 @@
       "target": "wiki/plans/INDEX.md",
       "type": "link",
       "relation": "link"
+    },
+    {
+      "id": "ec16fc1117f87382",
+      "source": "wiki/journal/2026-09-29-commit-and-graphify-workflow.md",
+      "target": "wiki/plans/2026-09-29-standardize-commit-messages-and-graphify-across-eight-repositories-e4b953bbda.md",
+      "type": "plan",
+      "relation": "plan"
     },
     {
       "id": "ec61bc11b861d344",

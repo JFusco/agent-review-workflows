@@ -6,6 +6,7 @@ This wiki is the durable project record for decisions, executed plans, and subst
 
 - [Wiki mechanics](./MECHANICS.md) — authoring, plan capture, validation, and automation.
 - [Plan ledger](./plans/INDEX.md) — executed-plan archives and historical audit results.
+- [Maintainer workflow](./topics/maintainer-workflow.md) — commit guidance and Graphify code-map boundaries.
 - `wiki/topics/` — durable decision and domain pages.
 - `wiki/journal/` — chronological substantive-change entries.
 - `wiki/connections.md` — generated relationship summary.
