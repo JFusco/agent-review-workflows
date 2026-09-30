@@ -1,6 +1,8 @@
 ---
 topics: [implementation-review-evidence]
 plans: [2026-09-29-add-a-minimal-review-handoff-skill-665a8120fd.md]
+issue: 'https://github.com/jfusco/agent-review-workflows/issues/27'
+issues: ['https://github.com/jfusco/agent-review-workflows/issues/27']
 ---
 
 # 2026-09-29 — Single-stage review handoff skill
