@@ -30,6 +30,9 @@ class ReviewTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name).resolve()
+        runtime_config_patch = patch.object(r, 'RUNTIME_CONFIG', self.root/'runtime.local.json')
+        runtime_config_patch.start()
+        self.addCleanup(runtime_config_patch.stop)
         self.lock_root = self.root / 'locks'
         self.lock_root.mkdir()
         lock_root_patch = patch.object(r, 'LOCK_ROOT', self.lock_root)
@@ -519,11 +522,91 @@ class ReviewTests(unittest.TestCase):
                          ['review', 'adjudicate', 'finalize'])
 
     def test_default_profile_is_frozen_into_new_runs(self):
+        expected = {
+            'reviewer': {'model': 'claude-opus-5-5', 'effort': 'high'},
+            'coordinator': {'model': 'gpt-6-astra', 'effort': 'max'},
+            'implementer': {'model': 'gpt-6.1-sol', 'effort': 'xhigh'},
+        }
         self.assertEqual(self.state['schema_version'], 2)
         self.assertEqual(self.state['implementation_evidence_version'], 2)
-        self.assertEqual(self.state['agent_profile'], r.DEFAULT_PROFILES['review-implementation'])
+        self.assertEqual(self.state['agent_profile'], expected)
+        self.assertEqual(r.read_json(self.run/'state.json')['agent_profile'], expected)
         original = r.read_json(self.run/'original.json')
-        self.assertEqual(original['agent_profile'], self.state['agent_profile'])
+        self.assertEqual(original['agent_profile'], expected)
+
+    def test_plan_default_profile_is_unchanged(self):
+        args = copy.deepcopy(self.args)
+        args.mode = 'plan'
+        args.plan = str(ROOT/'tests/fixtures/sound-plan.md')
+        run, state = r.initialize(args)
+        expected = {
+            'reviewer': {'model': 'claude-opus-5-5', 'effort': 'high'},
+            'coordinator': {'model': 'gpt-6-astra', 'effort': 'max'},
+        }
+        self.assertEqual(state['agent_profile'], expected)
+        self.assertEqual(r.read_json(run/'original.json')['agent_profile'], expected)
+
+    def test_implementer_commands_use_frozen_new_default(self):
+        self.to_repair()
+        with patch.dict(r.DEFAULT_PROFILES['review-implementation']['implementer'],
+                        {'model': 'gpt-future-default', 'effort': 'low'}), patch.object(
+                            r, 'load_runtime_config', side_effect=AssertionError('Must use frozen profile')):
+            for session in (None, '11111111-1111-4111-8111-111111111111'):
+                with self.subTest(session=session):
+                    state = r.read_json(self.run/'state.json')
+                    state['sessions']['sol'] = session
+                    r.save(self.run, state)
+                    argv = r.cli_argv(r.read_json(self.run/'state.json'), self.run)
+                    self.assertEqual(argv[argv.index('--model')+1], 'gpt-6.1-sol')
+                    self.assertIn('model_reasoning_effort="xhigh"', argv)
+                    self.assertEqual('resume' in argv, session is not None)
+                    if session:
+                        self.assertEqual(argv[-2:], [session, '-'])
+
+    def test_version_two_sol_six_runs_keep_frozen_implementer(self):
+        with patch.dict(r.DEFAULT_PROFILES['review-implementation']['implementer'],
+                        {'model': 'gpt-6-sol', 'effort': 'xhigh'}):
+            run, state = r.initialize(copy.deepcopy(self.args))
+        self.assertEqual(state['schema_version'], 2)
+        self.assertEqual(r.DEFAULT_PROFILES['review-implementation']['implementer']['model'], 'gpt-6.1-sol')
+        original_bytes = (run/'original.json').read_bytes()
+        for session in (None, '11111111-1111-4111-8111-111111111111'):
+            with self.subTest(session=session):
+                state['stage'] = 'repair'
+                state['sessions']['sol'] = session
+                r.save(run, state)
+                saved_bytes = (run/'state.json').read_bytes()
+                loaded = r.read_json(run/'state.json')
+                self.assertEqual(loaded['agent_profile']['implementer'],
+                                 {'model': 'gpt-6-sol', 'effort': 'xhigh'})
+                argv = r.cli_argv(loaded, run)
+                self.assertEqual(argv[argv.index('--model')+1], 'gpt-6-sol')
+                self.assertIn('model_reasoning_effort="xhigh"', argv)
+                self.assertEqual('resume' in argv, session is not None)
+                if session:
+                    self.assertEqual(argv[-2:], [session, '-'])
+                self.assertEqual((run/'state.json').read_bytes(), saved_bytes)
+                self.assertEqual((run/'original.json').read_bytes(), original_bytes)
+
+    def test_explicit_sol_six_implementer_overrides_retain_precedence(self):
+        config_path = self.root/'runtime.local.json'
+        for configured, override, expected in (
+            ({'model': 'gpt-6-sol'}, {}, {'model': 'gpt-6-sol', 'effort': 'xhigh'}),
+            ({'model': 'gpt-6.1-sol', 'effort': 'high'}, {'model': 'gpt-6-sol'},
+             {'model': 'gpt-6-sol', 'effort': 'high'}),
+            ({'model': 'gpt-6.1-sol', 'effort': 'high'}, {'model': 'gpt-6-sol', 'effort': 'xhigh'},
+             {'model': 'gpt-6-sol', 'effort': 'xhigh'}),
+        ):
+            with self.subTest(configured=configured, override=override):
+                config_path.write_text(json.dumps({'skills': {'review-implementation': {
+                    'implementer': configured,
+                }}}))
+                args = copy.deepcopy(self.args)
+                for field, value in override.items():
+                    setattr(args, f'implementer_{field}', value)
+                run, state = r.initialize(args)
+                self.assertEqual(state['agent_profile']['implementer'], expected)
+                self.assertEqual(r.read_json(run/'original.json')['agent_profile']['implementer'], expected)
 
     def test_per_skill_config_and_run_overrides_resolve_independently(self):
         config_path = self.root/'runtime.local.json'
@@ -611,14 +694,28 @@ class ReviewTests(unittest.TestCase):
         legacy = copy.deepcopy(self.state)
         legacy['schema_version'] = 1
         legacy.pop('agent_profile')
-        self.assertEqual(r.effective_profile(legacy), r.V1_PROFILES['review-implementation'])
-        for who, stage in [('opus', 'review'), ('astra', 'adjudicate'), ('sol', 'repair')]:
-            legacy['stage'] = stage
-            self.assertEqual(r.agent_settings(legacy, who), {
-                'opus': ('claude-opus-5-5', 'high'),
-                'astra': ('gpt-6-astra', 'max'),
-                'sol': ('gpt-6-sol', 'xhigh'),
-            }[who])
+        expected = {
+            'reviewer': {'model': 'claude-opus-5-5', 'effort': 'high'},
+            'coordinator': {'model': 'gpt-6-astra', 'effort': 'max'},
+            'implementer': {'model': 'gpt-6-sol', 'effort': 'xhigh'},
+        }
+        with patch.dict(r.DEFAULT_PROFILES['review-implementation']['implementer'],
+                        {'model': 'gpt-future-default', 'effort': 'low'}):
+            self.assertEqual(r.V1_PROFILES['review-implementation'], expected)
+            self.assertEqual(r.V1_PROFILES['review-plan'],
+                             {key: value for key, value in expected.items() if key != 'implementer'})
+            self.assertEqual(r.effective_profile(legacy), expected)
+            for who, stage in [('opus', 'review'), ('astra', 'adjudicate'), ('sol', 'repair')]:
+                legacy['stage'] = stage
+                model, effort = r.agent_settings(legacy, who)
+                settings = expected[r.AGENT_TO_PROFILE_ROLE[who]]
+                self.assertEqual((model, effort), (settings['model'], settings['effort']))
+                argv = r.cli_argv(legacy, self.run)
+                self.assertEqual(argv[argv.index('--model')+1], settings['model'])
+                if who == 'opus':
+                    self.assertEqual(argv[argv.index('--effort')+1], settings['effort'])
+                else:
+                    self.assertIn(f'model_reasoning_effort="{settings["effort"]}"', argv)
         legacy['schema_version'] = 2
         with self.assertRaisesRegex(r.ReviewError, 'missing its frozen'):
             r.effective_profile(legacy)

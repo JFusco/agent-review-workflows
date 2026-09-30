@@ -1,7 +1,8 @@
-# Graph Report - .  (2026-09-29)
+# Graph Report - agent-review-workflows  (2026-09-29)
 
 ## Corpus Check
-- cluster-only mode — file stats not available
+- 26 files · ~21,364 words
+- Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
 - 373 nodes · 995 edges · 16 communities (15 shown, 1 thin omitted)
@@ -9,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `98b9faa4`
+- Built from commit: `1c5154d8`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
