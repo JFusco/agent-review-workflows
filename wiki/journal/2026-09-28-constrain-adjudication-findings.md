@@ -1,6 +1,8 @@
 ---
 topics: [implementation-review-evidence]
 plans: [2026-09-28-constrain-implementation-review-adjudication-findings-7eeb3aeff9.md]
+issue: 'https://github.com/jfusco/agent-review-workflows/issues/14'
+issues: ['https://github.com/jfusco/agent-review-workflows/issues/14']
 ---
 # Constrain adjudication findings
 
