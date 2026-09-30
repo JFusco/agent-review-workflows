@@ -1,6 +1,8 @@
 ---
 topics: [implementation-review-evidence]
 plans: [2026-09-28-preserve-in-scope-adjudication-discoveries-a85c7cc5ea.md]
+issue: 'https://github.com/jfusco/agent-review-workflows/issues/17'
+issues: ['https://github.com/jfusco/agent-review-workflows/issues/17']
 ---
 # Preserve in-scope adjudication discoveries
 
