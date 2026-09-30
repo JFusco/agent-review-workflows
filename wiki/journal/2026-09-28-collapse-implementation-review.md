@@ -1,6 +1,8 @@
 ---
 topics: [implementation-review-evidence]
 plans: [2026-09-28-collapse-implementation-review-to-five-calls-fe6bc3ca4e.md]
+issue: 'https://github.com/jfusco/agent-review-workflows/issues/21'
+issues: ['https://github.com/jfusco/agent-review-workflows/issues/21']
 ---
 # Collapse implementation review
 
