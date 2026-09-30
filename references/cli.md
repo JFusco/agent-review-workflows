@@ -16,7 +16,7 @@ The ignored installation-local `runtime.local.json` may contain partial profiles
     "review-implementation": {
       "reviewer": { "model": "claude-opus-5-5", "effort": "high" },
       "coordinator": { "model": "gpt-6-astra", "effort": "max" },
-      "implementer": { "model": "gpt-6-sol", "effort": "xhigh" }
+      "implementer": { "model": "gpt-6.1-sol", "effort": "xhigh" }
     }
   }
 }
@@ -24,7 +24,9 @@ The ignored installation-local `runtime.local.json` may contain partial profiles
 
 Those values are also the built-in defaults. Claude effort accepts `low`, `medium`, `high`, `xhigh`, or `max`. Codex effort accepts `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`, or `ultra`; the selected model may support only a subset. Model identifiers must be nonblank and contain no whitespace. The provider CLI remains authoritative for model availability and model/effort compatibility; rejection stops the workflow without fallback.
 
-At `start`, explicit `--reviewer-model` / `--reviewer-effort`, `--coordinator-model` / `--coordinator-effort`, and implementation-only `--implementer-model` / `--implementer-effort` override the selected skill profile. Resolution is per field: start flag, then installation profile, then built-in default. The helper validates the entire local configuration before creating a run and stores the complete resolved profile in its state, original snapshot, status, packet, and handoff. Later edits or deletion of `runtime.local.json` never change that run or its resumed sessions. Legacy version-1 runs retain the original default profile.
+At `start`, explicit `--reviewer-model` / `--reviewer-effort`, `--coordinator-model` / `--coordinator-effort`, and implementation-only `--implementer-model` / `--implementer-effort` override the selected skill profile. Resolution is per field: start flag, then installation profile, then built-in default. The helper validates the entire local configuration before creating a run and stores the complete resolved profile in its state, original snapshot, status, packet, and handoff. Later edits or deletion of `runtime.local.json` never change that run or its resumed sessions.
+
+The Sol 6.1 / `xhigh` default applies only to new implementation runs. Existing version-2 runs use their frozen profile, including Sol 6 / `xhigh`; version-1 runs retain the original Opus 5.5 / `high`, Astra 6 / `max`, and Sol 6 / `xhigh` pins. No artifact migration or session model switch occurs. An installation-local `implementer.model` of `gpt-6-sol` or explicit `--implementer-model gpt-6-sol` continues to select Sol 6 for a new run; effort follows the same per-field precedence.
 
 ## Start
 

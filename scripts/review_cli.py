@@ -52,6 +52,7 @@ V1_PROFILES = {
     },
 }
 DEFAULT_PROFILES = copy.deepcopy(V1_PROFILES)
+DEFAULT_PROFILES['review-implementation']['implementer']['model'] = 'gpt-6.1-sol'
 SCHEMA = json.loads((ROOT / 'schemas/response.json').read_text())
 VALIDATOR = Draft202012Validator(SCHEMA)
 # Provider CLIs accept the common keyword subset but may not register the local dialect URI.

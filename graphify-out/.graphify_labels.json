@@ -1,1 +1,18 @@
-{"0": "review_cli.py", "1": "archive-plan.cjs", "2": "on-merge-sync.cjs", "3": "audit-plan-candidates.cjs", "4": "common.cjs", "5": "plans.cjs", "6": "viewer.js", "7": "routing.cjs", "8": "refresh-issue-state.cjs", "9": "reconcile-merges.cjs", "10": "serve-graph.cjs", "11": "validate_pr_body.cjs", "12": "python.cjs", "13": "routing.js", "14": "create_trial.py", "15": "install_skills.py"}
+{
+  "0": "review_cli.py",
+  "1": "archive-plan.cjs",
+  "2": "on-merge-sync.cjs",
+  "3": "audit-plan-candidates.cjs",
+  "4": "common.cjs",
+  "5": "plans.cjs",
+  "6": "viewer.js",
+  "7": "routing.cjs",
+  "8": "refresh-issue-state.cjs",
+  "9": "reconcile-merges.cjs",
+  "10": "serve-graph.cjs",
+  "11": "validate_pr_body.cjs",
+  "12": "python.cjs",
+  "13": "routing.js",
+  "14": "create_trial.py",
+  "15": "install_skills.py"
+}

@@ -128,3 +128,28 @@ This one small fixture does **not** establish a general quality advantage for th
 [Machine-readable results](validation/summary.json) retain call counts, observed local session configuration, provider elapsed time and actual check output. `validation/` contains ignored local copies of native prompts, outputs, process receipts, original targets, handoffs and immutable revisions. [The manifest](validation/manifest.json) records their file hashes. Invocation paths intentionally retain the original temporary locations; these are evidence archives, not relocated resumable runs.
 
 The installed helper also supports using a conversation whose model and effort exactly match the frozen coordinator profile. Local tests cover yielding the external request and rejecting a mismatched submission; the provider-backed submit path was not exercised. Live trials used CLI Astra. Linux portability, large repositories, other programming languages, future CLI releases and production systems were not exercised. Parser tests establish covered rejection cases, not perfect handling of every possible malformed output.
+
+## Sol 6.1 new-run default (2026-09-29)
+
+Issue [#30](https://github.com/JFusco/agent-review-workflows/issues/30) changes
+only the built-in implementer for new implementation runs to `gpt-6.1-sol` /
+`xhigh`. Astra remains `gpt-6-astra` / `max`, and Opus remains
+`claude-opus-5-5` / `high`. The [official model documentation](https://developers.openai.com/api/docs/models/gpt-6.1-sol)
+lists `xhigh` support; it does not establish availability through any particular
+CLI or account.
+
+`pnpm run verify:ci` passed locally: Python and JavaScript lint, **78 Python
+tests**, **17 tooling tests**, and wiki integrity. Focused regression coverage
+establishes the exact new profile in saved state and original snapshots, frozen
+initial/resumed implementer arguments, existing version-2 Sol 6 compatibility,
+unchanged version-1 pins despite new-default edits, per-field override
+precedence, and unchanged plan-review defaults. The existing suite continues to
+cover scope, permission, freshness, interrupted recovery, repair locks, and
+independent recheck. Graphify 0.9.36 refreshed the code map without model calls;
+the wiki graph was rebuilt and checked.
+
+These results are deterministic local configuration and compatibility evidence.
+No paid or provider-backed Sol 6.1 trial was run. The historical Sol 6 trial
+records above are preserved and do not establish Sol 6.1 provider execution or
+repair quality. Unsupported selections still stop at the provider boundary
+without fallback; existing runs retain their profiles and artifacts.

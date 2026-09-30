@@ -6,7 +6,7 @@ Agent Review Workflows provides three installable agent skills that coordinate e
 - `review-implementation`: a Claude reviewer finds and rechecks defects; a Codex coordinator locks accepted repairs and closes successful reviews; a Codex implementer makes the scoped repair.
 - `review-handoff`: dispatches one authorized stage of an existing review run through the helper, then reports its status.
 
-The built-in profile remains Opus 5.5 High, Astra 6 Max, and Sol 6 XHigh. Installation-local profiles and explicit per-run overrides can select other model and effort combinations without changing provider or permission boundaries.
+The built-in profile for new runs is Opus 5.5 High, Astra 6 Max, and Sol 6.1 Extra High (`xhigh`). Installation-local profiles and explicit per-run overrides can select other model and effort combinations without changing provider or permission boundaries.
 
 Invoke a skill in Codex by name. Finishing ordinary work does not launch a cycle. Plan review always stops before application implementation.
 
@@ -46,13 +46,15 @@ Add any desired partial overrides to the ignored `runtime.local.json` beside thi
     "review-implementation": {
       "reviewer": { "model": "claude-opus-5-5", "effort": "high" },
       "coordinator": { "model": "gpt-6-astra", "effort": "max" },
-      "implementer": { "model": "gpt-6-sol", "effort": "xhigh" }
+      "implementer": { "model": "gpt-6.1-sol", "effort": "xhigh" }
     }
   }
 }
 ```
 
 `start` also accepts `--reviewer-model`, `--reviewer-effort`, `--coordinator-model`, `--coordinator-effort`, and implementation-only `--implementer-model` / `--implementer-effort`. Explicit flags override the installation profile, which overrides built-in defaults. The complete result is recorded in the run and used unchanged on resume. Configuration errors fail before run artifacts are created; provider rejection stops the run without fallback.
+
+Existing version-2 runs retain their frozen profiles, including Sol 6. Version-1 runs retain the original Opus 5.5 High, Astra 6 Max, and Sol 6 XHigh pins. Updating the helper does not migrate run artifacts or change resumed sessions. To select Sol 6 for a new implementation run, pass `--implementer-model gpt-6-sol` or set it in the installation profile.
 
 ## Install
 
