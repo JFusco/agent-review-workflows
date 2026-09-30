@@ -1,6 +1,8 @@
 ---
 topics: [review-agent-profiles]
 plans: [2026-09-29-upgrade-the-implementer-to-sol-6-1-extra-high-bcf5c5e977.md]
+issue: 'https://github.com/jfusco/agent-review-workflows/issues/30'
+issues: ['https://github.com/jfusco/agent-review-workflows/issues/30']
 ---
 
 # Upgrade the new-run implementer to Sol 6.1
