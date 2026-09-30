@@ -16,6 +16,27 @@ CLI configuration records are observations from the local runtime, not independe
 
 ## Local validation
 
+### Deterministic plan protocol (2026-09-30)
+
+Issue [#33](https://github.com/JFusco/agent-review-workflows/issues/33) adds
+`plan_protocol_version: 2` for new plan runs. Eighteen disposable fixture tests
+cover stage-specific schemas and ownership, helper-assigned IDs, canonical
+normalization, two/three/five-call paths, new gaps, pending user decisions,
+external submissions, stale evidence, immutable definitions, read-only guards,
+two-refinement enforcement, interrupted checkpoints and derived views, replay,
+accepted-artifact rendering, unsupported versions, and legacy paused-stage resumption. Existing
+single-stage dispatch coverage now includes protocol-2 plans.
+
+These tests use synthetic responses and local temporary repositories. No provider
+was invoked for this change, and no comparative model quality, observed reasoning
+effort, production behavior, token savings, or measured latency improvement is
+claimed. The existing Opus 5.5 High and Astra Max defaults remain unchanged.
+
+The earlier validation records below describe their own execution dates and
+protocols; their live trials do not validate this new response contract.
+
+### Initial local validation (2026-09-28)
+
 - **33 tests passed**, covering strict schema handling, duplicates, stale targets and context revisions, rejected findings, evidence references, required check gates, plan-only behavior, initial/resumed model settings, scope protection, interrupted persistence, reconciliation, process groups, inherited locks, and symlink installation.
 - Both skills passed the official `skill-creator` frontmatter and scaffold validator.
 - Independent read-only helper review found concrete completion and recovery gaps. The fixes received regression tests; the reviewer confirmed the reported gaps addressed, including surviving child processes.

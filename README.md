@@ -2,7 +2,7 @@
 
 Agent Review Workflows provides three installable agent skills that coordinate evidence-backed review through Claude Code and Codex CLI:
 
-- `review-plan`: a Claude reviewer critiques; a Codex coordinator refines and finalizes the plan.
+- `review-plan`: a Claude reviewer critiques and rechecks; a Codex coordinator adjudicates and refines; the helper completes the plan review.
 - `review-implementation`: a Claude reviewer finds and rechecks defects; a Codex coordinator locks accepted repairs and closes successful reviews; a Codex implementer makes the scoped repair.
 - `review-handoff`: dispatches one authorized stage of an existing review run through the helper, then reports its status.
 
@@ -10,9 +10,13 @@ The built-in profile for new runs is Opus 5.5 High, Astra 6 Max, and Sol 6.1 Ext
 
 Invoke a skill in Codex by name. Finishing ordinary work does not launch a cycle. Plan review always stops before application implementation.
 
-Each workflow keeps a revision-bound decision ledger, separates review from repair, and requires independent rechecks before completion. The implementation workflow gives write access only to its designated repair agent; the plan workflow never edits application code.
+Each workflow keeps a revision-bound decision ledger and separates review from repair. Revised plans and repaired implementations require independent rechecks before completion. The implementation workflow gives write access only to its designated repair agent; the plan workflow never edits application code.
 
 ## How it works
+
+New plan reviews use `review → adjudicate → recheck` when refinement is needed. The coordinator always checks completeness, even after a clean review. Unchanged sound plans finish in two calls; first-pass corrected plans finish in three, with at most two refinement attempts. Stage-specific JSON responses carry only new findings, owned assessments, and any complete refinement. The helper assigns finding IDs, preserves canonical definitions, validates current evidence, and routes completion. See the [plan protocol](references/plan-protocol.md) for the exact contracts and legacy behavior.
+
+Implementation reviews follow this sequence:
 
 1. The helper snapshots an explicitly scoped target and records its fingerprint.
 2. For implementations, it runs the configured checks and gives the reviewer the frozen-base diff, scoped sources, verbatim requirements, and exact check receipts.
@@ -30,7 +34,7 @@ From any project in Codex CLI, invoke `$review-plan` with the draft or `$review-
 
 For one stage of an existing run, invoke `$review-handoff` with its run directory. It uses the existing `step` command and the run's frozen CLI model settings, with no dedicated handoff model or additional stage. See [Single-stage handoff](references/cli.md#single-stage-handoff).
 
-New implementation runs require Git, an explicit local `--base`, one or more `--scope` files, and at least one `--check`. They fail before creating artifacts if the base is invalid or the initial scoped diff is empty. Plan runs and previously created review runs retain their existing contracts.
+New implementation runs require Git, an explicit local `--base`, one or more `--scope` files, and at least one `--check`. They fail before creating artifacts if the base is invalid or the initial scoped diff is empty. Plan runs keep base and checks optional. Previously created runs retain their recorded contracts.
 
 ## Configure models and effort
 
