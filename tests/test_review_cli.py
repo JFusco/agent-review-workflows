@@ -418,10 +418,11 @@ class ReviewTests(unittest.TestCase):
         self.assertEqual([entry['stage'] for entry in self.state['ledger'] if entry['stage'] == 'repair'],
                          ['repair'])
 
-    def test_plan_never_repairs(self):
+    def test_legacy_plan_never_repairs(self):
         self.args.mode='plan'
         self.args.plan=str(ROOT/'tests/fixtures/sound-plan.md')
         self.run,self.state=r.initialize(self.args)
+        self.state.pop('plan_protocol_version')
         self.accept(self.response([]))
         self.assertEqual(self.state['stage'],'refine')
         data=self.response([])
@@ -438,6 +439,7 @@ class ReviewTests(unittest.TestCase):
     def test_final_plan_cannot_change_after_recheck(self):
         self.args.mode='plan'; self.args.plan=str(ROOT/'tests/fixtures/sound-plan.md')
         self.run,self.state=r.initialize(self.args)
+        self.state.pop('plan_protocol_version')
         self.state.update(stage='finalize',current_plan='Reviewed plan')
         data=self.response([]); data['plan_markdown']='Different plan'
         with self.assertRaises(r.ReviewError): r.validate_response(self.state,data)
@@ -884,6 +886,7 @@ class ReviewTests(unittest.TestCase):
     def test_step_dispatches_one_stage_with_frozen_profile(self):
         for mode, version, next_stage in (
             ('plan', None, 'respond'),
+            ('plan', 2, 'adjudicate'),
             ('implementation', 1, 'respond'),
             ('implementation', 2, 'adjudicate'),
         ):
@@ -892,13 +895,20 @@ class ReviewTests(unittest.TestCase):
                 args.mode = mode
                 args.plan = str(ROOT/'tests/fixtures/sound-plan.md') if mode == 'plan' else None
                 self.run, self.state = r.initialize(args)
-                if version is not None:
+                if mode == 'plan' and version is None:
+                    self.state.pop('plan_protocol_version')
+                elif mode == 'implementation' and version is not None:
                     self.state['implementation_evidence_version'] = version
                 self.state['agent_profile']['reviewer'] = {'model': 'fixture-reviewer', 'effort': 'low'}
                 if mode == 'implementation':
                     self.use_passing_check()
                 r.save(self.run, self.state)
                 response = self.response([finding()])
+                if mode == 'plan' and version == 2:
+                    response.pop('findings')
+                    response.pop('plan_markdown')
+                    response.update(plan_protocol_version=2, new_findings=[
+                        {key: finding()[key] for key in r.FINDING_DEFINITION_FIELDS}])
                 config = {'model': 'fixture-reviewer', 'effort': 'low', 'observed': {'source': 'fixture'}}
                 with patch.object(sys, 'argv', ['review_cli.py', 'step', str(self.run)]), \
                         patch.object(sys, 'stdout', new_callable=io.StringIO) as output, \

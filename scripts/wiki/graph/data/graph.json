@@ -2,13 +2,13 @@
   "version": 1,
   "wikiRoot": "wiki",
   "counts": {
-    "nodes": 30,
-    "edges": 56,
+    "nodes": 33,
+    "edges": 63,
     "byType": {
       "index": 3,
-      "journal": 11,
-      "plan": 12,
-      "topic": 4
+      "journal": 12,
+      "plan": 13,
+      "topic": 5
     }
   },
   "nodes": [
@@ -18,8 +18,8 @@
       "type": "index",
       "aliases": [],
       "githubRefs": [],
-      "bytes": 1472,
-      "degree": 3,
+      "bytes": 1582,
+      "degree": 4,
       "x": 1,
       "y": 0,
       "size": 12
@@ -39,8 +39,8 @@
       ],
       "bytes": 2186,
       "degree": 2,
-      "x": 0.913545,
-      "y": 0.406737,
+      "x": 0.928368,
+      "y": 0.371662,
       "size": 8
     },
     {
@@ -70,8 +70,8 @@
       ],
       "bytes": 2152,
       "degree": 2,
-      "x": 0.809017,
-      "y": 0.587785,
+      "x": 0.841254,
+      "y": 0.540641,
       "size": 8
     },
     {
@@ -89,8 +89,8 @@
       ],
       "bytes": 2103,
       "degree": 3,
-      "x": 0.669131,
-      "y": 0.743145,
+      "x": 0.723734,
+      "y": 0.690079,
       "size": 8
     },
     {
@@ -108,8 +108,8 @@
       ],
       "bytes": 1551,
       "degree": 3,
-      "x": 0.5,
-      "y": 0.866025,
+      "x": 0.580057,
+      "y": 0.814576,
       "size": 8
     },
     {
@@ -127,8 +127,8 @@
       ],
       "bytes": 4200,
       "degree": 3,
-      "x": 0.309017,
-      "y": 0.951057,
+      "x": 0.415415,
+      "y": 0.909632,
       "size": 8
     },
     {
@@ -146,8 +146,8 @@
       ],
       "bytes": 2180,
       "degree": 2,
-      "x": 0.104528,
-      "y": 0.994522,
+      "x": 0.235759,
+      "y": 0.971812,
       "size": 8
     },
     {
@@ -165,8 +165,8 @@
       ],
       "bytes": 2766,
       "degree": 2,
-      "x": -0.104528,
-      "y": 0.994522,
+      "x": 0.047582,
+      "y": 0.998867,
       "size": 8
     },
     {
@@ -196,8 +196,8 @@
       ],
       "bytes": 1479,
       "degree": 3,
-      "x": -0.309017,
-      "y": 0.951057,
+      "x": -0.142315,
+      "y": 0.989821,
       "size": 8
     },
     {
@@ -215,8 +215,8 @@
       ],
       "bytes": 898,
       "degree": 4,
-      "x": -0.5,
-      "y": 0.866025,
+      "x": -0.327068,
+      "y": 0.945001,
       "size": 8
     },
     {
@@ -234,8 +234,8 @@
       ],
       "bytes": 1525,
       "degree": 2,
-      "x": -0.669131,
-      "y": 0.743145,
+      "x": -0.5,
+      "y": 0.866025,
       "size": 8
     },
     {
@@ -253,8 +253,27 @@
       ],
       "bytes": 2188,
       "degree": 2,
-      "x": -0.809017,
-      "y": 0.587785,
+      "x": -0.654861,
+      "y": 0.75575,
+      "size": 8
+    },
+    {
+      "id": "wiki/journal/2026-09-30-deterministic-plan-review.md",
+      "label": "Deterministic plan review",
+      "type": "journal",
+      "aliases": [],
+      "githubRefs": [
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 33,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/33"
+        }
+      ],
+      "bytes": 1762,
+      "degree": 4,
+      "x": -0.786053,
+      "y": 0.618159,
       "size": 8
     },
     {
@@ -265,8 +284,8 @@
       "githubRefs": [],
       "bytes": 2904,
       "degree": 2,
-      "x": 0.978148,
-      "y": 0.207912,
+      "x": 0.981929,
+      "y": 0.189251,
       "size": 12
     },
     {
@@ -284,8 +303,8 @@
       ],
       "bytes": 1235,
       "degree": 4,
-      "x": -0.913545,
-      "y": 0.406737,
+      "x": -0.888835,
+      "y": 0.458227,
       "size": 8
     },
     {
@@ -309,8 +328,8 @@
       ],
       "bytes": 3057,
       "degree": 3,
-      "x": -0.978148,
-      "y": 0.207912,
+      "x": -0.959493,
+      "y": 0.281733,
       "size": 8
     },
     {
@@ -321,8 +340,8 @@
       "githubRefs": [],
       "bytes": 4084,
       "degree": 3,
-      "x": -1,
-      "y": 0,
+      "x": -0.995472,
+      "y": 0.095056,
       "size": 8
     },
     {
@@ -340,8 +359,8 @@
       ],
       "bytes": 4673,
       "degree": 3,
-      "x": -0.978148,
-      "y": -0.207912,
+      "x": -0.995472,
+      "y": -0.095056,
       "size": 8
     },
     {
@@ -359,8 +378,8 @@
       ],
       "bytes": 1396,
       "degree": 3,
-      "x": -0.913545,
-      "y": -0.406737,
+      "x": -0.959493,
+      "y": -0.281733,
       "size": 8
     },
     {
@@ -378,8 +397,8 @@
       ],
       "bytes": 1060,
       "degree": 3,
-      "x": -0.809017,
-      "y": -0.587785,
+      "x": -0.888835,
+      "y": -0.458227,
       "size": 8
     },
     {
@@ -390,8 +409,8 @@
       "githubRefs": [],
       "bytes": 4946,
       "degree": 3,
-      "x": -0.669131,
-      "y": -0.743145,
+      "x": -0.786053,
+      "y": -0.618159,
       "size": 8
     },
     {
@@ -409,8 +428,8 @@
       ],
       "bytes": 1365,
       "degree": 3,
-      "x": -0.5,
-      "y": -0.866025,
+      "x": -0.654861,
+      "y": -0.75575,
       "size": 8
     },
     {
@@ -428,8 +447,8 @@
       ],
       "bytes": 1341,
       "degree": 3,
-      "x": -0.309017,
-      "y": -0.951057,
+      "x": -0.5,
+      "y": -0.866025,
       "size": 8
     },
     {
@@ -447,8 +466,8 @@
       ],
       "bytes": 4387,
       "degree": 3,
-      "x": -0.104528,
-      "y": -0.994522,
+      "x": -0.327068,
+      "y": -0.945001,
       "size": 8
     },
     {
@@ -459,8 +478,8 @@
       "githubRefs": [],
       "bytes": 2229,
       "degree": 4,
-      "x": 0.104528,
-      "y": -0.994522,
+      "x": -0.142315,
+      "y": -0.989821,
       "size": 8
     },
     {
@@ -471,8 +490,20 @@
       "githubRefs": [],
       "bytes": 4144,
       "degree": 3,
-      "x": 0.309017,
-      "y": -0.951057,
+      "x": 0.047582,
+      "y": -0.998867,
+      "size": 8
+    },
+    {
+      "id": "wiki/plans/2026-09-30-deterministic-efficient-plan-review-aacda16d5f.md",
+      "label": "Deterministic, efficient plan review",
+      "type": "plan",
+      "aliases": [],
+      "githubRefs": [],
+      "bytes": 9238,
+      "degree": 4,
+      "x": 0.235759,
+      "y": -0.971812,
       "size": 8
     },
     {
@@ -518,10 +549,10 @@
           "url": "https://github.com/jfusco/agent-review-workflows/pull/8"
         }
       ],
-      "bytes": 21867,
-      "degree": 14,
-      "x": 0.5,
-      "y": -0.866025,
+      "bytes": 22233,
+      "degree": 15,
+      "x": 0.415415,
+      "y": -0.909632,
       "size": 12
     },
     {
@@ -545,8 +576,8 @@
       ],
       "bytes": 4290,
       "degree": 4,
-      "x": 0.669131,
-      "y": -0.743145,
+      "x": 0.580057,
+      "y": -0.814576,
       "size": 8
     },
     {
@@ -582,8 +613,8 @@
       ],
       "bytes": 4812,
       "degree": 14,
-      "x": 0.809017,
-      "y": -0.587785,
+      "x": 0.723734,
+      "y": -0.690079,
       "size": 8
     },
     {
@@ -601,8 +632,27 @@
       ],
       "bytes": 1245,
       "degree": 4,
-      "x": 0.913545,
-      "y": -0.406737,
+      "x": 0.841254,
+      "y": -0.540641,
+      "size": 8
+    },
+    {
+      "id": "wiki/topics/plan-review-protocol.md",
+      "label": "Plan review protocol",
+      "type": "topic",
+      "aliases": [],
+      "githubRefs": [
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 33,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/33"
+        }
+      ],
+      "bytes": 1784,
+      "degree": 4,
+      "x": 0.928368,
+      "y": -0.371662,
       "size": 8
     },
     {
@@ -626,8 +676,8 @@
       ],
       "bytes": 2952,
       "degree": 5,
-      "x": 0.978148,
-      "y": -0.207912,
+      "x": 0.981929,
+      "y": -0.189251,
       "size": 8
     }
   ],
@@ -643,6 +693,13 @@
       "id": "0a36c528abcc3a4d",
       "source": "wiki/journal/2026-09-28-implementation-review-evidence.md",
       "target": "wiki/topics/implementation-review-evidence.md",
+      "type": "topic",
+      "relation": "topic"
+    },
+    {
+      "id": "0a3bec1533cd1349",
+      "source": "wiki/journal/2026-09-30-deterministic-plan-review.md",
+      "target": "wiki/topics/plan-review-protocol.md",
       "type": "topic",
       "relation": "topic"
     },
@@ -703,9 +760,23 @@
       "relation": "topic"
     },
     {
+      "id": "1ab686a69346bc43",
+      "source": "wiki/journal/2026-09-30-deterministic-plan-review.md",
+      "target": "wiki/plans/2026-09-30-deterministic-efficient-plan-review-aacda16d5f.md",
+      "type": "plan",
+      "relation": "plan"
+    },
+    {
       "id": "22c4a298b9310116",
       "source": "wiki/journal/2026-09-28-constrain-adjudication-findings.md",
       "target": "wiki/topics/implementation-review-evidence.md",
+      "type": "link",
+      "relation": "link"
+    },
+    {
+      "id": "24171aaad781e7ed",
+      "source": "wiki/journal/2026-09-30-deterministic-plan-review.md",
+      "target": "wiki/topics/plan-review-protocol.md",
       "type": "link",
       "relation": "link"
     },
@@ -757,6 +828,13 @@
       "target": "wiki/topics/implementation-review-evidence.md",
       "type": "topic",
       "relation": "topic"
+    },
+    {
+      "id": "3387590e8c0ac94b",
+      "source": "wiki/plans/INDEX.md",
+      "target": "wiki/plans/2026-09-30-deterministic-efficient-plan-review-aacda16d5f.md",
+      "type": "link",
+      "relation": "link"
     },
     {
       "id": "355b085344694472",
@@ -850,6 +928,13 @@
       "relation": "topic"
     },
     {
+      "id": "8fd60c20bba4672a",
+      "source": "wiki/journal/2026-09-30-deterministic-plan-review.md",
+      "target": "wiki/plans/2026-09-30-deterministic-efficient-plan-review-aacda16d5f.md",
+      "type": "link",
+      "relation": "link"
+    },
+    {
       "id": "91bb1144dc1bd669",
       "source": "wiki/journal/2026-09-28-contributor-quality-and-delivery.md",
       "target": "wiki/topics/contributor-quality-and-delivery.md",
@@ -890,6 +975,13 @@
       "target": "wiki/plans/2026-09-28-configurable-per-skill-agent-profiles-1dacf57a38.md",
       "type": "plan",
       "relation": "plan"
+    },
+    {
+      "id": "aa7a884e62c67d59",
+      "source": "wiki/INDEX.md",
+      "target": "wiki/topics/plan-review-protocol.md",
+      "type": "link",
+      "relation": "link"
     },
     {
       "id": "b2bceae9f273189d",
@@ -995,6 +1087,13 @@
       "target": "wiki/plans/2026-09-28-repair-advisory-handoffs-and-check-recovery-17c39fac0c.md",
       "type": "plan",
       "relation": "plan"
+    },
+    {
+      "id": "ed7f85471a465bb9",
+      "source": "wiki/plans/2026-09-30-deterministic-efficient-plan-review-aacda16d5f.md",
+      "target": "wiki/topics/plan-review-protocol.md",
+      "type": "topic",
+      "relation": "topic"
     },
     {
       "id": "f7a0fc849364a865",

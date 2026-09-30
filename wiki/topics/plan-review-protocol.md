@@ -1,0 +1,32 @@
+---
+issues: ['https://github.com/JFusco/agent-review-workflows/issues/33']
+---
+# Plan review protocol
+
+Plan review aims to produce a precise, scoped, implementation-ready document.
+Issue [#33](https://github.com/JFusco/agent-review-workflows/issues/33) keeps two
+perspectives even when the first reviewer finds no defects: the coordinator
+always assesses completeness. Independent recheck follows every refinement.
+
+The protocol removes advisory exchanges, the separate refinement call, and the
+verbatim finalization call. The common paths take two calls for a sound unchanged
+plan, three for a first-pass corrected plan, and five when a second refinement is
+needed. These are stage counts, not measured cost or latency improvements.
+
+Determinism belongs to the contract and helper. Models return stage-specific
+assessments and new definitions; the helper assigns IDs, preserves canonical
+records, validates evidence and freshness, and routes the next stage. Prose
+remains useful for rationale, evidence, corrections, acceptance criteria, and the
+complete refined plan. The full contract is maintained in the
+[protocol reference](../../references/plan-protocol.md).
+
+New runs use `plan_protocol_version: 2`. Legacy runs remain resumable without
+migration; implementation review retains its own versioning and authority chain.
+Opus 5.5 High and Astra Max remain the defaults, with per-run profiles frozen.
+At most two refinement attempts are permitted, and incomplete second rechecks
+remain unresolved. Completion views derive from accepted snapshots rather than
+mutable draft files.
+
+Deterministic fixtures establish routing, schema, persistence, permission, and
+compatibility behavior. They do not establish comparative model quality, actual
+provider effort, or production behavior.
