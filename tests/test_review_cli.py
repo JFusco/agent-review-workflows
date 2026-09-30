@@ -1,6 +1,7 @@
 import argparse
 import copy
 import importlib.util
+import io
 import json
 import os
 from pathlib import Path
@@ -783,6 +784,77 @@ class ReviewTests(unittest.TestCase):
         self.assertTrue(canonical.external_coordinator)
         self.assertTrue(legacy.external_coordinator)
 
+    def test_step_dispatches_one_stage_with_frozen_profile(self):
+        for mode, version, next_stage in (
+            ('plan', None, 'respond'),
+            ('implementation', 1, 'respond'),
+            ('implementation', 2, 'adjudicate'),
+        ):
+            with self.subTest(mode=mode, version=version):
+                args = copy.deepcopy(self.args)
+                args.mode = mode
+                args.plan = str(ROOT/'tests/fixtures/sound-plan.md') if mode == 'plan' else None
+                self.run, self.state = r.initialize(args)
+                if version is not None:
+                    self.state['implementation_evidence_version'] = version
+                self.state['agent_profile']['reviewer'] = {'model': 'fixture-reviewer', 'effort': 'low'}
+                if mode == 'implementation':
+                    self.use_passing_check()
+                r.save(self.run, self.state)
+                response = self.response([finding()])
+                config = {'model': 'fixture-reviewer', 'effort': 'low', 'observed': {'source': 'fixture'}}
+                with patch.object(sys, 'argv', ['review_cli.py', 'step', str(self.run)]), \
+                        patch.object(sys, 'stdout', new_callable=io.StringIO) as output, \
+                        patch.object(r, 'execute_process') as execute, \
+                        patch.object(r, 'extract_response', return_value=(response, None, config)):
+                    r.main()
+                execute.assert_called_once()
+                argv = execute.call_args.args[0]
+                self.assertEqual(argv[argv.index('--model') + 1], 'fixture-reviewer')
+                self.assertEqual(argv[argv.index('--effort') + 1], 'low')
+                self.assertIn(r.dumps(r.packet(self.state)), execute.call_args.args[2])
+                saved = r.read_json(self.run/'state.json')
+                self.assertEqual(saved['stage'], next_stage)
+                self.assertEqual(saved['status'], 'ready')
+                self.assertEqual(saved['handoff_revision'], 1)
+                self.assertEqual(len(saved['ledger']), 1)
+                self.assertEqual(len(list((self.run/'calls').iterdir())), 1)
+                self.assertIn(f'"stage": "{next_stage}"', output.getvalue())
+                self.assertIn(str(self.run/'handoff.md'), output.getvalue())
+
+    def test_step_does_not_dispatch_or_recover_nonready_runs(self):
+        self.use_passing_check()
+        self.accept(self.response([]))
+        self.accept(self.response([]))
+        self.assertEqual(self.state['status'], 'complete')
+        for status in ('blocked', 'interrupted', 'running', 'complete', 'unresolved',
+                       'needs_user', 'awaiting_coordinator', 'awaiting_astra'):
+            with self.subTest(status=status):
+                self.state['status'] = status
+                r.save(self.run, self.state)
+                original = (self.run/'state.json').read_bytes()
+                with patch.object(sys, 'argv', ['review_cli.py', 'step', str(self.run)]), \
+                        patch.object(sys, 'stdout', new_callable=io.StringIO) as output, \
+                        patch.object(r, 'advance') as advance:
+                    r.main()
+                advance.assert_not_called()
+                self.assertEqual((self.run/'state.json').read_bytes(), original)
+                self.assertEqual(list((self.run/'calls').iterdir()), [])
+                self.assertIn(f'"status": "{status}"', output.getvalue())
+
+    def test_step_rejects_stale_target_before_dispatch(self):
+        (self.project/'calculator.py').write_text('changed after run creation')
+        original = (self.run/'state.json').read_bytes()
+        with patch.object(sys, 'argv', ['review_cli.py', 'step', str(self.run)]), \
+                patch.object(sys, 'stdout', new_callable=io.StringIO), \
+                patch.object(sys, 'stderr', new_callable=io.StringIO), \
+                patch.object(r, 'execute_process') as execute, \
+                self.assertRaises(SystemExit) as stopped:
+            r.main()
+        self.assertEqual(stopped.exception.code, 2)
+        execute.assert_not_called()
+        self.assertEqual((self.run/'state.json').read_bytes(), original)
+
     def test_claude_fallback_model_rejected(self):
         call=self.root/'call'; call.mkdir()
         (call/'stdout.log').write_text(json.dumps({'structured_output':self.response([]),'session_id':str(__import__('uuid').uuid4()),'modelUsage':{'wrong-model':{}}}))
@@ -1037,19 +1109,22 @@ class ReviewTests(unittest.TestCase):
         for _ in range(2):
             result = subprocess.run(argv, capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
-        for name in ('review-plan','review-implementation'):
+        for name in ('review-plan','review-implementation','review-handoff'):
             self.assertTrue((destination/name/'references/cli.md').is_file())
+        (destination/'review-handoff').unlink()
+        (destination/'review-handoff').mkdir()
         (destination/'review-plan').unlink()
-        (destination/'review-plan').mkdir()
         result = subprocess.run(argv, capture_output=True, text=True)
         self.assertNotEqual(result.returncode, 0)
-        self.assertFalse((destination/'review-plan').is_symlink())
+        self.assertTrue((destination/'review-handoff').is_dir())
+        self.assertFalse((destination/'review-handoff').is_symlink())
+        self.assertFalse((destination/'review-plan').exists())
 
     def test_installer_preserves_saved_skill_profiles(self):
         source = self.root/'installer-source'
         (source/'scripts').mkdir(parents=True)
         (source/'scripts/install_skills.py').write_text((ROOT/'scripts/install_skills.py').read_text())
-        for name in ('review-plan', 'review-implementation'):
+        for name in ('review-plan', 'review-implementation', 'review-handoff'):
             skill = source/'skills'/name
             skill.mkdir(parents=True)
             (skill/'SKILL.md').write_text(f'---\nname: {name}\ndescription: Fixture.\n---\n')

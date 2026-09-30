@@ -20,6 +20,34 @@ CLI configuration records are observations from the local runtime, not independe
 - Both skills passed the official `skill-creator` frontmatter and scaffold validator.
 - Independent read-only helper review found concrete completion and recovery gaps. The fixes received regression tests; the reviewer confirmed the reported gaps addressed, including surviving child processes.
 
+### Single-stage handoff skill (2026-09-29)
+
+Issue [#27](https://github.com/JFusco/agent-review-workflows/issues/27) adds
+`review-handoff` around the existing `status` and `step` commands. No provider
+invocation or runtime protocol was added. The skill-creator validator passes.
+Three command-level fixture tests cover single-stage dispatch for plan and both
+implementation evidence versions, frozen reviewer settings and canonical packet
+delivery, non-ready states without dispatch or recovery, and stale-target
+rejection before dispatch. Installer tests cover all three skills, shared
+reference resolution, repeated installation, configuration preservation, and
+conflict preflight before any link is created.
+
+Authoring walkthroughs checked the following requests against the skill's
+description and instructions. These are static checks, not observed model
+activation or live-provider evidence:
+
+| Request | Defined behavior |
+| --- | --- |
+| “Use $review-handoff for this run directory.” | Inspect status, dispatch one authorized ready stage, report status and handoff. |
+| “Send this review run to the next agent.” | Apply the same one-stage workflow. |
+| “Hand off the review,” without a known run | Ask for the run; never infer the latest run. |
+| “Write a project handoff for my teammate.” | Outside this skill's review-run boundary. |
+| A blocked run, or an implementation repair during Plan mode | Report the blocker without dispatch or automatic recovery. |
+
+Existing tests continue to establish repair-lock, scope, malformed-response,
+revision, and independent-recheck boundaries. No new provider-backed trial or
+production verification is claimed for this skill.
+
 ### Configurable-profile extension
 
 Issue [#7](https://github.com/JFusco/agent-review-workflows/issues/7) added installation-local per-skill profiles and explicit per-run overrides. The expanded 49-test Python suite deterministically covers defaults, precedence, profile freezing, malformed configuration, provider and write boundaries, exact external-coordinator attestation, version-1 compatibility, and installer preservation. No provider-backed trial of custom profiles was run; that behavior remains fixture evidence.

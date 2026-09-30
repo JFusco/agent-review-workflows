@@ -75,6 +75,19 @@ New runs allow one repair and one recheck. If Opus leaves an accepted finding in
 
 Every response echoes the run, stage, target fingerprint, and handoff revision. The revision changes after an accepted response, reconciliation, or user decision, preventing an old response from answering a new instruction. Plan acceptance checks assess the revised document; passing means the plan is ready to implement, not that its code or future tests already passed. Implementation checks run before initial review and after repair, including when no findings remain. Failing or missing configured checks prevent completion.
 
+## Single-stage handoff
+
+Use `review-handoff` with one existing run directory to dispatch at most one authorized stage:
+
+```text
+PYTHON HELPER status /path/to/run
+PYTHON HELPER step /path/to/run
+```
+
+Call `step` only when `status` reports `ready` and the invoking conversation permits the stage. It selects the receiving CLI role and frozen model settings, sends the canonical packet, and accepts the response through the existing validation and persistence path. No model overrides or external-coordinator flags are needed. An implementation repair may write only through the designated implementer; Plan mode in the invoking conversation still prohibits dispatching that repair.
+
+Stop after one attempt and report the attempted stage, resulting status, blocker if any, and `handoff.md`. A ready next stage requires another invocation. Non-ready states, including external-coordinator waits, use [Recovery](#recovery) or the existing [external submission procedure](#run-and-interact); the handoff skill performs neither automatically. If output is lost, read `status` without replaying `step`. The existing `run` command and full review skills continue to support complete cycles.
+
 ## Recovery
 
 - `blocked`, or an orphaned read-only `running` stage: inspect the saved process output. `retry RUN` only resets a read-only stage after target freshness checks; then run again. Never change models to clear a blocker.

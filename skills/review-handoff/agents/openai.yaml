@@ -1,0 +1,6 @@
+interface:
+  display_name: "Hand off a review stage"
+  short_description: "Dispatch one stage of an existing review run"
+  default_prompt: "Use $review-handoff to dispatch the next authorized stage of this existing review run and report its status."
+policy:
+  allow_implicit_invocation: true

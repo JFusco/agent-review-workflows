@@ -49,6 +49,13 @@ finalization, subject to passing checks.
 
 ## Check recovery
 
+The installable `review-handoff` skill exposes one stage of either existing review
+chain through `status` and `step`. The helper remains the authority for routing,
+frozen model settings, canonical evidence, freshness, and repair permission. The
+skill adds no model or review stage and never automatically recovers a non-ready
+run. See [single-stage CLI use](../../references/cli.md#single-stage-handoff) and
+[issue #27](https://github.com/JFusco/agent-review-workflows/issues/27).
+
 Configured checks may rerun only for a current implementation review in a
 read-only recoverable state and only while the target fingerprint and complete
 project inventory remain unchanged. A rerun preserves the previous receipt

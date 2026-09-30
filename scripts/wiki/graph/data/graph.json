@@ -2,12 +2,12 @@
   "version": 1,
   "wikiRoot": "wiki",
   "counts": {
-    "nodes": 26,
-    "edges": 48,
+    "nodes": 28,
+    "edges": 52,
     "byType": {
       "index": 3,
-      "journal": 9,
-      "plan": 10,
+      "journal": 10,
+      "plan": 11,
       "topic": 4
     }
   },
@@ -39,8 +39,8 @@
       ],
       "bytes": 2186,
       "degree": 2,
-      "x": 0.885456,
-      "y": 0.464723,
+      "x": 0.900969,
+      "y": 0.433884,
       "size": 8
     },
     {
@@ -70,8 +70,8 @@
       ],
       "bytes": 2013,
       "degree": 2,
-      "x": 0.748511,
-      "y": 0.663123,
+      "x": 0.781831,
+      "y": 0.62349,
       "size": 8
     },
     {
@@ -89,8 +89,8 @@
       ],
       "bytes": 2103,
       "degree": 3,
-      "x": 0.568065,
-      "y": 0.822984,
+      "x": 0.62349,
+      "y": 0.781831,
       "size": 8
     },
     {
@@ -108,8 +108,8 @@
       ],
       "bytes": 1412,
       "degree": 3,
-      "x": 0.354605,
-      "y": 0.935016,
+      "x": 0.433884,
+      "y": 0.900969,
       "size": 8
     },
     {
@@ -127,8 +127,8 @@
       ],
       "bytes": 4200,
       "degree": 3,
-      "x": 0.120537,
-      "y": 0.992709,
+      "x": 0.222521,
+      "y": 0.974928,
       "size": 8
     },
     {
@@ -146,8 +146,8 @@
       ],
       "bytes": 2180,
       "degree": 2,
-      "x": -0.120537,
-      "y": 0.992709,
+      "x": 0,
+      "y": 1,
       "size": 8
     },
     {
@@ -165,8 +165,8 @@
       ],
       "bytes": 2766,
       "degree": 2,
-      "x": -0.354605,
-      "y": 0.935016,
+      "x": -0.222521,
+      "y": 0.974928,
       "size": 8
     },
     {
@@ -196,8 +196,8 @@
       ],
       "bytes": 1340,
       "degree": 3,
-      "x": -0.568065,
-      "y": 0.822984,
+      "x": -0.433884,
+      "y": 0.900969,
       "size": 8
     },
     {
@@ -215,8 +215,27 @@
       ],
       "bytes": 759,
       "degree": 4,
-      "x": -0.748511,
-      "y": 0.663123,
+      "x": -0.62349,
+      "y": 0.781831,
+      "size": 8
+    },
+    {
+      "id": "wiki/journal/2026-09-29-review-handoff-skill.md",
+      "label": "2026-09-29 — Single-stage review handoff skill",
+      "type": "journal",
+      "aliases": [],
+      "githubRefs": [
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 27,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/27"
+        }
+      ],
+      "bytes": 1386,
+      "degree": 2,
+      "x": -0.781831,
+      "y": 0.62349,
       "size": 8
     },
     {
@@ -227,8 +246,8 @@
       "githubRefs": [],
       "bytes": 2904,
       "degree": 2,
-      "x": 0.970942,
-      "y": 0.239316,
+      "x": 0.974928,
+      "y": 0.222521,
       "size": 12
     },
     {
@@ -246,8 +265,8 @@
       ],
       "bytes": 1235,
       "degree": 4,
-      "x": -0.885456,
-      "y": 0.464723,
+      "x": -0.900969,
+      "y": 0.433884,
       "size": 8
     },
     {
@@ -271,8 +290,8 @@
       ],
       "bytes": 3057,
       "degree": 3,
-      "x": -0.970942,
-      "y": 0.239316,
+      "x": -0.974928,
+      "y": 0.222521,
       "size": 8
     },
     {
@@ -302,8 +321,8 @@
       ],
       "bytes": 4673,
       "degree": 3,
-      "x": -0.970942,
-      "y": -0.239316,
+      "x": -0.974928,
+      "y": -0.222521,
       "size": 8
     },
     {
@@ -321,8 +340,8 @@
       ],
       "bytes": 1396,
       "degree": 3,
-      "x": -0.885456,
-      "y": -0.464723,
+      "x": -0.900969,
+      "y": -0.433884,
       "size": 8
     },
     {
@@ -340,8 +359,8 @@
       ],
       "bytes": 1060,
       "degree": 3,
-      "x": -0.748511,
-      "y": -0.663123,
+      "x": -0.781831,
+      "y": -0.62349,
       "size": 8
     },
     {
@@ -352,8 +371,8 @@
       "githubRefs": [],
       "bytes": 4946,
       "degree": 3,
-      "x": -0.568065,
-      "y": -0.822984,
+      "x": -0.62349,
+      "y": -0.781831,
       "size": 8
     },
     {
@@ -371,8 +390,8 @@
       ],
       "bytes": 1365,
       "degree": 3,
-      "x": -0.354605,
-      "y": -0.935016,
+      "x": -0.433884,
+      "y": -0.900969,
       "size": 8
     },
     {
@@ -390,8 +409,27 @@
       ],
       "bytes": 1341,
       "degree": 3,
-      "x": -0.120537,
-      "y": -0.992709,
+      "x": -0.222521,
+      "y": -0.974928,
+      "size": 8
+    },
+    {
+      "id": "wiki/plans/2026-09-29-add-a-minimal-review-handoff-skill-665a8120fd.md",
+      "label": "Add a minimal `review-handoff` skill",
+      "type": "plan",
+      "aliases": [],
+      "githubRefs": [
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 27,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/27"
+        }
+      ],
+      "bytes": 4387,
+      "degree": 3,
+      "x": 0,
+      "y": -1,
       "size": 8
     },
     {
@@ -402,8 +440,8 @@
       "githubRefs": [],
       "bytes": 2229,
       "degree": 4,
-      "x": 0.120537,
-      "y": -0.992709,
+      "x": 0.222521,
+      "y": -0.974928,
       "size": 8
     },
     {
@@ -433,6 +471,12 @@
         {
           "repository": "jfusco/agent-review-workflows",
           "kind": "issue",
+          "number": 27,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/27"
+        },
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
           "number": 38,
           "url": "https://github.com/jfusco/agent-review-workflows/issues/38"
         },
@@ -443,10 +487,10 @@
           "url": "https://github.com/jfusco/agent-review-workflows/pull/8"
         }
       ],
-      "bytes": 21163,
-      "degree": 12,
-      "x": 0.354605,
-      "y": -0.935016,
+      "bytes": 21527,
+      "degree": 13,
+      "x": 0.433884,
+      "y": -0.900969,
       "size": 12
     },
     {
@@ -470,8 +514,8 @@
       ],
       "bytes": 4290,
       "degree": 4,
-      "x": 0.568065,
-      "y": -0.822984,
+      "x": 0.62349,
+      "y": -0.781831,
       "size": 8
     },
     {
@@ -497,12 +541,18 @@
           "kind": "issue",
           "number": 21,
           "url": "https://github.com/jfusco/agent-review-workflows/issues/21"
+        },
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 27,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/27"
         }
       ],
-      "bytes": 4330,
-      "degree": 12,
-      "x": 0.748511,
-      "y": -0.663123,
+      "bytes": 4812,
+      "degree": 14,
+      "x": 0.781831,
+      "y": -0.62349,
       "size": 8
     },
     {
@@ -520,8 +570,8 @@
       ],
       "bytes": 1245,
       "degree": 4,
-      "x": 0.885456,
-      "y": -0.464723,
+      "x": 0.900969,
+      "y": -0.433884,
       "size": 8
     },
     {
@@ -539,8 +589,8 @@
       ],
       "bytes": 2238,
       "degree": 3,
-      "x": 0.970942,
-      "y": -0.239316,
+      "x": 0.974928,
+      "y": -0.222521,
       "size": 8
     }
   ],
@@ -565,6 +615,13 @@
       "target": "wiki/topics/maintainer-workflow.md",
       "type": "topic",
       "relation": "topic"
+    },
+    {
+      "id": "0b3240bc1dc31320",
+      "source": "wiki/plans/INDEX.md",
+      "target": "wiki/plans/2026-09-29-add-a-minimal-review-handoff-skill-665a8120fd.md",
+      "type": "link",
+      "relation": "link"
     },
     {
       "id": "1167a47a997bfc30",
@@ -791,6 +848,13 @@
       "relation": "topic"
     },
     {
+      "id": "c913a908729d84ff",
+      "source": "wiki/plans/2026-09-29-add-a-minimal-review-handoff-skill-665a8120fd.md",
+      "target": "wiki/topics/implementation-review-evidence.md",
+      "type": "topic",
+      "relation": "topic"
+    },
+    {
       "id": "d17b5d4dbc71f662",
       "source": "wiki/plans/2026-09-28-repair-advisory-handoffs-and-check-recovery-17c39fac0c.md",
       "target": "wiki/topics/implementation-review-evidence.md",
@@ -868,11 +932,25 @@
       "relation": "plan"
     },
     {
+      "id": "f7a0fc849364a865",
+      "source": "wiki/journal/2026-09-29-review-handoff-skill.md",
+      "target": "wiki/plans/2026-09-29-add-a-minimal-review-handoff-skill-665a8120fd.md",
+      "type": "plan",
+      "relation": "plan"
+    },
+    {
       "id": "fac009f8a6934a44",
       "source": "wiki/plans/INDEX.md",
       "target": "wiki/plans/2026-09-28-configurable-per-skill-agent-profiles-1dacf57a38.md",
       "type": "link",
       "relation": "link"
+    },
+    {
+      "id": "fb480d65fff10f13",
+      "source": "wiki/journal/2026-09-29-review-handoff-skill.md",
+      "target": "wiki/topics/implementation-review-evidence.md",
+      "type": "topic",
+      "relation": "topic"
     },
     {
       "id": "feda2b8ab5046bcb",
