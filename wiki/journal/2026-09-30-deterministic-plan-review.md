@@ -1,7 +1,8 @@
 ---
 topics: [plan-review-protocol]
 plans: [2026-09-30-deterministic-efficient-plan-review-aacda16d5f.md]
-issues: ['https://github.com/JFusco/agent-review-workflows/issues/33']
+issues: ['https://github.com/jfusco/agent-review-workflows/issues/33']
+issue: 'https://github.com/jfusco/agent-review-workflows/issues/33'
 ---
 # Deterministic plan review
 
