@@ -1,13 +1,14 @@
 # Agent Review Workflows
 
-Agent Review Workflows provides two installable agent skills that coordinate evidence-backed review through Claude Code and Codex CLI:
+Agent Review Workflows provides three installable agent skills that coordinate evidence-backed review through Claude Code and Codex CLI:
 
 - `review-plan`: a Claude reviewer critiques; a Codex coordinator refines and finalizes the plan.
 - `review-implementation`: a Claude reviewer finds and rechecks defects; a Codex coordinator locks accepted repairs and closes successful reviews; a Codex implementer makes the scoped repair.
+- `review-handoff`: dispatches one authorized stage of an existing review run through the helper, then reports its status.
 
 The built-in profile remains Opus 5.5 High, Astra 6 Max, and Sol 6 XHigh. Installation-local profiles and explicit per-run overrides can select other model and effort combinations without changing provider or permission boundaries.
 
-Invoke either skill in Codex by name. Finishing ordinary work does not launch a cycle. Plan review always stops before application implementation.
+Invoke a skill in Codex by name. Finishing ordinary work does not launch a cycle. Plan review always stops before application implementation.
 
 Each workflow keeps a revision-bound decision ledger, separates review from repair, and requires independent rechecks before completion. The implementation workflow gives write access only to its designated repair agent; the plan workflow never edits application code.
 
@@ -26,6 +27,8 @@ No model is silently substituted, and publication, deployment, or merge actions 
 ## Use
 
 From any project in Codex CLI, invoke `$review-plan` with the draft or `$review-implementation` with the change to review. A plain skill cannot change the invoking conversation's model; current-chat coordinator stages are allowed only when that conversation exactly matches the run's frozen coordinator profile.
+
+For one stage of an existing run, invoke `$review-handoff` with its run directory. It uses the existing `step` command and the run's frozen CLI model settings, with no dedicated handoff model or additional stage. See [Single-stage handoff](references/cli.md#single-stage-handoff).
 
 New implementation runs require Git, an explicit local `--base`, one or more `--scope` files, and at least one `--check`. They fail before creating artifacts if the base is invalid or the initial scoped diff is empty. Plan runs and previously created review runs retain their existing contracts.
 

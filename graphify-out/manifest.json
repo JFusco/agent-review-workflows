@@ -5,9 +5,9 @@
     "semantic_hash": "bbb1e6d80f35c864f01c6195970d8b3c"
   },
   "scripts/install_skills.py": {
-    "mtime": 1790599307.323568,
-    "ast_hash": "97b87f610d2b66a391902cc47c1eb42a",
-    "semantic_hash": "97b87f610d2b66a391902cc47c1eb42a"
+    "mtime": 1790726810.2465737,
+    "ast_hash": "f1a57d6b7a3012f50381e31030d17012",
+    "semantic_hash": ""
   },
   "scripts/python.cjs": {
     "mtime": 1790594955.5601587,
