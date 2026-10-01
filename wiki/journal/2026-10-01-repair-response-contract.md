@@ -1,7 +1,8 @@
 ---
 topics: [implementation-review-evidence]
 plans: [2026-10-01-repair-the-implementation-review-response-contract-4ec3266fb2.md]
-issues: ['https://github.com/JFusco/agent-review-workflows/issues/36']
+issues: ['https://github.com/jfusco/agent-review-workflows/issues/36']
+issue: 'https://github.com/jfusco/agent-review-workflows/issues/36'
 ---
 # Repair response ownership
 
