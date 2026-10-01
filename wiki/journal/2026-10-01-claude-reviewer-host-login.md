@@ -1,8 +1,8 @@
 ---
 topics: [review-agent-profiles]
 plans: [2026-10-01-reuse-the-existing-claude-login-for-reviews-d6e46e6de5.md]
-issues: ['https://github.com/JFusco/agent-review-workflows/issues/42']
-issue: 'https://github.com/JFusco/agent-review-workflows/issues/42'
+issues: ['https://github.com/jfusco/agent-review-workflows/issues/42']
+issue: 'https://github.com/jfusco/agent-review-workflows/issues/42'
 ---
 # Reuse the host Claude login for reviewer stages
 
