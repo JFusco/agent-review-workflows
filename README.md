@@ -1,17 +1,18 @@
 # Agent Review Workflows
 
-Agent Review Workflows provides four installable agent skills that coordinate evidence-backed review through Claude Code and Codex CLI:
+Agent Review Workflows provides five installable agent skills for evidence-backed review and evaluation:
 
 - `review-plan`: a Claude reviewer critiques and rechecks; a Codex coordinator adjudicates and refines; the helper completes the plan review.
 - `review-implementation`: a Claude reviewer finds and rechecks defects; a Codex coordinator locks accepted repairs and closes successful reviews; a Codex implementer makes the scoped repair.
 - `review-handoff`: dispatches one authorized stage of an existing review run through the helper, then reports its status.
 - `review-diff`: a Claude reviewer and Codex coordinator report findings for a scoped local Git change without repair.
+- `review-suite-eval`: compares the evidence and observable cost of two existing review runs without changing them.
 
 The built-in profile for new runs is Opus 5.5 High, Astra 6 Max, and Sol 6.1 Extra High (`xhigh`). Installation-local profiles and explicit per-run overrides can select other model and effort combinations without changing provider or permission boundaries.
 
 Invoke a skill in Codex by name. Finishing ordinary work does not launch a cycle. Plan review always stops before application implementation.
 
-Each review workflow keeps a revision-bound decision ledger and separates review from repair. Revised plans and repaired implementations require independent rechecks before completion. Diff reviews report accepted findings as unverified. Only the implementation workflow gives write access to its designated repair agent.
+Review runs keep a revision-bound decision ledger and separate review from repair. Revised plans and repaired implementations require independent rechecks before completion. Diff reviews report accepted findings as unverified. Only the implementation workflow gives write access to its designated repair agent. Evaluation reads existing artifacts only.
 
 ## How it works
 
@@ -36,6 +37,8 @@ No model is silently substituted, and publication, deployment, or merge actions 
 From any project in Codex CLI, invoke `$review-plan` with a draft, `$review-implementation` for review and scoped repair, or `$review-diff` for a read-only change report. `review-diff` is explicitly invoked; it is installed with the other skills but is not selected implicitly. A plain skill cannot change the invoking conversation's model; current-chat coordinator stages are allowed only when that conversation exactly matches the run's frozen coordinator profile.
 
 For one stage of an existing run, invoke `$review-handoff` with its run directory. It uses the existing `step` command and the run's frozen CLI model settings, with no dedicated handoff model or additional stage. See [Single-stage handoff](references/cli.md#single-stage-handoff).
+
+Invoke `$review-suite-eval` with explicit baseline and candidate run directories to compare recorded outcomes. It runs in the invoking conversation, has no helper profile, and is not selected implicitly. See the [comparison procedure](references/suite-eval.md).
 
 New implementation and diff runs require Git, an explicit local `--base`, one or more `--scope` files, and at least one `--check`. They fail before creating artifacts if the base is invalid or the initial scoped diff is empty. Plan runs keep base and checks optional. Previously created runs retain their recorded contracts.
 
@@ -82,6 +85,8 @@ pnpm install --frozen-lockfile
 
 The installer adds links under `~/.agents/skills` and refuses to replace unrelated existing files. `--skills-dir` overrides that location. The source tree can live anywhere; links should be reinstalled after moving it. No global provider, model, permission, or project settings are changed.
 
+`review-suite-eval` uses only saved run artifacts and does not invoke a provider.
+
 If the Codex executable on PATH cannot access a selected model, install with `--codex-bin /path/to/compatible/codex`. This updates only `codex_binary` in ignored `runtime.local.json` and preserves saved skill profiles. `AGENT_REVIEW_CODEX_BIN` and `AGENT_REVIEW_CLAUDE_BIN` override local executable selection; otherwise the helper uses PATH. Runs capture the selected executable. Missing or unsupported models stop the cycle without substitution.
 
 [CLI use and recovery](references/cli.md) describes profile validation, explicit scope, artifact storage, current-chat coordinator integration, and continuation after interruption. [Authoring](references/authoring.md) records best-practice sources and evaluation principles.
@@ -111,6 +116,7 @@ The trial creator makes separate disposable Git projects and prints their run di
 ## Project layout
 
 - `skills/` contains the installable skill instructions and agent metadata.
+- `references/suite-eval.md` contains the maintainer comparison procedure.
 - `scripts/review_cli.py` implements the review protocol and recovery commands.
 - `scripts/install_skills.py` installs safe, idempotent skill links.
 - `schemas/response.json` defines the structured handoff contract.
