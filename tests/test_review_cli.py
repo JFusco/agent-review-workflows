@@ -901,6 +901,89 @@ class ReviewTests(unittest.TestCase):
                 self.assertIn('sandbox_mode="'+('workspace-write' if who=='sol' else 'read-only')+'"',argv)
                 if who=='sol': self.assertIn('sandbox_workspace_write.writable_roots='+json.dumps([str(self.project)]),argv)
 
+    def test_claude_auth_status_uses_frozen_binary(self):
+        self.state['claude_binary'] = '/pinned/claude'
+        responses = (
+            (0, '{"loggedIn": true, "email": "private@example.invalid"}', None),
+            (1, '{"loggedIn": false}', 'unavailable in this execution context'),
+            (0, '{"loggedIn": false}', 'did not confirm a login'),
+            (0, 'not JSON', 'invalid JSON'),
+            (2, '', 'could not be checked'),
+        )
+        for code, output, error in responses:
+            with self.subTest(code=code, output=output), patch.object(
+                    r, 'command', return_value=subprocess.CompletedProcess([], code, output, '')) as run:
+                if error:
+                    with self.assertRaisesRegex(r.ReviewError, error) as caught:
+                        r.assert_claude_auth(self.state)
+                    self.assertNotIn('private@example.invalid', str(caught.exception))
+                else:
+                    r.assert_claude_auth(self.state)
+                run.assert_called_once_with(['/pinned/claude', 'auth', 'status', '--json'], self.project)
+
+    def test_hidden_claude_login_keeps_review_ready_after_sandboxed_checks(self):
+        with patch.object(r, 'assert_claude_auth', side_effect=r.ReviewError('auth context unavailable')), \
+                patch.object(r, 'cli_argv') as reviewer_command:
+            with self.assertRaisesRegex(r.ReviewError, 'auth context unavailable'):
+                r.advance(self.run, self.state)
+        reviewer_command.assert_not_called()
+        self.assertEqual((self.state['stage'], self.state['status']), ('review', 'ready'))
+        self.assertEqual(len(self.state['checks']), 1)
+        self.assertEqual((self.state['sessions'], self.state['ledger']), ({}, []))
+        self.assertEqual(list((self.run/'calls').iterdir()), [])
+        self.assertNotIn('last_call', self.state)
+        self.assertEqual(r.read_json(self.run/'state.json')['status'], 'ready')
+
+    def test_reviewer_only_step_rejects_codex_and_unprepared_checks(self):
+        for stage in ('adjudicate', 'repair', 'review'):
+            with self.subTest(stage=stage):
+                self.state['stage'] = stage
+                r.save(self.run, self.state)
+                before = (self.run/'state.json').read_bytes()
+                with patch.object(sys, 'argv', ['review_cli.py', 'step', str(self.run), '--reviewer-only']), \
+                        patch('sys.stdout', new_callable=io.StringIO), \
+                        patch('sys.stderr', new_callable=io.StringIO) as stderr, \
+                        patch.object(r, 'advance') as advance:
+                    with self.assertRaises(SystemExit) as stopped:
+                        r.main()
+                self.assertEqual(stopped.exception.code, 2)
+                self.assertIn('Reviewer-only step requires', stderr.getvalue())
+                advance.assert_not_called()
+                self.assertEqual((self.run/'state.json').read_bytes(), before)
+                self.assertEqual(list((self.run/'calls').iterdir()), [])
+        self.state['stage'] = 'review'
+        self.use_passing_check()
+        self.state['checks'][0]['target_fingerprint'] = 'stale'
+        r.save(self.run, self.state)
+        with patch.object(sys, 'argv', ['review_cli.py', 'step', str(self.run), '--reviewer-only']), \
+                patch('sys.stdout', new_callable=io.StringIO), \
+                patch('sys.stderr', new_callable=io.StringIO) as stderr, \
+                patch.object(r, 'advance') as advance:
+            with self.assertRaises(SystemExit) as stopped:
+                r.main()
+        self.assertEqual(stopped.exception.code, 2)
+        self.assertIn('current check receipts', stderr.getvalue())
+        advance.assert_not_called()
+
+    def test_reviewer_only_step_dispatches_one_claude_stage(self):
+        args = copy.deepcopy(self.args)
+        args.mode = 'plan'
+        args.plan = str(ROOT/'tests/fixtures/sound-plan.md')
+        run, _ = r.initialize(args)
+        with patch.object(sys, 'argv', ['review_cli.py', 'step', str(run), '--reviewer-only']), \
+                patch('sys.stdout', new_callable=io.StringIO), patch.object(r, 'advance') as advance:
+            r.main()
+        advance.assert_called_once()
+        self.assertEqual(list((run/'calls').iterdir()), [])
+        self.state['check_commands'] = [[sys.executable, '-c', 'pass']]
+        r.perform_checks(self.run, self.state)
+        self.state['checks'][0]['exit_code'] = 1
+        r.save(self.run, self.state)
+        with patch.object(sys, 'argv', ['review_cli.py', 'step', str(self.run), '--reviewer-only']), \
+                patch('sys.stdout', new_callable=io.StringIO), patch.object(r, 'advance') as advance:
+            r.main()
+        advance.assert_called_once()
+
     def test_plan_cannot_resolve_an_implementation_stage(self):
         self.state.update(mode='plan', stage='repair',
                           agent_profile=copy.deepcopy(r.DEFAULT_PROFILES['review-plan']))
@@ -1073,6 +1156,7 @@ class ReviewTests(unittest.TestCase):
                 config = {'model': 'fixture-reviewer', 'effort': 'low', 'observed': {'source': 'fixture'}}
                 with patch.object(sys, 'argv', ['review_cli.py', 'step', str(self.run)]), \
                         patch.object(sys, 'stdout', new_callable=io.StringIO) as output, \
+                        patch.object(r, 'assert_claude_auth'), \
                         patch.object(r, 'execute_process') as execute, \
                         patch.object(r, 'extract_response', return_value=(response, None, config)):
                     r.main()

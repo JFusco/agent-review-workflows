@@ -8,6 +8,7 @@ description: Independently reviews an implementation, resolves findings, and rep
 A Claude reviewer independently reviews and rechecks. A Codex coordinator adjudicates, locks accepted repairs, and finalizes successful rechecks. A separate Codex implementer makes the locked repairs. Resolve each model and effort from the configured `review-implementation` profile and explicit start overrides. Freeze that profile into the run and never substitute another configuration.
 
 Read [the CLI procedure](references/cli.md) to start or resume. [Authoring principles](references/authoring.md) apply when changing this skill.
+If the sandbox hides an existing host Claude login, follow the procedure's [guarded reviewer dispatch](references/cli.md#claude-login-visibility-in-a-sandbox) and keep checks and Codex stages sandboxed.
 
 Establish the requested change, acceptance criteria, authorized repair scope, explicit local Git base, and project checks from the conversation and repository. Inspect applicable project instructions and Git state. Preserve intentional and unrelated changes. Follow project issue/branch/worktree requirements before a repair. This skill grants no authority to merge, publish, deploy, or expand the assignment.
 

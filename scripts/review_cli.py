@@ -224,6 +224,23 @@ def command(argv, cwd, timeout=30):
         raise ReviewError(f'Command could not complete: {argv[0]}: {exc}') from exc
 
 
+def assert_claude_auth(state):
+    binary = state.get('claude_binary') or resolve_cli('claude')
+    result = command([binary, 'auth', 'status', '--json'], Path(state['project']))
+    if result.returncode == 1:
+        raise ReviewError('Claude login is unavailable in this execution context. '
+                          'If the host is logged in, dispatch this reviewer with an approved host '
+                          '`step --reviewer-only`; otherwise sign in to Claude on the host.')
+    if result.returncode:
+        raise ReviewError('Claude authentication status could not be checked in this execution context.')
+    try:
+        status = json.loads(result.stdout)
+    except ValueError as exc:
+        raise ReviewError('Claude authentication status returned invalid JSON.') from exc
+    if not isinstance(status, dict) or status.get('loggedIn') is not True:
+        raise ReviewError('Claude authentication status did not confirm a login in this execution context.')
+
+
 def project_files(project):
     probe = command(['git', 'rev-parse', '--show-toplevel'], project)
     if probe.returncode == 0:
@@ -1319,6 +1336,8 @@ def advance(run, state, external_coordinator=False):
         save(run, state)
         render(run, state)
         return
+    if role(state) == 'opus':
+        assert_claude_auth(state)
     call_dir = run / 'calls' / f'{len(list((run / "calls").glob("*"))) + 1:03d}-{state["stage"]}'
     call_dir.mkdir(parents=True)
     state['status'] = 'running'
@@ -1509,6 +1528,9 @@ def build_parser():
             p.add_argument('--external-coordinator', '--external-astra', dest='external_coordinator',
                            action='store_true',
                            help='Yield coordinator stages to a conversation matching the frozen model and effort.')
+        if action == 'step':
+            p.add_argument('--reviewer-only', action='store_true',
+                           help='Dispatch exactly one Claude reviewer stage; reject Codex stages and missing checks.')
         if action == 'submit':
             p.add_argument('--response', type=Path, required=True)
             p.add_argument('--model', required=True)
@@ -1569,6 +1591,16 @@ def main():
                 config = external_submission_config(state, args.model, args.effort)
                 accept(run, state, data, config)
             else:
+                if args.action == 'step' and args.reviewer_only:
+                    if state['status'] != 'ready' or role(state) != 'opus':
+                        raise ReviewError('Reviewer-only step requires a ready Claude reviewer stage.')
+                    if state['mode'] == 'implementation' and state['check_commands'] and (
+                            len(state['checks']) != len(state['check_commands']) or
+                            any(not isinstance(check, dict) or
+                                check.get('argv') != argv or
+                                check.get('target_fingerprint') != state['target_fingerprint']
+                                for check, argv in zip(state['checks'], state['check_commands']))):
+                        raise ReviewError('Reviewer-only step requires current check receipts before host dispatch.')
                 while state['status'] == 'ready':
                     model, effort = agent_settings(state, role(state))
                     print(f'{state["stage"]}: {model} ({effort})', flush=True)

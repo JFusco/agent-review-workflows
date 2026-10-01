@@ -305,7 +305,8 @@ class PlanProtocolTests(unittest.TestCase):
         config = {'model': 'fixture', 'effort': 'high', 'observed': {'source': 'fixture'}}
         for expected_status in ('ready', 'complete'):
             data = self.response()
-            with patch.object(r, 'execute_process'), \
+            with patch.object(r, 'assert_claude_auth'), \
+                    patch.object(r, 'execute_process'), \
                     patch.object(r, 'extract_response', return_value=(data, None, config)), \
                     patch.object(r, 'render', side_effect=OSError('Interrupted derived view')):
                 with self.assertRaises(OSError):

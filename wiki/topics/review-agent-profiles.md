@@ -49,3 +49,16 @@ provider-backed validation records the historical Sol 6 profile. The Sol 6.1
 default change has deterministic configuration and compatibility coverage only;
 neither those fixtures nor the earlier trials establish Sol 6.1 provider
 execution or repair quality. See the [validation record](../../VALIDATION.md).
+
+## Reviewer authentication context
+
+[Issue #42](https://github.com/JFusco/agent-review-workflows/issues/42)
+records that a sandboxed Claude CLI can report logged out while the host CLI
+uses an active login from the same configuration directory. The helper now
+checks authentication with the run's saved Claude executable before a reviewer
+call. An unavailable login leaves the stage ready without a provider call or
+new handoff record. A guarded reviewer-only step permits approved host access
+for that single Claude stage; configured checks and Codex stages continue in
+the sandbox. The [CLI procedure](../../references/cli.md#claude-login-visibility-in-a-sandbox)
+owns the execution sequence. Authentication is never copied into run artifacts,
+and the frozen profile and reviewer tool limits are unchanged.
