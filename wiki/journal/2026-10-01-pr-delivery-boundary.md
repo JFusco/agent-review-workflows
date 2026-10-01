@@ -1,7 +1,7 @@
 ---
 topics: [contributor-quality-and-delivery]
-issues: ['https://github.com/JFusco/agent-review-workflows/issues/39']
-issue: 'https://github.com/JFusco/agent-review-workflows/issues/39'
+issues: ['https://github.com/jfusco/agent-review-workflows/issues/39']
+issue: 'https://github.com/jfusco/agent-review-workflows/issues/39'
 ---
 # PR delivery boundary
 
