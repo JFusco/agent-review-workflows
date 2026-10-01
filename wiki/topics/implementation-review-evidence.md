@@ -41,6 +41,15 @@ state and the saved adjudication artifact before the implementer receives write
 access. The handoff shows the coordinator's decisions, repair lock, and current
 scoped Git diff against the frozen base. The same lock reaches the implementer.
 
+New runs also record implementation response version 2. At repair, the writer
+returns the frozen identity envelope, a summary, and ordered `{id, rationale}`
+assessments for accepted findings. The helper validates exact ID coverage and
+field ownership, then reconstructs complete canonical findings from saved
+state. Only accepted rationales change; rejected records, definitions,
+dispositions, and verification fields remain saved values. The repair artifact
+retains both submitted assessments and the canonical response. The full
+response validator and scoped write guard run before acceptance.
+
 Only the implementer may write within the authorized scope, and only independent
 recheck may mark findings passed. New runs permit one repair and one recheck. An
 incomplete recheck, including a newly discovered gap, ends unresolved without
@@ -76,6 +85,13 @@ implementer response, reviewer reply, and two-pass behavior, including when
 paused at an advisory stage. Saved implementation-plan data from the unmerged
 issue #20 branch remains readable. Artifact recovery and prior fingerprints do
 not change.
+
+An absent implementation response version retains the prior full-finding
+response, including for an already-created evidence version 2 run. Unsupported
+explicit response versions fail closed. A response rejected after writer exit
+records an interrupted repair with an actionable inspection and reconciliation
+message. Reconciliation consumes one pass and advances to independent recheck;
+it never replays the writer.
 
 Deterministic temporary-repository fixtures establish the boundary cases. Two
 issue #21 live branch trials exercised the provider path. The first stopped

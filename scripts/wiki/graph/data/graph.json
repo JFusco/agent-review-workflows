@@ -2,12 +2,12 @@
   "version": 1,
   "wikiRoot": "wiki",
   "counts": {
-    "nodes": 33,
-    "edges": 63,
+    "nodes": 35,
+    "edges": 68,
     "byType": {
       "index": 3,
-      "journal": 12,
-      "plan": 13,
+      "journal": 13,
+      "plan": 14,
       "topic": 5
     }
   },
@@ -39,8 +39,8 @@
       ],
       "bytes": 2186,
       "degree": 2,
-      "x": 0.928368,
-      "y": 0.371662,
+      "x": 0.936235,
+      "y": 0.351375,
       "size": 8
     },
     {
@@ -70,8 +70,8 @@
       ],
       "bytes": 2152,
       "degree": 2,
-      "x": 0.841254,
-      "y": 0.540641,
+      "x": 0.858449,
+      "y": 0.512899,
       "size": 8
     },
     {
@@ -89,8 +89,8 @@
       ],
       "bytes": 2103,
       "degree": 3,
-      "x": 0.723734,
-      "y": 0.690079,
+      "x": 0.753071,
+      "y": 0.657939,
       "size": 8
     },
     {
@@ -108,8 +108,8 @@
       ],
       "bytes": 1551,
       "degree": 3,
-      "x": 0.580057,
-      "y": 0.814576,
+      "x": 0.62349,
+      "y": 0.781831,
       "size": 8
     },
     {
@@ -127,8 +127,8 @@
       ],
       "bytes": 4200,
       "degree": 3,
-      "x": 0.415415,
-      "y": 0.909632,
+      "x": 0.473869,
+      "y": 0.880596,
       "size": 8
     },
     {
@@ -146,8 +146,8 @@
       ],
       "bytes": 2180,
       "degree": 2,
-      "x": 0.235759,
-      "y": 0.971812,
+      "x": 0.309017,
+      "y": 0.951057,
       "size": 8
     },
     {
@@ -165,8 +165,8 @@
       ],
       "bytes": 2766,
       "degree": 2,
-      "x": 0.047582,
-      "y": 0.998867,
+      "x": 0.134233,
+      "y": 0.99095,
       "size": 8
     },
     {
@@ -196,8 +196,8 @@
       ],
       "bytes": 1479,
       "degree": 3,
-      "x": -0.142315,
-      "y": 0.989821,
+      "x": -0.044865,
+      "y": 0.998993,
       "size": 8
     },
     {
@@ -215,8 +215,8 @@
       ],
       "bytes": 898,
       "degree": 4,
-      "x": -0.327068,
-      "y": 0.945001,
+      "x": -0.222521,
+      "y": 0.974928,
       "size": 8
     },
     {
@@ -234,8 +234,8 @@
       ],
       "bytes": 1525,
       "degree": 2,
-      "x": -0.5,
-      "y": 0.866025,
+      "x": -0.393025,
+      "y": 0.919528,
       "size": 8
     },
     {
@@ -253,8 +253,8 @@
       ],
       "bytes": 2188,
       "degree": 2,
-      "x": -0.654861,
-      "y": 0.75575,
+      "x": -0.550897,
+      "y": 0.834573,
       "size": 8
     },
     {
@@ -272,8 +272,27 @@
       ],
       "bytes": 1762,
       "degree": 4,
-      "x": -0.786053,
-      "y": 0.618159,
+      "x": -0.691063,
+      "y": 0.722795,
+      "size": 8
+    },
+    {
+      "id": "wiki/journal/2026-10-01-repair-response-contract.md",
+      "label": "Repair response ownership",
+      "type": "journal",
+      "aliases": [],
+      "githubRefs": [
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 36,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/36"
+        }
+      ],
+      "bytes": 1842,
+      "degree": 3,
+      "x": -0.809017,
+      "y": 0.587785,
       "size": 8
     },
     {
@@ -284,8 +303,8 @@
       "githubRefs": [],
       "bytes": 2904,
       "degree": 2,
-      "x": 0.981929,
-      "y": 0.189251,
+      "x": 0.98393,
+      "y": 0.178557,
       "size": 12
     },
     {
@@ -303,8 +322,8 @@
       ],
       "bytes": 1235,
       "degree": 4,
-      "x": -0.888835,
-      "y": 0.458227,
+      "x": -0.900969,
+      "y": 0.433884,
       "size": 8
     },
     {
@@ -328,8 +347,8 @@
       ],
       "bytes": 3057,
       "degree": 3,
-      "x": -0.959493,
-      "y": 0.281733,
+      "x": -0.963963,
+      "y": 0.266037,
       "size": 8
     },
     {
@@ -340,8 +359,8 @@
       "githubRefs": [],
       "bytes": 4084,
       "degree": 3,
-      "x": -0.995472,
-      "y": 0.095056,
+      "x": -0.995974,
+      "y": 0.089639,
       "size": 8
     },
     {
@@ -359,8 +378,8 @@
       ],
       "bytes": 4673,
       "degree": 3,
-      "x": -0.995472,
-      "y": -0.095056,
+      "x": -0.995974,
+      "y": -0.089639,
       "size": 8
     },
     {
@@ -378,8 +397,8 @@
       ],
       "bytes": 1396,
       "degree": 3,
-      "x": -0.959493,
-      "y": -0.281733,
+      "x": -0.963963,
+      "y": -0.266037,
       "size": 8
     },
     {
@@ -397,8 +416,8 @@
       ],
       "bytes": 1060,
       "degree": 3,
-      "x": -0.888835,
-      "y": -0.458227,
+      "x": -0.900969,
+      "y": -0.433884,
       "size": 8
     },
     {
@@ -409,8 +428,8 @@
       "githubRefs": [],
       "bytes": 4946,
       "degree": 3,
-      "x": -0.786053,
-      "y": -0.618159,
+      "x": -0.809017,
+      "y": -0.587785,
       "size": 8
     },
     {
@@ -428,8 +447,8 @@
       ],
       "bytes": 1365,
       "degree": 3,
-      "x": -0.654861,
-      "y": -0.75575,
+      "x": -0.691063,
+      "y": -0.722795,
       "size": 8
     },
     {
@@ -447,8 +466,8 @@
       ],
       "bytes": 1341,
       "degree": 3,
-      "x": -0.5,
-      "y": -0.866025,
+      "x": -0.550897,
+      "y": -0.834573,
       "size": 8
     },
     {
@@ -466,8 +485,8 @@
       ],
       "bytes": 4387,
       "degree": 3,
-      "x": -0.327068,
-      "y": -0.945001,
+      "x": -0.393025,
+      "y": -0.919528,
       "size": 8
     },
     {
@@ -478,8 +497,8 @@
       "githubRefs": [],
       "bytes": 2229,
       "degree": 4,
-      "x": -0.142315,
-      "y": -0.989821,
+      "x": -0.222521,
+      "y": -0.974928,
       "size": 8
     },
     {
@@ -490,8 +509,8 @@
       "githubRefs": [],
       "bytes": 4144,
       "degree": 3,
-      "x": 0.047582,
-      "y": -0.998867,
+      "x": -0.044865,
+      "y": -0.998993,
       "size": 8
     },
     {
@@ -502,8 +521,20 @@
       "githubRefs": [],
       "bytes": 9238,
       "degree": 4,
-      "x": 0.235759,
-      "y": -0.971812,
+      "x": 0.134233,
+      "y": -0.99095,
+      "size": 8
+    },
+    {
+      "id": "wiki/plans/2026-10-01-repair-the-implementation-review-response-contract-4ec3266fb2.md",
+      "label": "Repair the implementation-review response contract",
+      "type": "plan",
+      "aliases": [],
+      "githubRefs": [],
+      "bytes": 3866,
+      "degree": 4,
+      "x": 0.309017,
+      "y": -0.951057,
       "size": 8
     },
     {
@@ -549,10 +580,10 @@
           "url": "https://github.com/jfusco/agent-review-workflows/pull/8"
         }
       ],
-      "bytes": 22233,
-      "degree": 15,
-      "x": 0.415415,
-      "y": -0.909632,
+      "bytes": 22658,
+      "degree": 16,
+      "x": 0.473869,
+      "y": -0.880596,
       "size": 12
     },
     {
@@ -576,8 +607,8 @@
       ],
       "bytes": 4290,
       "degree": 4,
-      "x": 0.580057,
-      "y": -0.814576,
+      "x": 0.62349,
+      "y": -0.781831,
       "size": 8
     },
     {
@@ -611,10 +642,10 @@
           "url": "https://github.com/jfusco/agent-review-workflows/issues/27"
         }
       ],
-      "bytes": 4812,
-      "degree": 14,
-      "x": 0.723734,
-      "y": -0.690079,
+      "bytes": 5827,
+      "degree": 16,
+      "x": 0.753071,
+      "y": -0.657939,
       "size": 8
     },
     {
@@ -632,8 +663,8 @@
       ],
       "bytes": 1245,
       "degree": 4,
-      "x": 0.841254,
-      "y": -0.540641,
+      "x": 0.858449,
+      "y": -0.512899,
       "size": 8
     },
     {
@@ -651,8 +682,8 @@
       ],
       "bytes": 1784,
       "degree": 4,
-      "x": 0.928368,
-      "y": -0.371662,
+      "x": 0.936235,
+      "y": -0.351375,
       "size": 8
     },
     {
@@ -676,8 +707,8 @@
       ],
       "bytes": 2952,
       "degree": 5,
-      "x": 0.981929,
-      "y": -0.189251,
+      "x": 0.98393,
+      "y": -0.178557,
       "size": 8
     }
   ],
@@ -781,6 +812,13 @@
       "relation": "link"
     },
     {
+      "id": "27b449760efc7b73",
+      "source": "wiki/plans/INDEX.md",
+      "target": "wiki/plans/2026-10-01-repair-the-implementation-review-response-contract-4ec3266fb2.md",
+      "type": "link",
+      "relation": "link"
+    },
+    {
       "id": "27f30a0e314d0f76",
       "source": "wiki/plans/2026-09-29-upgrade-the-implementer-to-sol-6-1-extra-high-bcf5c5e977.md",
       "target": "wiki/topics/review-agent-profiles.md",
@@ -849,6 +887,13 @@
       "target": "wiki/plans/2026-09-29-upgrade-the-implementer-to-sol-6-1-extra-high-bcf5c5e977.md",
       "type": "link",
       "relation": "link"
+    },
+    {
+      "id": "3b5772163a575fdd",
+      "source": "wiki/journal/2026-10-01-repair-response-contract.md",
+      "target": "wiki/plans/2026-10-01-repair-the-implementation-review-response-contract-4ec3266fb2.md",
+      "type": "plan",
+      "relation": "plan"
     },
     {
       "id": "4e9927cdaedf5601",
@@ -942,6 +987,13 @@
       "relation": "topic"
     },
     {
+      "id": "93b292da31e68942",
+      "source": "wiki/journal/2026-10-01-repair-response-contract.md",
+      "target": "wiki/plans/2026-10-01-repair-the-implementation-review-response-contract-4ec3266fb2.md",
+      "type": "link",
+      "relation": "link"
+    },
+    {
       "id": "94f7cf5a474f62a8",
       "source": "wiki/journal/2026-09-28-configurable-review-agent-profiles.md",
       "target": "wiki/topics/review-agent-profiles.md",
@@ -1007,6 +1059,13 @@
     {
       "id": "c913a908729d84ff",
       "source": "wiki/plans/2026-09-29-add-a-minimal-review-handoff-skill-665a8120fd.md",
+      "target": "wiki/topics/implementation-review-evidence.md",
+      "type": "topic",
+      "relation": "topic"
+    },
+    {
+      "id": "cea6ea8c86c9e9e7",
+      "source": "wiki/plans/2026-10-01-repair-the-implementation-review-response-contract-4ec3266fb2.md",
       "target": "wiki/topics/implementation-review-evidence.md",
       "type": "topic",
       "relation": "topic"
@@ -1092,6 +1151,13 @@
       "id": "ed7f85471a465bb9",
       "source": "wiki/plans/2026-09-30-deterministic-efficient-plan-review-aacda16d5f.md",
       "target": "wiki/topics/plan-review-protocol.md",
+      "type": "topic",
+      "relation": "topic"
+    },
+    {
+      "id": "eebfb3673213c431",
+      "source": "wiki/journal/2026-10-01-repair-response-contract.md",
+      "target": "wiki/topics/implementation-review-evidence.md",
       "type": "topic",
       "relation": "topic"
     },
