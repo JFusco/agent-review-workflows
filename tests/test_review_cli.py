@@ -71,6 +71,14 @@ class ReviewTests(unittest.TestCase):
                 'stage': self.state['stage'], 'summary': 'Fixture result, not provider evidence.',
                 'findings': findings, 'plan_markdown': None}
 
+    def repair_response(self, rationale='Scoped repair completed; independent recheck is required.'):
+        return {'implementation_response_version': 2, 'run_id': self.state['run_id'],
+                'target_fingerprint': self.state['target_fingerprint'],
+                'handoff_revision': self.state['handoff_revision'], 'stage': self.state['stage'],
+                'summary': 'Fixture repair result, not provider evidence.',
+                'assessments': [{'id': item['id'], 'rationale': rationale}
+                                for item in self.state['findings'] if item['disposition'] == 'ACCEPTED']}
+
     def accept(self, data):
         who = r.role(self.state)
         model, effort = r.agent_settings(self.state, who)
@@ -256,7 +264,7 @@ class ReviewTests(unittest.TestCase):
     def test_out_of_scope_writes_rejected(self):
         self.to_repair()
         (self.project/'unrelated.py').write_text('changed')
-        with self.assertRaises(r.ReviewError): self.accept(self.response())
+        with self.assertRaises(r.ReviewError): self.accept(self.repair_response())
 
     def test_implementation_cycle(self):
         self.to_repair()
@@ -276,7 +284,7 @@ class ReviewTests(unittest.TestCase):
         self.assertIn('+    return sum(values) / (len(values) + 1)', handoff)
         p=self.project/'calculator.py'
         p.write_text(p.read_text().replace('(len(values) + 1)', 'len(values)'))
-        self.accept(self.response())
+        self.accept(self.repair_response())
         self.assertEqual(self.state['checks'][0]['exit_code'],0)
         data=self.response()
         data['findings'][0].update(verification_status='PASSED', verification_evidence=['SOURCE:calculator.py','CHECK-1-1'], rationale='Current source and actual fixture check agree.')
@@ -291,7 +299,133 @@ class ReviewTests(unittest.TestCase):
         last=json.loads(sorted(artifacts)[-1].read_text())
         self.assertEqual(last['parent_artifact_id'],'revision-004')
         self.assertTrue((self.run/'final.md').exists())
-        self.assertNotIn('repair_lock', r.read_json(self.run/'artifacts/revision-003.json'))
+        repair_artifact = r.read_json(self.run/'artifacts/revision-003.json')
+        self.assertNotIn('repair_lock', repair_artifact)
+        self.assertEqual(repair_artifact['implementation_response_version'], 2)
+        self.assertEqual(repair_artifact['submitted_response']['assessments'], [
+            {'id': 'FIND-001', 'rationale': 'Scoped repair completed; independent recheck is required.'}])
+        self.assertEqual(repair_artifact['response']['findings'][0]['evidence'], finding()['evidence'])
+
+    def test_compact_repair_preserves_frozen_fields_and_rejected_findings(self):
+        first, second = finding(), finding()
+        second.update(id='FIND-002', location='test_calculator.py:4')
+        self.accept(self.response([first, second]))
+        decision = self.response()
+        decision['findings'][0].update(disposition='ACCEPTED', rationale='Adjudicated numerical defect.')
+        decision['findings'][1].update(disposition='REJECTED', rationale='The second concern is unsupported.')
+        self.accept(decision)
+        before = copy.deepcopy(self.state['findings'])
+        schema = r.provider_schema(self.state)
+        r.Draft202012Validator.check_schema(schema)
+        self.assertEqual(set(schema['properties']), {
+            'implementation_response_version', 'run_id', 'stage', 'handoff_revision',
+            'target_fingerprint', 'summary', 'assessments'})
+        self.assertEqual(schema['properties']['assessments']['items']['properties']['id']['enum'], ['FIND-001'])
+        self.assertIn(r.dumps(schema), r.prompt(self.state))
+        self.assertEqual(r.packet(self.state)['implementation_response_version'], 2)
+        self.assertEqual(r.status_payload(self.run, self.state)['implementation_response_version'], 2)
+        self.assertIn('Implementation response version: 2', (self.run/'handoff.md').read_text())
+        self.assertEqual(r.read_json(self.run/'original.json')['implementation_response_version'], 2)
+        submitted = self.repair_response('Corrected the divisor; independent verification is pending.')
+        normalized = r.normalize_response(self.state, submitted)
+        self.assertEqual(normalized['findings'][0]['rationale'], submitted['assessments'][0]['rationale'])
+        for field in (*r.FINDING_DEFINITION_FIELDS, 'disposition', 'verification_status', 'verification_evidence'):
+            self.assertEqual(normalized['findings'][0][field], before[0][field])
+        self.assertEqual(normalized['findings'][1], before[1])
+        self.assertEqual(self.state['findings'], before)
+        p = self.project/'calculator.py'
+        p.write_text(p.read_text().replace('(len(values) + 1)', 'len(values)'))
+        self.accept(submitted)
+        artifact = r.read_json(self.run/'artifacts/revision-003.json')
+        self.assertEqual(artifact['submitted_response'], submitted)
+        self.assertEqual(artifact['response']['findings'], self.state['findings'])
+        self.assertEqual(self.state['findings'][1], before[1])
+        self.assertEqual(self.state['ledger'][1]['finding_assessments'][0]['rationale'], before[0]['rationale'])
+
+    def test_compact_repair_rejects_unowned_fields_ids_and_stale_envelopes(self):
+        first, second = finding(), finding()
+        second.update(id='FIND-002', location='test_calculator.py:4')
+        self.accept(self.response([first, second]))
+        decision = self.response()
+        for item in decision['findings']:
+            item.update(disposition='ACCEPTED', rationale='Both scoped defects are accepted.')
+        self.accept(decision)
+        good = self.repair_response()
+        before = copy.deepcopy(self.state)
+        artifacts = sorted((self.run/'artifacts').glob('*.json'))
+        invalid = []
+        for assessments in ([], good['assessments'][:1],
+                            [good['assessments'][0], good['assessments'][0]],
+                            list(reversed(good['assessments']))):
+            invalid.append({**good, 'assessments': assessments})
+        unknown = copy.deepcopy(good)
+        unknown['assessments'][0]['id'] = 'FIND-099'
+        invalid.append(unknown)
+        for field, value in (('evidence', 'Paraphrased evidence.'),
+                             ('correction_recommended', 'Already corrected.'),
+                             ('acceptance_check', 'Weakened check.'),
+                             ('disposition', 'REJECTED'), ('verification_status', 'UNVERIFIED'),
+                             ('verification_evidence', ['SOURCE:calculator.py'])):
+            bad = copy.deepcopy(good)
+            bad['assessments'][0][field] = value
+            with self.assertRaisesRegex(r.HandoffResponseError, 'FIND-001\\.' + field):
+                self.accept(bad)
+        for field, value in (('run_id', 'wrong'), ('stage', 'recheck'),
+                             ('handoff_revision', 99), ('target_fingerprint', '0'*64),
+                             ('implementation_response_version', 3)):
+            invalid.append({**good, field: value})
+        invalid.append({**good, 'findings': copy.deepcopy(self.state['findings'])})
+        invalid.append({**good, 'plan_markdown': None})
+        missing_rationale = copy.deepcopy(good)
+        del missing_rationale['assessments'][0]['rationale']
+        invalid.append(missing_rationale)
+        blank_rationale = copy.deepcopy(good)
+        blank_rationale['assessments'][0]['rationale'] = '   '
+        invalid.append(blank_rationale)
+        for bad in invalid:
+            with self.assertRaises(r.HandoffResponseError):
+                self.accept(bad)
+        self.assertEqual(self.state, before)
+        self.assertEqual(sorted((self.run/'artifacts').glob('*.json')), artifacts)
+
+    def test_rejected_post_write_response_requires_inspected_reconciliation(self):
+        self.to_repair()
+        bad = self.repair_response()
+        bad['assessments'][0]['evidence'] = 'Paraphrased after implementation.'
+        p = self.project/'calculator.py'
+        config = {'model': r.agent_settings(self.state, 'sol')[0], 'effort': 'xhigh',
+                  'observed': {'source': 'fixture'}}
+
+        def writer(_argv, _cwd, _content, _call_dir, _timeout):
+            p.write_text(p.read_text().replace('(len(values) + 1)', 'len(values)'))
+
+        with patch.object(r, 'execute_process', side_effect=writer) as execute, \
+                patch.object(r, 'extract_response', return_value=(bad, None, config)):
+            with self.assertRaisesRegex(r.HandoffResponseError, 'FIND-001.evidence'):
+                r.advance(self.run, self.state)
+        execute.assert_called_once()
+        self.assertIn('return sum(values) / len(values)', p.read_text())
+        self.assertEqual((self.state['status'], self.state['stage'], self.state['round']),
+                         ('interrupted', 'repair', 0))
+        self.assertIn('Repair response rejected after writer exit', self.state['error'])
+        self.assertIn('Inspect scoped changes and use reconcile', self.state['error'])
+        self.assertEqual(len(self.state['ledger']), 2)
+        self.assertFalse((self.run/'artifacts/revision-003.json').exists())
+        with self.assertRaises(r.ReviewError):
+            r.advance(self.run, self.state)
+        r.reconcile(self.run, self.state, 'Inspected the scoped divisor correction after response rejection.')
+        self.assertEqual((self.state['stage'], self.state['round']), ('recheck', 1))
+        self.assertEqual([entry['stage'] for entry in self.state['ledger']],
+                         ['review', 'adjudicate', 'reconcile'])
+
+    def test_repair_execution_failure_has_distinct_diagnostic(self):
+        self.to_repair()
+        with patch.object(r, 'execute_process', side_effect=r.ReviewError('Agent exited 1')):
+            with self.assertRaisesRegex(r.ReviewError, 'Agent exited 1'):
+                r.advance(self.run, self.state)
+        self.assertEqual((self.state['stage'], self.state['status']), ('repair', 'interrupted'))
+        self.assertEqual(self.state['error'], 'Agent exited 1')
+        self.assertEqual(len(self.state['ledger']), 2)
 
     def test_repair_lock_rejects_missing_stale_or_changed_authority(self):
         self.to_repair()
@@ -307,6 +441,8 @@ class ReviewTests(unittest.TestCase):
                     self.state['ledger'][-1]['repair_lock']['scope'] = ['outside.py']
                 with self.assertRaises(r.ReviewError):
                     r.advance(self.run, self.state)
+                with self.assertRaises(r.ReviewError):
+                    self.accept(self.repair_response())
         self.state['ledger'][-1]['repair_lock'] = original
         artifact_path = self.run/'artifacts/revision-002.json'
         artifact = r.read_json(artifact_path)
@@ -314,6 +450,27 @@ class ReviewTests(unittest.TestCase):
         artifact_path.write_text(r.dumps(artifact))
         with self.assertRaisesRegex(r.ReviewError, 'saved adjudication artifact'):
             r.advance(self.run, self.state)
+        with self.assertRaisesRegex(r.ReviewError, 'saved adjudication artifact'):
+            self.accept(self.repair_response())
+
+    def test_old_implementation_run_keeps_full_repair_response(self):
+        self.state.pop('implementation_response_version')
+        self.to_repair()
+        self.assertIn('findings', r.provider_schema(self.state)['properties'])
+        self.assertNotIn('implementation_response_version', r.status_payload(self.run, self.state))
+        self.accept(self.response())
+        artifact = r.read_json(self.run/'artifacts/revision-003.json')
+        self.assertNotIn('submitted_response', artifact)
+        self.assertEqual(artifact['response']['findings'], self.state['findings'])
+
+    def test_unknown_implementation_response_versions_fail_closed(self):
+        for version in (None, 1, 3, '2', 2.0, True):
+            with self.subTest(version=version):
+                self.state['implementation_response_version'] = version
+                for operation in (lambda: r.status_payload(self.run, self.state),
+                                  lambda: r.packet(self.state), lambda: r.provider_schema(self.state)):
+                    with self.assertRaisesRegex(r.ReviewError, 'Unsupported implementation_response_version'):
+                        operation()
 
     def test_pending_decision_locks_only_after_readjudication(self):
         self.accept(self.response([finding()]))
@@ -335,7 +492,7 @@ class ReviewTests(unittest.TestCase):
         self.to_repair()
         p = self.project/'calculator.py'
         p.write_text(p.read_text().replace('(len(values) + 1)', 'len(values)'))
-        self.accept(self.response())
+        self.accept(self.repair_response())
         checked = self.response()
         checked['findings'][0].update(verification_status='PASSED',
                                       verification_evidence=['CHECK-1-1'],
@@ -358,7 +515,7 @@ class ReviewTests(unittest.TestCase):
         self.to_repair()
         p = self.project/'calculator.py'
         p.write_text(p.read_text().replace('(len(values) + 1)', 'len(values)'))
-        self.accept(self.response())
+        self.accept(self.repair_response())
         checked = self.response()
         checked['findings'][0].update(verification_status='PASSED',
                                       verification_evidence=['SOURCE:calculator.py'],
@@ -381,7 +538,7 @@ class ReviewTests(unittest.TestCase):
         self.to_repair()
         p = self.project/'calculator.py'
         p.write_text(p.read_text().replace('(len(values) + 1)', 'len(values)'))
-        self.accept(self.response())
+        self.accept(self.repair_response())
         self.assertEqual([check['exit_code'] for check in self.state['checks']], [0, 1])
         checked = self.response()
         checked['findings'][0].update(verification_status='PASSED',
@@ -457,6 +614,7 @@ class ReviewTests(unittest.TestCase):
 
     def test_coordinator_receives_both_advisory_assessments(self):
         self.state['implementation_evidence_version'] = 1
+        self.state.pop('implementation_response_version')
         self.accept(self.response([finding()]))
         implementer = self.response()
         implementer['findings'][0].update(
@@ -829,7 +987,7 @@ class ReviewTests(unittest.TestCase):
             r.advance(self.run,self.state)
 
     def test_check_failure_does_not_complete(self):
-        self.to_repair(); self.accept(self.response())
+        self.to_repair(); self.accept(self.repair_response())
         self.assertNotEqual(self.state['checks'][0]['exit_code'],0)
         data=self.response(); data['findings'][0].update(verification_status='FAILED',rationale='Acceptance test still fails.')
         self.accept(data)
@@ -839,6 +997,7 @@ class ReviewTests(unittest.TestCase):
 
     def test_version_one_failed_recheck_and_two_pass_limit(self):
         self.state['implementation_evidence_version'] = 1
+        self.state.pop('implementation_response_version')
         self.accept(self.response([finding()]))
         for rationale in ('Implementer recommends repair.', 'Reviewer agrees with repair.'):
             advisory = self.response()
@@ -899,6 +1058,8 @@ class ReviewTests(unittest.TestCase):
                     self.state.pop('plan_protocol_version')
                 elif mode == 'implementation' and version is not None:
                     self.state['implementation_evidence_version'] = version
+                    if version == 1:
+                        self.state.pop('implementation_response_version')
                 self.state['agent_profile']['reviewer'] = {'model': 'fixture-reviewer', 'effort': 'low'}
                 if mode == 'implementation':
                     self.use_passing_check()
@@ -978,6 +1139,7 @@ class ReviewTests(unittest.TestCase):
 
     def test_advisory_schema_and_normalization_freeze_findings(self):
         self.state['implementation_evidence_version'] = 1
+        self.state.pop('implementation_response_version')
         first = finding()
         second = finding()
         second.update(id='FIND-002', location='test_calculator.py:4')
@@ -1066,6 +1228,7 @@ class ReviewTests(unittest.TestCase):
 
     def test_advisory_artifact_retains_full_canonical_findings(self):
         self.state['implementation_evidence_version'] = 1
+        self.state.pop('implementation_response_version')
         self.accept(self.response([finding()]))
         data = self.response()
         data['findings'][0].update(disposition='ACCEPTED', rationale='Accept the reproduced defect.')
@@ -1143,6 +1306,7 @@ class ReviewTests(unittest.TestCase):
     def test_legacy_runs_keep_base_less_and_check_less_compatibility(self):
         legacy = copy.deepcopy(self.state)
         legacy.pop('implementation_evidence_version')
+        legacy.pop('implementation_response_version')
         legacy['base'] = None
         legacy['check_commands'] = []
         legacy['checks'] = []
@@ -1187,7 +1351,7 @@ class ReviewTests(unittest.TestCase):
         p = self.project/'calculator.py'
         p.write_text(p.read_text().replace('(len(values) + 1)', 'len(values)'))
         with patch.object(r, 'save', side_effect=OSError('Simulated interrupted state save')):
-            with self.assertRaises(OSError): self.accept(self.response())
+            with self.assertRaises(OSError): self.accept(self.repair_response())
         self.state = r.read_json(self.run/'state.json')
         r.reconcile(self.run, self.state, 'Inspected scoped numerical fix after interrupted persistence.')
         self.assertEqual(self.state['ledger'][-1]['orphaned_artifacts'], ['revision-003'])
@@ -1266,7 +1430,7 @@ class ReviewTests(unittest.TestCase):
         p = self.project/'calculator.py'
         p.write_text(p.read_text().replace('(len(values) + 1)', 'len(values)'))
         with patch.object(r, 'save', side_effect=OSError('Simulated interrupted state save')):
-            with self.assertRaises(OSError): self.accept(self.response())
+            with self.assertRaises(OSError): self.accept(self.repair_response())
         self.assertEqual(self.state, before)
 
     def test_final_view_regenerates_from_accepted_artifact(self):

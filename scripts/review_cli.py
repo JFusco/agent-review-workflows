@@ -69,6 +69,10 @@ class ReviewError(Exception):
     pass
 
 
+class HandoffResponseError(ReviewError):
+    """A submitted handoff response failed validation."""
+
+
 def dumps(value):
     return json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + '\n'
 
@@ -341,6 +345,15 @@ def collapsed_implementation(state):
     return state['mode'] == 'implementation' and state.get('implementation_evidence_version') == 2
 
 
+def implementation_response_v2(state):
+    if 'implementation_response_version' not in state:
+        return False
+    version = state['implementation_response_version']
+    if state['mode'] != 'implementation' or not collapsed_implementation(state) or type(version) is not int or version != 2:
+        raise ReviewError('Unsupported implementation_response_version; refusing to change the recorded protocol.')
+    return True
+
+
 def collapsed_plan(state):
     if 'plan_protocol_version' not in state:
         return False
@@ -374,6 +387,8 @@ def packet(state):
             'checks': state.get('checks', []), 'agent_profile': effective_profile(state)}
     if collapsed_plan(state):
         result['plan_protocol_version'] = 2
+    if implementation_response_v2(state):
+        result['implementation_response_version'] = 2
     if collapsed_implementation(state) and state['stage'] == 'repair':
         result['repair_lock'] = copy.deepcopy(state['ledger'][-1].get('repair_lock')) if state['ledger'] else None
     if state.get('implementation_plan') is not None:
@@ -388,6 +403,7 @@ def advisory_stage(state):
 
 def prompt(state):
     plan_v2 = collapsed_plan(state)
+    compact_repair = implementation_response_v2(state) and state['stage'] == 'repair'
     stage_text = {
         'review': 'Independently review this target. New findings must be OPEN and UNVERIFIED. No findings is valid.',
         'respond': 'Evaluate every finding, accept it, rebut it with evidence, or identify a user decision. Propose surgical corrections. Do not edit files.',
@@ -450,6 +466,14 @@ def prompt(state):
             'Keep summary concise; use prose for evidence, rationale, corrections, acceptance criteria, and the plan. '
             'Echo plan_protocol_version exactly. '
         )
+    elif compact_repair:
+        finding_instructions = (
+            'Return only the fields in this repair response schema. Assess every ACCEPTED finding exactly once '
+            'in canonical order with id and a substantive repair rationale. Describe work and check results in '
+            'summary or rationale. The helper retains definitions, dispositions, and verification fields from '
+            'persisted state; do not echo them or claim independent verification. '
+            'Echo implementation_response_version exactly. '
+        )
     header = ('You are the ' + ROLE_LABELS[role(state)] + ' in a bounded adversarial review. '
               + stage_text[state['stage']] + '\n'
               'Precise, surgical changes; stay in scope; no over-architecting or complex mechanics. '
@@ -460,6 +484,7 @@ def prompt(state):
               + finding_instructions +
               'Echo run_id, handoff_revision, target_fingerprint, and stage exactly. Return only the requested JSON shape. '
               + ('Only adjudicate may return plan_markdown, under the rules above.\n' if plan_v2 else
+                 'Do not return plan_markdown.\n' if compact_repair else
                  'Set plan_markdown to null except at refine/finalize in plan mode.\n'))
     if state['mode'] == 'plan':
         header += ('This is a PLAN review. Each finding and acceptance_check must assess the document: '
@@ -477,7 +502,7 @@ def prompt(state):
                    'severity values. Locate the defect in the reviewed change, provide concrete evidence, recommend the '
                    'smallest correction, and state an observable acceptance check.\n')
     result = header + '\nCURRENT HANDOFF\n' + dumps(packet(state))
-    if plan_v2:
+    if plan_v2 or compact_repair:
         result += '\nRESPONSE SCHEMA\n' + dumps(provider_schema(state))
     if len(result.encode()) > MAX_BYTES:
         raise ReviewError('Full handoff exceeds 4 MiB; narrow the review scope. Nothing was truncated.')
@@ -488,6 +513,8 @@ def provider_schema(state):
     schema = copy.deepcopy(PROVIDER_SCHEMA)
     for key in ('run_id', 'target_fingerprint', 'handoff_revision', 'stage'):
         schema['properties'][key]['enum'] = [state[key]]
+    if implementation_response_v2(state) and state['stage'] == 'repair':
+        return repair_response_schema(state, schema)
     if advisory_stage(state):
         findings = schema['properties']['findings']
         item = findings['items']
@@ -509,6 +536,24 @@ def provider_schema(state):
     if collapsed_plan(state):
         return plan_response_schema(state, schema)
     return schema
+
+
+def repair_response_schema(state, canonical):
+    properties = {key: copy.deepcopy(canonical['properties'][key]) for key in
+                  ('run_id', 'stage', 'handoff_revision', 'target_fingerprint', 'summary')}
+    properties['implementation_response_version'] = {'type': 'integer', 'enum': [2]}
+    finding_fields = canonical['properties']['findings']['items']['properties']
+    ids = [finding['id'] for finding in state['findings'] if finding['disposition'] == 'ACCEPTED']
+    assessment = {'id': copy.deepcopy(finding_fields['id']),
+                  'rationale': copy.deepcopy(canonical['properties']['summary'])}
+    assessment['id']['enum'] = ids
+    properties['assessments'] = {
+        'type': 'array', 'minItems': len(ids), 'maxItems': len(ids),
+        'items': {'type': 'object', 'additionalProperties': False,
+                  'properties': assessment, 'required': list(assessment)},
+    }
+    return {'type': 'object', 'additionalProperties': False,
+            'properties': properties, 'required': list(properties)}
 
 
 def plan_response_schema(state, canonical):
@@ -686,11 +731,33 @@ def valid_scoped_location(state, location):
     return False
 
 
+def response_error_detail(error, data):
+    path = list(error.path)
+    location = '.'.join(str(part) for part in path)
+    if len(path) >= 2 and path[0] in ('findings', 'assessments') and isinstance(path[1], int):
+        items = data.get(path[0], []) if isinstance(data, dict) else []
+        item = items[path[1]] if isinstance(items, list) and path[1] < len(items) else None
+        finding_id = item.get('id') if isinstance(item, dict) else None
+        location = finding_id or f'{path[0]}[{path[1]}]'
+        if len(path) > 2:
+            location += '.' + '.'.join(str(part) for part in path[2:])
+    if error.validator == 'additionalProperties' and isinstance(error.instance, dict):
+        extra = sorted(set(error.instance) - set(error.schema.get('properties', {})))
+        if extra:
+            location += f'.{extra[0]}' if location else extra[0]
+    elif error.validator == 'required' and isinstance(error.instance, dict):
+        missing = sorted(set(error.validator_value) - set(error.instance))
+        if missing:
+            location += f'.{missing[0]}' if location else missing[0]
+    return f'{location}: {error.message}' if location else error.message
+
+
 def validate_response(state, data):
     plan_v2 = collapsed_plan(state)
+    implementation_response_v2(state)
     errors = sorted(VALIDATOR.iter_errors(data), key=lambda e: str(list(e.path)))
     if errors:
-        raise ReviewError('Invalid handoff: ' + errors[0].message)
+        raise ReviewError('Invalid handoff: ' + response_error_detail(errors[0], data))
     for key in ('run_id', 'handoff_revision', 'target_fingerprint', 'stage'):
         if data[key] != state[key]:
             raise ReviewError(f'Stale or incorrect handoff {key}.')
@@ -720,16 +787,19 @@ def validate_response(state, data):
         if f['id'] not in old and state.get('implementation_evidence_version') in (1, 2):
             if not valid_scoped_location(state, f['location']):
                 raise ReviewError('New implementation findings require a scoped project-relative file location with an optional line or line range.')
-        if ((plan_v2 or state.get('implementation_evidence_version') in (1, 2)) and f['id'] in old and
-                any(f[field] != old[f['id']][field] for field in FINDING_DEFINITION_FIELDS)):
-            raise ReviewError('Existing finding definitions are immutable; respond through disposition and rationale.')
+        if (plan_v2 or state.get('implementation_evidence_version') in (1, 2)) and f['id'] in old:
+            for field in FINDING_DEFINITION_FIELDS:
+                if f[field] != old[f['id']][field]:
+                    raise ReviewError(f'{f["id"]}.{field}: Existing finding definitions are immutable; '
+                                      'respond through disposition and rationale.')
         if f['disposition'] != 'OPEN' and not f['rationale'].strip():
-            raise ReviewError('Decisions require a rationale.')
+            raise ReviewError(f'{f["id"]}.rationale: Decisions require a rationale.')
         if any(ref not in catalog for ref in f['verification_evidence']):
-            raise ReviewError('Finding references unavailable or stale verification evidence.')
+            raise ReviewError(f'{f["id"]}.verification_evidence: Finding references unavailable or stale '
+                              'verification evidence.')
         if f['verification_status'] == 'PASSED':
             if not f['verification_evidence'] or not f['rationale'].strip():
-                raise ReviewError('PASSED requires current evidence and an explanation.')
+                raise ReviewError(f'{f["id"]}.verification_evidence: PASSED requires current evidence and an explanation.')
             if state['stage'] != 'recheck' and old.get(f['id'], {}).get('verification_status') != 'PASSED':
                 raise ReviewError('Only independent recheck may newly mark a finding PASSED.')
         if state['stage'] == 'adjudicate' and f['disposition'] == 'OPEN':
@@ -738,13 +808,15 @@ def validate_response(state, data):
                 state['stage'] in ('respond', 'reply') and f['disposition'] == 'OPEN'):
             raise ReviewError('Implementer and reviewer recommendations must assess every finding.')
         if ((plan_v2 or state.get('implementation_evidence_version') in (1, 2)) and f['id'] in old and
-                state['stage'] != 'recheck' and
-                (f['verification_status'] != old[f['id']]['verification_status'] or
-                 f['verification_evidence'] != old[f['id']]['verification_evidence'])):
-            raise ReviewError('Only independent recheck may change verification fields.')
+                state['stage'] != 'recheck'):
+            for field in ('verification_status', 'verification_evidence'):
+                if f[field] != old[f['id']][field]:
+                    raise ReviewError(f'{f["id"]}.{field}: Only independent recheck may change verification fields.')
     if state['stage'] in ('repair', 'refine', 'recheck'):
-        if any(f['id'] in old and f['disposition'] != old[f['id']]['disposition'] for f in data['findings']):
-            raise ReviewError('Repair/refinement/recheck cannot change the adjudicated dispositions.')
+        for f in data['findings']:
+            if f['id'] in old and f['disposition'] != old[f['id']]['disposition']:
+                raise ReviewError(f'{f["id"]}.disposition: Repair/refinement/recheck cannot change '
+                                  'the adjudicated dispositions.')
     if state['stage'] == 'finalize' and data['findings'] != state['findings']:
         raise ReviewError('Finalization cannot change the independently reviewed findings.')
     plan_stage = state['mode'] == 'plan' and state['stage'] in ('refine', 'finalize')
@@ -767,6 +839,22 @@ def validate_response(state, data):
 
 
 def normalize_response(state, data):
+    if implementation_response_v2(state) and state['stage'] == 'repair':
+        errors = sorted(Draft202012Validator(provider_schema(state)).iter_errors(data),
+                        key=lambda error: str(list(error.path)))
+        if errors:
+            raise ReviewError('Invalid repair handoff: ' + response_error_detail(errors[0], data))
+        expected = [finding['id'] for finding in state['findings'] if finding['disposition'] == 'ACCEPTED']
+        if [assessment['id'] for assessment in data['assessments']] != expected:
+            raise ReviewError('Repair assessments must contain every accepted ID exactly once in canonical order.')
+        findings = copy.deepcopy(state['findings'])
+        assessments = iter(data['assessments'])
+        for finding in findings:
+            if finding['disposition'] == 'ACCEPTED':
+                finding['rationale'] = next(assessments)['rationale']
+        return {**{key: data[key] for key in
+                   ('run_id', 'stage', 'handoff_revision', 'target_fingerprint', 'summary')},
+                'findings': findings, 'plan_markdown': None}
     if collapsed_plan(state):
         errors = sorted(Draft202012Validator(provider_schema(state)).iter_errors(data),
                         key=lambda error: str(list(error.path)))
@@ -915,11 +1003,12 @@ def accept(run, state, data, config, session=None):
     current = state
     state = copy.deepcopy(current)
     plan_v2 = collapsed_plan(state)
+    compact_repair = implementation_response_v2(state) and state['stage'] == 'repair'
     if plan_v2:
         if state['status'] not in ('ready', 'running', 'awaiting_coordinator', 'awaiting_astra'):
             raise ReviewError('Plan run is not accepting a stage response.')
         assert_fresh(state)
-    submitted_response = copy.deepcopy(data) if plan_v2 else None
+    submitted_response = copy.deepcopy(data) if plan_v2 or compact_repair else None
     if collapsed_implementation(state) and state['stage'] in ('respond', 'reply'):
         raise ReviewError('Advisory stages are not part of this implementation run.')
     if collapsed_implementation(state) and state['stage'] == 'repair':
@@ -928,8 +1017,11 @@ def accept(run, state, data, config, session=None):
         validate_repair_lock(run, state)
     if state['mode'] == 'plan' and digest(text_file(Path(state['plan_file']))) != state['original_plan_hash']:
         raise ReviewError('Original draft changed during review; start a new run.')
-    data = normalize_response(state, data)
-    validate_response(state, data)
+    try:
+        data = normalize_response(state, data)
+        validate_response(state, data)
+    except ReviewError as exc:
+        raise HandoffResponseError(str(exc)) from exc
     after = inventory(Path(state['project']))
     verify_writes(state, after)
     stage = state['stage']
@@ -969,6 +1061,8 @@ def accept(run, state, data, config, session=None):
                 'target': new_target, 'findings': state['findings']}
     if plan_v2:
         artifact.update(plan_protocol_version=2, submitted_response=submitted_response)
+    if compact_repair:
+        artifact.update(implementation_response_version=2, submitted_response=submitted_response)
     write_new(run / 'artifacts' / f'{artifact_id}.json', artifact)
     state['ledger'].append(entry)
     state['handoff_revision'] += 1
@@ -1114,11 +1208,14 @@ def reconcile(run, state, note):
 
 def render(run, state):
     plan_v2 = collapsed_plan(state)
+    response_v2 = implementation_response_v2(state)
     lines = [f'# {state["mode"].capitalize()} review', '', f'Status: {state["status"]}',
              f'Run: `{state["run_id"]}`', f'Target: `{state["target_fingerprint"]}`', '',
              '## Agent profile', '']
     if plan_v2:
         lines[6:6] = ['Plan protocol: 2', '']
+    if response_v2:
+        lines[6:6] = ['Implementation response version: 2', '']
     for role_name, settings in effective_profile(state).items():
         provider = ROLE_PROVIDERS[role_name].capitalize()
         lines.append(f'- {role_name.capitalize()} ({provider}): {settings["model"]} ({settings["effort"]})')
@@ -1190,6 +1287,7 @@ def project_lock(project):
 
 
 def advance(run, state, external_coordinator=False):
+    implementation_response_v2(state)
     assert_fresh(state)
     if state['status'] != 'ready':
         raise ReviewError(f'Run is {state["status"]}; inspect status before resuming.')
@@ -1234,7 +1332,10 @@ def advance(run, state, external_coordinator=False):
         cwd = Path(state['project']) if role(state) == 'opus' else run / 'executor'
         content = prompt(state) + '\nProject source is at: ' + state['project'] + '\n'
         execute_process(argv, cwd, content, call_dir, state['timeout'])
-        data, session, config = extract_response(state, call_dir)
+        try:
+            data, session, config = extract_response(state, call_dir)
+        except ReviewError as exc:
+            raise HandoffResponseError(str(exc)) from exc
         accept(run, state, data, config, session)
     except (Exception, KeyboardInterrupt) as exc:
         if collapsed_plan(state) and state['handoff_revision'] != revision_before:
@@ -1242,7 +1343,11 @@ def advance(run, state, external_coordinator=False):
             # this stage or strand completion at a non-dispatchable finalize stage.
             raise
         state['status'] = 'interrupted' if state['stage'] == 'repair' else 'blocked'
-        state['error'] = str(exc)
+        if state['stage'] == 'repair' and isinstance(exc, HandoffResponseError):
+            state['error'] = ('Repair response rejected after writer exit: ' + str(exc) +
+                              ' Inspect scoped changes and use reconcile; do not retry the writer.')
+        else:
+            state['error'] = str(exc)
         save(run, state)
         render(run, state)
         raise
@@ -1278,6 +1383,8 @@ def status_payload(run, state):
             'handoff': str(run / 'handoff.md'), 'agent_profile': effective_profile(state)}
     if collapsed_plan(state):
         result['plan_protocol_version'] = 2
+    if implementation_response_v2(state):
+        result['implementation_response_version'] = 2
     return result
 
 
@@ -1347,6 +1454,7 @@ def initialize(args):
              'check_commands': check_commands}
     if args.mode == 'implementation':
         state['implementation_evidence_version'] = 2
+        state['implementation_response_version'] = 2
     else:
         state['plan_protocol_version'] = 2
     state['inventory'] = inventory(project)
@@ -1365,6 +1473,8 @@ def initialize(args):
     if state.get('implementation_evidence_version') in (1, 2):
         original.update(check_commands=check_commands,
                         implementation_evidence_version=state['implementation_evidence_version'])
+    if implementation_response_v2(state):
+        original['implementation_response_version'] = 2
     if collapsed_plan(state):
         original['plan_protocol_version'] = 2
     write_new(run / 'original.json', original)

@@ -15,6 +15,8 @@ Run implementation mode with explicit scoped files, `--base`, and at least one a
 
 The coordinator must retain canonical finding definitions but may add a sequential, evidence-backed finding within the authorized scope during adjudication. The adjudication entry locks accepted findings, authorized files, checks, fingerprint, and revision before repair. Its decisions, lock, and current scoped diff are visible in `handoff.md`; the same lock reaches the implementer. A failed or incomplete recheck ends unresolved without another repair. When configured checks failed for a transient environment reason and the target is provably unchanged, use the documented `rerun-checks` recovery. Existing runs in the older advisory stages retain their recorded protocol.
 
+For newly started runs, the repair response assesses accepted finding IDs and rationales only. The helper reconstructs canonical findings from saved state; the writer does not restate definitions, dispositions, or independent verification. Existing runs retain their saved response contract. See the CLI procedure for the exact schema and recovery behavior.
+
 Keep repairs precise and surgical. Prefer existing components and simple mechanisms. Do not broaden the assignment to speculative cleanup or unrelated architecture work. Source, reproduced failures, and actual checks support decisions; agent agreement is insufficient verification.
 
 Continue ordinary authorized steps without repeated approval. New runs allow one repair and one recheck. Surface unresolved product decisions and missing permissions. Never repeat an interrupted repair blindly or overwrite unexpected edits. Use the documented recovery procedure.
