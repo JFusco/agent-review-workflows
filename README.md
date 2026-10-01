@@ -1,16 +1,17 @@
 # Agent Review Workflows
 
-Agent Review Workflows provides three installable agent skills that coordinate evidence-backed review through Claude Code and Codex CLI:
+Agent Review Workflows provides four installable agent skills that coordinate evidence-backed review through Claude Code and Codex CLI:
 
 - `review-plan`: a Claude reviewer critiques and rechecks; a Codex coordinator adjudicates and refines; the helper completes the plan review.
 - `review-implementation`: a Claude reviewer finds and rechecks defects; a Codex coordinator locks accepted repairs and closes successful reviews; a Codex implementer makes the scoped repair.
 - `review-handoff`: dispatches one authorized stage of an existing review run through the helper, then reports its status.
+- `review-diff`: a Claude reviewer and Codex coordinator report findings for a scoped local Git change without repair.
 
 The built-in profile for new runs is Opus 5.5 High, Astra 6 Max, and Sol 6.1 Extra High (`xhigh`). Installation-local profiles and explicit per-run overrides can select other model and effort combinations without changing provider or permission boundaries.
 
 Invoke a skill in Codex by name. Finishing ordinary work does not launch a cycle. Plan review always stops before application implementation.
 
-Each workflow keeps a revision-bound decision ledger and separates review from repair. Revised plans and repaired implementations require independent rechecks before completion. The implementation workflow gives write access only to its designated repair agent; the plan workflow never edits application code.
+Each review workflow keeps a revision-bound decision ledger and separates review from repair. Revised plans and repaired implementations require independent rechecks before completion. Diff reviews report accepted findings as unverified. Only the implementation workflow gives write access to its designated repair agent.
 
 ## How it works
 
@@ -26,15 +27,17 @@ Implementation reviews follow this sequence:
 
 Transient configured-check failures on an unchanged implementation target can be recovered with `rerun-checks`. The command retains old receipts, creates revision-bound current receipts, and never replays model or repair work.
 
+Diff reviews require a frozen Git base, scoped files, and a local check. They run `review → adjudicate` and end at `reported`, including when findings remain accepted or checks fail. The final report and handoff retain the decisions and check evidence; diff mode never repairs or independently verifies findings. See the [CLI procedure](references/cli.md) for the exact contract.
+
 No model is silently substituted, and publication, deployment, or merge actions are outside the workflow.
 
 ## Use
 
-From any project in Codex CLI, invoke `$review-plan` with the draft or `$review-implementation` with the change to review. A plain skill cannot change the invoking conversation's model; current-chat coordinator stages are allowed only when that conversation exactly matches the run's frozen coordinator profile.
+From any project in Codex CLI, invoke `$review-plan` with a draft, `$review-implementation` for review and scoped repair, or `$review-diff` for a read-only change report. `review-diff` is explicitly invoked; it is installed with the other skills but is not selected implicitly. A plain skill cannot change the invoking conversation's model; current-chat coordinator stages are allowed only when that conversation exactly matches the run's frozen coordinator profile.
 
 For one stage of an existing run, invoke `$review-handoff` with its run directory. It uses the existing `step` command and the run's frozen CLI model settings, with no dedicated handoff model or additional stage. See [Single-stage handoff](references/cli.md#single-stage-handoff).
 
-New implementation runs require Git, an explicit local `--base`, one or more `--scope` files, and at least one `--check`. They fail before creating artifacts if the base is invalid or the initial scoped diff is empty. Plan runs keep base and checks optional. Previously created runs retain their recorded contracts.
+New implementation and diff runs require Git, an explicit local `--base`, one or more `--scope` files, and at least one `--check`. They fail before creating artifacts if the base is invalid or the initial scoped diff is empty. Plan runs keep base and checks optional. Previously created runs retain their recorded contracts.
 
 ## Configure models and effort
 
@@ -44,6 +47,10 @@ Add any desired partial overrides to the ignored `runtime.local.json` beside thi
 {
   "skills": {
     "review-plan": {
+      "reviewer": { "model": "claude-opus-5-5", "effort": "high" },
+      "coordinator": { "model": "gpt-6-astra", "effort": "max" }
+    },
+    "review-diff": {
       "reviewer": { "model": "claude-opus-5-5", "effort": "high" },
       "coordinator": { "model": "gpt-6-astra", "effort": "max" }
     },
@@ -62,7 +69,7 @@ Existing version-2 runs retain their frozen profiles, including Sol 6. Version-1
 
 ## Install
 
-Requires macOS or Linux, Python 3.11+, Git for implementation reviews, authenticated `claude` and `codex` CLIs, and access to the configured models. From this directory:
+Requires macOS or Linux, Python 3.11+, Git for implementation and diff reviews, authenticated `claude` and `codex` CLIs, and access to the configured models. From this directory:
 
 ```sh
 python3 -m venv .venv
@@ -95,7 +102,11 @@ No `ai-commit` or `ai-pr` tool is installed or used.
 
 The trial creator makes separate disposable Git projects and prints their run directories. It does not call models. Running `review_cli.py run RUN` invokes paid/subscription provider sessions according to your existing CLI authentication. Keep trial runs separate from production projects. See [VALIDATION.md](VALIDATION.md) for executed results and limits.
 
-`calls/` captures prompts, CLI output, and observable execution metadata; `artifacts/` preserves revision lineage; `handoff.md` is the readable decision ledger; `final.md` exists only after successful finalization. These are sensitive local project artifacts, not files to publish automatically.
+`calls/` captures prompts, CLI output, and observable execution metadata; `artifacts/` preserves revision lineage; `handoff.md` is the readable decision ledger; `final.md` contains a completed plan/implementation view or a terminal diff report. These are sensitive local project artifacts, not files to publish automatically.
+
+## Optional companions
+
+[Codex Security](https://openai.com/business/solutions/cybersecurity/) can scan code changes, OpenAI's [security-threat-model](https://github.com/openai/skills/blob/main/skills/.curated/security-threat-model/SKILL.md) can analyze repository threats, and [gh-fix-ci](https://github.com/openai/skills/blob/main/skills/.curated/gh-fix-ci/SKILL.md) can help diagnose GitHub Actions failures when separately authorized. These tools are not installed by this repository, invoked automatically, or imported into its canonical review ledger.
 
 ## Project layout
 

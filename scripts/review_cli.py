@@ -27,7 +27,7 @@ except ImportError:
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNTIME_CONFIG = ROOT / 'runtime.local.json'
-MODE_TO_SKILL = {'plan': 'review-plan', 'implementation': 'review-implementation'}
+MODE_TO_SKILL = {'plan': 'review-plan', 'implementation': 'review-implementation', 'diff': 'review-diff'}
 PROFILE_ROLE_TO_AGENT = {'reviewer': 'opus', 'coordinator': 'astra', 'implementer': 'sol'}
 AGENT_TO_PROFILE_ROLE = {agent: profile for profile, agent in PROFILE_ROLE_TO_AGENT.items()}
 ROLE_PROVIDERS = {'reviewer': 'claude', 'coordinator': 'codex', 'implementer': 'codex'}
@@ -53,6 +53,7 @@ V1_PROFILES = {
 }
 DEFAULT_PROFILES = copy.deepcopy(V1_PROFILES)
 DEFAULT_PROFILES['review-implementation']['implementer']['model'] = 'gpt-6.1-sol'
+DEFAULT_PROFILES['review-diff'] = copy.deepcopy(V1_PROFILES['review-plan'])
 SCHEMA = json.loads((ROOT / 'schemas/response.json').read_text())
 VALIDATOR = Draft202012Validator(SCHEMA)
 # Provider CLIs accept the common keyword subset but may not register the local dialect URI.
@@ -164,9 +165,9 @@ def resolve_agent_profile(args, config):
     profile = copy.deepcopy(DEFAULT_PROFILES[skill_name])
     for role_name, settings in config.get('skills', {}).get(skill_name, {}).items():
         profile[role_name].update(settings)
-    if args.mode == 'plan' and any(
+    if 'implementer' not in profile and any(
             getattr(args, f'implementer_{field}', None) is not None for field in ('model', 'effort')):
-        raise ReviewError('Plan reviews do not have an implementer role.')
+        raise ReviewError(f'{"Plan" if args.mode == "plan" else "Diff"} reviews do not have an implementer role.')
     for role_name in profile:
         for field in ('model', 'effort'):
             value = getattr(args, f'{role_name}_{field}', None)
@@ -440,6 +441,10 @@ def prompt(state):
                                         'Preserve existing definitions; append only evidence-backed scoped gaps. '
                                         'The helper locks accepted repairs after this response. Do not edit files.')
             stage_text['repair'] += ' Follow the current repair_lock exactly.'
+        elif state['mode'] == 'diff':
+            stage_text['adjudicate'] = ('Assess the full scoped change even if the reviewer found no gaps. '
+                                        'Decide each finding from the diff and checks; append only evidenced scoped gaps. '
+                                        'Report decisions without repairing files. Do not edit files.')
         else:
             stage_text.update({
                 'respond': 'Recommend ACCEPTED, REJECTED, or PENDING_USER for every finding and explain the evidence. This recommendation is advisory; propose surgical corrections and do not edit files.',
@@ -491,6 +496,14 @@ def prompt(state):
             'persisted state; do not echo them or claim independent verification. '
             'Echo implementation_response_version exactly. '
         )
+    elif state['mode'] == 'diff':
+        finding_instructions = (
+            'Preserve existing finding IDs and definitions in canonical order. New findings use sequential IDs '
+            'and scoped file locations. Review findings start OPEN; adjudication decides every finding as '
+            'ACCEPTED, REJECTED, or PENDING_USER with a substantive rationale. Keep all verification statuses '
+            'UNVERIFIED and verification_evidence empty; this workflow never repairs or independently rechecks. '
+            'Do not claim that a nonzero check passed. '
+        )
     header = ('You are the ' + ROLE_LABELS[role(state)] + ' in a bounded adversarial review. '
               + stage_text[state['stage']] + '\n'
               'Precise, surgical changes; stay in scope; no over-architecting or complex mechanics. '
@@ -502,6 +515,7 @@ def prompt(state):
               'Echo run_id, handoff_revision, target_fingerprint, and stage exactly. Return only the requested JSON shape. '
               + ('Only adjudicate may return plan_markdown, under the rules above.\n' if plan_v2 else
                  'Do not return plan_markdown.\n' if compact_repair else
+                 'Set plan_markdown to null.\n' if state['mode'] == 'diff' else
                  'Set plan_markdown to null except at refine/finalize in plan mode.\n'))
     if state['mode'] == 'plan':
         header += ('This is a PLAN review. Each finding and acceptance_check must assess the document: '
@@ -514,7 +528,8 @@ def prompt(state):
                        'assumptions, and observable acceptance criteria. Identify material unresolved user choices. '
                        'Do not add boilerplate for concerns that do not apply.\n')
     elif state.get('implementation_evidence_version') in (1, 2):
-        header += ('This is an IMPLEMENTATION review. Every new finding location must be an exact scoped project-relative '
+        header += ('This is a ' + ('DIFF' if state['mode'] == 'diff' else 'IMPLEMENTATION') +
+                   ' review. Every new finding location must be an exact scoped project-relative '
                    'file path, optionally followed by :line or :start-end. BLOCKER, WARN, and SUGGESTION are the only '
                    'severity values. Locate the defect in the reviewed change, provide concrete evidence, recommend the '
                    'smallest correction, and state an observable acceptance check.\n')
@@ -814,6 +829,8 @@ def validate_response(state, data):
         if any(ref not in catalog for ref in f['verification_evidence']):
             raise ReviewError(f'{f["id"]}.verification_evidence: Finding references unavailable or stale '
                               'verification evidence.')
+        if state['mode'] == 'diff' and (f['verification_status'] != 'UNVERIFIED' or f['verification_evidence']):
+            raise ReviewError(f'{f["id"]}: Diff findings remain UNVERIFIED without verification receipts.')
         if f['verification_status'] == 'PASSED':
             if not f['verification_evidence'] or not f['rationale'].strip():
                 raise ReviewError(f'{f["id"]}.verification_evidence: PASSED requires current evidence and an explanation.')
@@ -956,6 +973,16 @@ def complete_findings(state):
                (f['disposition'] == 'ACCEPTED' and f['verification_status'] == 'PASSED') for f in state['findings'])
 
 
+def diff_checks_current(state):
+    return (bool(state['check_commands']) and
+            len(state['checks']) == len(state['check_commands']) and
+            all(isinstance(check, dict) and isinstance(check.get('id'), str) and
+                isinstance(check.get('output'), str) and type(check.get('exit_code')) is int and
+                check.get('argv') == argv and
+                check.get('target_fingerprint') == state['target_fingerprint']
+                for check, argv in zip(state['checks'], state['check_commands'])))
+
+
 def checks_pass(state):
     if state['mode'] == 'plan':
         return True
@@ -1021,10 +1048,15 @@ def accept(run, state, data, config, session=None):
     state = copy.deepcopy(current)
     plan_v2 = collapsed_plan(state)
     compact_repair = implementation_response_v2(state) and state['stage'] == 'repair'
-    if plan_v2:
+    if plan_v2 or state['mode'] == 'diff':
         if state['status'] not in ('ready', 'running', 'awaiting_coordinator', 'awaiting_astra'):
-            raise ReviewError('Plan run is not accepting a stage response.')
+            raise ReviewError('Read-only run is not accepting a stage response.')
         assert_fresh(state)
+    if state['mode'] == 'diff':
+        if state['stage'] not in ('review', 'adjudicate'):
+            raise ReviewError('Diff reviews accept only review and adjudication.')
+        if not diff_checks_current(state):
+            raise ReviewError('Diff review requires complete current check receipts before accepting a response.')
     submitted_response = copy.deepcopy(data) if plan_v2 or compact_repair else None
     if collapsed_implementation(state) and state['stage'] in ('respond', 'reply'):
         raise ReviewError('Advisory stages are not part of this implementation run.')
@@ -1076,6 +1108,8 @@ def accept(run, state, data, config, session=None):
             entry['repair_lock'] = lock
     artifact = {'schema_version': 1, 'run_id': state['run_id'], **entry, 'response': data,
                 'target': new_target, 'findings': state['findings']}
+    if state['mode'] == 'diff':
+        artifact['checks'] = copy.deepcopy(state['checks'])
     if plan_v2:
         artifact.update(plan_protocol_version=2, submitted_response=submitted_response)
     if compact_repair:
@@ -1086,7 +1120,7 @@ def accept(run, state, data, config, session=None):
     state['status'] = 'ready'
     state['error'] = None
     if stage == 'review':
-        if plan_v2:
+        if plan_v2 or state['mode'] == 'diff':
             state['stage'] = 'adjudicate'
         elif state['findings']:
             state['stage'] = 'adjudicate' if collapsed_implementation(state) else 'respond'
@@ -1099,6 +1133,8 @@ def accept(run, state, data, config, session=None):
     elif stage == 'adjudicate':
         if any(f['disposition'] == 'PENDING_USER' for f in state['findings']):
             state['status'] = 'needs_user'
+        elif state['mode'] == 'diff':
+            state['status'] = 'reported'
         elif plan_v2:
             state.update(stage='recheck' if refined else 'finalize', status='ready' if refined else 'complete')
         elif any(f['disposition'] == 'ACCEPTED' for f in state['findings']) or state['mode'] == 'plan':
@@ -1136,9 +1172,9 @@ def accept(run, state, data, config, session=None):
 
 def rerun_checks(run, state):
     if state.get('implementation_evidence_version') not in (1, 2) or not state.get('check_commands'):
-        raise ReviewError('Check reruns require a current implementation review with configured checks.')
+        raise ReviewError('Check reruns require a current implementation or diff review with configured checks.')
     if state['stage'] == 'repair' or state['status'] not in ('ready', 'blocked', 'unresolved'):
-        raise ReviewError('Checks may rerun only while an implementation review is in a read-only recoverable state.')
+        raise ReviewError('Checks may rerun only while a review is in a read-only recoverable state.')
     assert_fresh(state)
     previous_checks = copy.deepcopy(state['checks'])
     if collapsed_implementation(state):
@@ -1260,15 +1296,36 @@ def render(run, state):
                   f'Evidence: {f["evidence"]}', f'Correction: {f["correction_recommended"]}',
                   f'Acceptance: {f["acceptance_check"]}', f'Decision: {f["disposition"]} — {f["rationale"]}',
                   f'Verification: {f["verification_status"]}', 'Evidence references: ' + ', '.join(f['verification_evidence']), '']
-    if collapsed_implementation(state):
-        scoped_change = target(state)['diff'].rstrip()
+    if collapsed_implementation(state) or state['mode'] == 'diff':
+        reviewed = (read_json(run / 'artifacts' / (state['ledger'][-1]['artifact_id'] + '.json'))['target']
+                    if state['mode'] == 'diff' and state['status'] == 'reported' else target(state))
+        scoped_change = reviewed['diff'].rstrip()
         lines += ['## Scoped diff', '', f'Against base `{state["base"]}`.', '']
         lines += ['```diff', scoped_change, '```', ''] if scoped_change else ['No scoped differences from the base.', '']
     save_text(run / 'handoff.md', '\n'.join(lines))
-    if state['status'] == 'complete':
+    if state['status'] in ('complete', 'reported'):
         artifact = read_json(run / 'artifacts' / (state['ledger'][-1]['artifact_id'] + '.json'))
         final = artifact['response']
-        if state['mode'] == 'plan':
+        if state['mode'] == 'diff':
+            content = ['# Diff review report', '', 'Status: reported',
+                       f'Run: `{state["run_id"]}`', f'Target: `{artifact["target_after"]}`',
+                       f'Base: `{artifact["target"]["base"]}`', '',
+                       final['summary'], '', '## Checks', '']
+            for check in artifact['checks']:
+                content.append(f'- `{shlex.join(check["argv"])}`: exit {check["exit_code"]} ({check["id"]})')
+            content += ['', '## Findings', '']
+            for finding in artifact['findings']:
+                content += [f'### {finding["id"]}: {finding["severity"]} — {finding["disposition"]}', '',
+                            f'Location: {finding["location"]}',
+                            f'Evidence: {finding["evidence"]}',
+                            f'Correction: {finding["correction_recommended"]}',
+                            f'Acceptance: {finding["acceptance_check"]}',
+                            f'Rationale: {finding["rationale"]}',
+                            'Verification: UNVERIFIED', '']
+            if not artifact['findings']:
+                content.append('No findings were reported.')
+            content = '\n'.join(content) + '\n'
+        elif state['mode'] == 'plan':
             content = artifact['target']['plan'] if plan_v2 else final['plan_markdown']
         else:
             content = final['summary'] + '\n'
@@ -1313,6 +1370,8 @@ def advance(run, state, external_coordinator=False):
             raise ReviewError('This stage cannot dispatch under plan protocol 2.')
         if state['stage'] == 'adjudicate' and state['round'] >= 2:
             raise ReviewError('Two-refinement limit reached.')
+    if state['mode'] == 'diff' and state['stage'] not in ('review', 'adjudicate'):
+        raise ReviewError('Diff reviews can dispatch only review and adjudication.')
     if collapsed_implementation(state) and state['stage'] in ('respond', 'reply'):
         raise ReviewError('Advisory stages are not part of this implementation run.')
     if state['mode'] == 'plan' and state['stage'] == 'repair':
@@ -1326,6 +1385,11 @@ def advance(run, state, external_coordinator=False):
     if state['mode'] == 'implementation' and state['stage'] == 'review' and not state['checks']:
         perform_checks(run, state)
         save(run, state)
+    if state['mode'] == 'diff' and state['stage'] == 'review' and not diff_checks_current(state):
+        perform_checks(run, state)
+        save(run, state)
+    if state['mode'] == 'diff' and not diff_checks_current(state):
+        raise ReviewError('Diff review requires complete current check receipts.')
     if external_coordinator and role(state) == 'astra':
         model, effort = agent_settings(state, 'astra')
         request = run / 'external-request.json'
@@ -1357,7 +1421,7 @@ def advance(run, state, external_coordinator=False):
             raise HandoffResponseError(str(exc)) from exc
         accept(run, state, data, config, session)
     except (Exception, KeyboardInterrupt) as exc:
-        if collapsed_plan(state) and state['handoff_revision'] != revision_before:
+        if (collapsed_plan(state) or state['mode'] == 'diff') and state['handoff_revision'] != revision_before:
             # Acceptance was durably saved. A derived-view failure must not replay
             # this stage or strand completion at a non-dispatchable finalize stage.
             raise
@@ -1419,8 +1483,8 @@ def initialize(args):
         if any(x in EXCLUDED or x in ('.agents', '.codex', '.claude') for x in p.parts) or p.name in ('AGENTS.md', 'CLAUDE.md') or p.name.startswith('.env'):
             raise ReviewError('Runtime configuration, instructions, generated files, and secrets are not automatic repair targets.')
         scope.append(p.as_posix())
-    if args.mode == 'implementation' and not scope:
-        raise ReviewError('Implementation reviews require explicit --scope files.')
+    if args.mode in ('implementation', 'diff') and not scope:
+        raise ReviewError(f'{args.mode.capitalize()} reviews require explicit --scope files.')
     if args.mode == 'plan' and not args.plan:
         raise ReviewError('Plan reviews require --plan.')
     requirements = text_file(Path(args.requirements).expanduser().resolve())
@@ -1451,10 +1515,10 @@ def initialize(args):
     check_commands = [shlex.split(check) for check in args.check]
     if any(not check for check in check_commands):
         raise ReviewError('Check commands cannot be empty.')
-    if args.mode == 'implementation' and not args.base:
-        raise ReviewError('Implementation reviews require an explicit --base resolving to a local commit.')
-    if args.mode == 'implementation' and not check_commands:
-        raise ReviewError('Implementation reviews require at least one explicit --check command.')
+    if args.mode in ('implementation', 'diff') and not args.base:
+        raise ReviewError(f'{args.mode.capitalize()} reviews require an explicit --base resolving to a local commit.')
+    if args.mode in ('implementation', 'diff') and not check_commands:
+        raise ReviewError(f'{args.mode.capitalize()} reviews require at least one explicit --check command.')
     base = None
     if args.base:
         result = command(['git', 'rev-parse', '--verify', args.base + '^{commit}'], project)
@@ -1474,12 +1538,14 @@ def initialize(args):
     if args.mode == 'implementation':
         state['implementation_evidence_version'] = 2
         state['implementation_response_version'] = 2
+    elif args.mode == 'diff':
+        state['implementation_evidence_version'] = 2
     else:
         state['plan_protocol_version'] = 2
     state['inventory'] = inventory(project)
     initial = target(state)
-    if args.mode == 'implementation' and not initial['diff'].strip():
-        raise ReviewError('Implementation reviews require a nonempty scoped diff against --base.')
+    if args.mode in ('implementation', 'diff') and not initial['diff'].strip():
+        raise ReviewError(f'{args.mode.capitalize()} reviews require a nonempty scoped diff against --base.')
     state['target_fingerprint'] = digest(initial)
     root.mkdir(parents=True, exist_ok=True)
     run = root / run_id
@@ -1506,14 +1572,14 @@ def build_parser():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest='action', required=True)
     start = sub.add_parser('start', help='Snapshot a target without calling models.')
-    start.add_argument('mode', choices=['plan', 'implementation'])
+    start.add_argument('mode', choices=['plan', 'implementation', 'diff'])
     start.add_argument('--project')
     start.add_argument('--requirements', required=True, help='Text file describing scope, requirements, authorization and acceptance checks.')
     start.add_argument('--plan')
     start.add_argument('--scope', action='append', default=[])
-    start.add_argument('--base', help='Local Git ref for a branch diff; required for implementation and resolved once to a commit.')
+    start.add_argument('--base', help='Local Git ref for a branch diff; required for implementation and diff, resolved once to a commit.')
     start.add_argument('--runs-dir')
-    start.add_argument('--check', action='append', default=[], help='Authorized local check command; at least one is required for implementation and shell operators are not executed.')
+    start.add_argument('--check', action='append', default=[], help='Authorized local check command; required for implementation and diff, without shell operators.')
     start.add_argument('--timeout', type=int, default=900, help='Per-agent/check seconds; default 15 minutes, bounded to 1–3600.')
     start.add_argument('--reviewer-model')
     start.add_argument('--reviewer-effort', choices=sorted(PROVIDER_EFFORTS['claude']))
@@ -1594,6 +1660,8 @@ def main():
                 if args.action == 'step' and args.reviewer_only:
                     if state['status'] != 'ready' or role(state) != 'opus':
                         raise ReviewError('Reviewer-only step requires a ready Claude reviewer stage.')
+                    if state['mode'] == 'diff' and not diff_checks_current(state):
+                        raise ReviewError('Reviewer-only step requires current check receipts before host dispatch.')
                     if state['mode'] == 'implementation' and state['check_commands'] and (
                             len(state['checks']) != len(state['check_commands']) or
                             any(not isinstance(check, dict) or

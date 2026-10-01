@@ -1,6 +1,6 @@
 ---
 name: review-handoff
-description: Dispatches the next authorized stage of an existing plan or implementation review run. Use for a single review-chain handoff.
+description: Dispatches the next authorized stage of an existing plan, implementation, or diff review run. Use for a single review-chain handoff.
 ---
 
 # Hand off one review stage
@@ -13,6 +13,6 @@ Respect the invoking conversation's permissions and mode. Do not dispatch an imp
 
 Inspect `status RUN`. When ready and authorized, dispatch at most one provider stage with `step RUN`, using the frozen CLI role configuration. A sandboxed preflight that stops before dispatch may be followed by one guarded host reviewer step as documented in the CLI procedure. Do not use `run`, external-coordinator flags, or direct provider calls. The helper supplies the canonical packet and stage-specific response schema and selects the receiving agent; do not summarize or rewrite its input.
 
-Stop after that attempt, even if another stage is ready. The documented Claude auth preflight may continue with one guarded host reviewer step while the stage remains ready. For any other non-ready status or error, report it and link [Recovery](references/cli.md#recovery); do not retry, reconcile, submit judgments, or decide for the user. If command output is incomplete, inspect `status RUN` without replaying the step.
+Stop after that attempt, even if another stage is ready. A `reported` diff run is terminal. The documented Claude auth preflight may continue with one guarded host reviewer step while the stage remains ready. For any other non-ready status or error, report it and link [Recovery](references/cli.md#recovery); do not retry, reconcile, submit judgments, or decide for the user. If command output is incomplete, inspect `status RUN` without replaying the step.
 
 Return the attempted stage (or that none was dispatched), resulting status, any blocker, and the existing `handoff.md` link. Distinguish completion of one stage from completion of the review.

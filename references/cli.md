@@ -4,12 +4,16 @@ Resolve the skill symlink to its source, then take the parent of `skills` as the
 
 ## Agent profiles
 
-The ignored installation-local `runtime.local.json` may contain partial profiles under `skills.review-plan` and `skills.review-implementation`. The plan skill supports `reviewer` (Claude) and `coordinator` (Codex); the implementation skill also supports `implementer` (Codex). Each role accepts `model` and `effort` only. Providers and permissions are fixed and cannot be configured.
+The ignored installation-local `runtime.local.json` may contain partial profiles under `skills.review-plan`, `skills.review-implementation`, and `skills.review-diff`. Plan and diff support `reviewer` (Claude) and `coordinator` (Codex); implementation also supports `implementer` (Codex). Each role accepts `model` and `effort` only. Providers and permissions are fixed and cannot be configured.
 
 ```json
 {
   "skills": {
     "review-plan": {
+      "reviewer": { "model": "claude-opus-5-5", "effort": "high" },
+      "coordinator": { "model": "gpt-6-astra", "effort": "max" }
+    },
+    "review-diff": {
       "reviewer": { "model": "claude-opus-5-5", "effort": "high" },
       "coordinator": { "model": "gpt-6-astra", "effort": "max" }
     },
@@ -37,14 +41,19 @@ Examples below use `PYTHON` and `HELPER` to mean the resolved interpreter and sc
 ```text
 PYTHON HELPER start plan --project /path/to/project --requirements /path/to/requirements.md --plan /path/to/draft.md --scope src/relevant.py
 PYTHON HELPER start implementation --project /path/to/project --requirements /path/to/requirements.md --scope src/changed.py --scope tests/test_changed.py --base origin/main --check "python3 -m unittest discover -s tests"
+PYTHON HELPER start diff --project /path/to/project --requirements /path/to/requirements.md --scope src/changed.py --base origin/main --check "python3 -m unittest discover -s tests"
 PYTHON HELPER start plan --project /path/to/project --requirements /path/to/requirements.md --plan /path/to/draft.md --coordinator-model gpt-6-luna --coordinator-effort high
 ```
 
-`start` snapshots the target without calling a model. It prints the run directory. Select scope from the actual user request or diff. Resolve unclear targets with the user. New implementation runs require `--base`, resolve it once to a local commit, require at least one `--check`, and reject an empty initial scoped diff before creating run artifacts. Plan runs may omit both. Include all files the repair may touch, but exclude unrelated work. Configuration, agent instructions, and secret files are not supported automatic repair targets.
+`start` snapshots the target without calling a model. It prints the run directory. Select scope from the actual user request or diff. Resolve unclear targets with the user. New implementation and diff runs require `--base`, resolve it once to a local commit, require at least one `--check`, and reject an empty initial scoped diff before creating run artifacts. Plan runs may omit both. Include the exact files under review; implementation scope also bounds repair. Configuration, agent instructions, and secret files are not supported automatic repair targets.
 
-The implementation target contains the frozen base SHA, full scoped text files, and the base-to-current scoped diff. The diff includes committed, staged, unstaged, deleted, and explicitly scoped untracked files; unrelated repository changes are excluded. The same base is retained after repair so recheck sees the revised complete change. Existing runs without this evidence contract remain resumable with their recorded behavior.
+Implementation and diff targets contain the frozen base SHA, full scoped text files, and the base-to-current scoped diff. The diff includes committed, staged, unstaged, deleted, and explicitly scoped untracked files; unrelated repository changes are excluded. Implementation retains the same base after repair so recheck sees the revised complete change. Existing runs without this evidence contract remain resumable with their recorded behavior.
 
-Checks are user-authorized local commands, parsed into argv without a shell. Shell pipelines and operators are not supported. The helper executes them from the target project before initial implementation review and after each repair; choose disposable/non-production checks. The reviewer receives each command, exit code, output, and target fingerprint. A nonzero result remains review evidence and prevents completion; a command that cannot execute blocks before review. Required project browser/build/test gates still apply.
+Checks are user-authorized local commands, parsed into argv without a shell. Shell pipelines and operators are not supported. The helper executes them from the target project before initial implementation or diff review and after each implementation repair; choose disposable/non-production checks. The reviewer receives each command, exit code, output, and target fingerprint. A nonzero result remains review evidence: it prevents implementation completion but is reported in diff mode. A command that cannot execute blocks before review. Required project browser/build/test gates still apply.
+
+### Preparing review evidence for delivery
+
+A local implementation or diff review may include unrelated dirty files. To reuse its check evidence for later PR delivery verification, start the run with unscoped tracked files matching the committed checkout in content and mode, no unscoped staged or unstaged changes, and no unscoped nonignored untracked files. Keep that context unchanged through review. Scoped changes may be committed unchanged afterward. This is a delivery-evidence prerequisite, not a restriction on local review. Removing or committing unrelated files afterward does not update the old check evidence; start a fresh review in the appropriate context.
 
 Artifact root precedence: `--runs-dir`, `AGENT_REVIEW_RUNS_DIR`, `$CODEX_HOME/review-runs`, then `~/.codex/review-runs`. Artifacts must remain outside the target project. The target defaults to the invocation directory; Git projects must use their repository root. Run permissions may require access to this artifact directory and the selected project.
 
@@ -56,7 +65,7 @@ PYTHON HELPER status /path/to/run
 PYTHON HELPER rerun-checks /path/to/run
 ```
 
-The helper serializes the protocol and launches all three provider roles through the CLIs. Inspect `handoff.md`, `final.md`, `artifacts/`, and `calls/` within the run. `step` runs one stage. Stop at `complete`, `unresolved`, `needs_user`, or a reported blocker. No automatic model fallback, recursive agent delegation, or publication occurs.
+The helper serializes the protocol and launches the selected roles through the CLIs. Inspect `handoff.md`, `final.md`, `artifacts/`, and `calls/` within the run. `step` runs one stage. Stop at `complete`, `reported`, `unresolved`, `needs_user`, or a reported blocker. No automatic model fallback, recursive agent delegation, or publication occurs.
 
 ### Claude login visibility in a sandbox
 
@@ -83,6 +92,8 @@ External configuration is recorded as caller-attested, not provider-verified. Th
 The current packet contains the full plan or implementation diff, scoped sources, verbatim governing requirements, current checks, all finding dispositions, revision ledger, and current evidence references. Treat older sessions as supplemental context. The canonical record retains every finding ID even if rejected. No findings is a valid review. New implementation runs use model-supplied sequential IDs; never rewrite an existing finding's severity, location, evidence, correction, or acceptance check. New implementation findings are OPEN/UNVERIFIED and use a scoped project-relative `path`, `path:line`, or `path:start-end` location with `BLOCKER`, `WARN`, or `SUGGESTION` severity. Only independent recheck can newly mark PASSED, with current evidence and a supporting rationale.
 
 New plan runs record `plan_protocol_version: 2` and follow the [stage-specific plan contract](plan-protocol.md). Review always advances to adjudication, which also assesses completeness and produces any required full refinement. Revised plans receive independent recheck, with at most two refinements; the helper completes without a final model call. Providers return compact assessments and new findings, and the helper assigns IDs and normalizes immutable canonical records. External submissions must use the exact schema in `external-request.json`. Runs without this version retain their existing advisory/refine/finalize stages and response contract; no migration or model change occurs.
+
+New diff runs reuse the full canonical response schema, frozen-base evidence, check receipts, stable IDs, and immutable definitions. Their two-role profile routes `review → adjudicate`; adjudication always runs, even after an empty review. `PENDING_USER` uses the existing decision path. Otherwise the run ends at `status: reported`, retaining `stage: adjudicate` for empty, rejected, accepted, and failed-check outcomes. All findings remain `UNVERIFIED` without verification receipts. There is no repair lock, writer, recheck, or finalization stage. The accepted adjudication artifact stores its checks; `final.md` is the readable finding report, and `handoff.md` retains the full ledger and scoped diff. `reported` records review decisions, not a clean bill of health.
 
 New implementation runs record `implementation_evidence_version: 2` and use `review → adjudicate → repair → recheck → finalize` when findings are accepted and verified. The coordinator decides directly from the independent review, scoped source, and checks. Runs recorded with version 1 retain their `respond` and `reply` advisory stages and two-pass limit, including runs paused at either stage.
 
@@ -114,7 +125,8 @@ Stop after one attempt and report the attempted stage, resulting status, blocker
 ## Recovery
 
 - `blocked`, or an orphaned read-only `running` stage: inspect the saved process output. `retry RUN` only resets a read-only stage after target freshness checks; then run again. Never change models to clear a blocker.
-- A transient configured-check failure on an unchanged current implementation target: run `rerun-checks RUN`. The command is allowed only in a read-only recoverable state, retains prior receipt files in the artifact history, writes uniquely identified current receipts, increments the handoff revision, and invalidates stale agent output. It does not change the configured commands, target, findings, stage, or repair count. A check-only unresolved finalization becomes ready only after every configured check passes; other blocked or unresolved states retain their status and still require their normal recovery.
+- A transient configured-check failure on an unchanged current implementation or pre-report diff target: run `rerun-checks RUN`. The command is allowed only in a read-only recoverable state, retains prior receipt files, writes current receipts, increments the handoff revision, and invalidates stale agent output. It does not change the configured commands, target, findings, stage, or repair count. A check-only unresolved implementation finalization becomes ready only after every configured check passes; other blocked or unresolved states retain their status and still require their normal recovery.
+- A diff check execution interrupted before review: inspect the saved receipts, then use `retry RUN` for the blocked read-only stage. The helper reruns the complete configured check set before reviewer dispatch and preserves prior receipt files. A `reported` run is terminal: `run` and `step` regenerate readable views without provider dispatch; `retry`, `rerun-checks`, `reconcile`, `submit`, and `decide` reject it. Any changed target needs a new review.
 - `interrupted` repair: inspect actual changes, Git state, process output, and scope. Stop any still-running process first. Then `reconcile RUN --note "actual inspected partial changes"`. This advances to independent recheck, counts a repair pass, and never reruns the write automatically.
 - `needs_user`: obtain the user's actual decision, then `decide RUN --instruction "user decision"` and run again. Do not invent approval.
 - Unexpected target changes or out-of-scope writes: preserve them, report the discrepancy, and start a new appropriately scoped run only after inspection. No automatic reset, checkout, or rollback.
@@ -130,4 +142,4 @@ The configured Claude reviewer runs with read/search tools, safe/restricted mode
 
 The helper's receipts report only observable configuration. It never equates a requested flag with provider attestation. Global permissions are not modified. Ignored runtime/build files are outside the project content guard; scoped tracked/nonignored files and Git staging/history are checked. No production/browser/provider verification is implied by a local pass.
 
-The content inventory is capped at 20,000 tracked/nonignored files; full handoffs are capped at 4 MiB. The helper fails visibly instead of silently dropping history or source. `final.md` is a recoverable view of the accepted final artifact; check `status: complete` before treating it as a completed cycle.
+The content inventory is capped at 20,000 tracked/nonignored files; full handoffs are capped at 4 MiB. The helper fails visibly instead of silently dropping history or source. `final.md` is a recoverable view of the accepted final artifact; check `status: complete` for a completed plan or implementation cycle, or `status: reported` for a finished diff report.

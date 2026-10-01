@@ -1,0 +1,6 @@
+interface:
+  display_name: "Review a local diff"
+  short_description: "Read-only findings for scoped Git changes"
+  default_prompt: "Use $review-diff to review this scoped Git change and report findings."
+policy:
+  allow_implicit_invocation: false

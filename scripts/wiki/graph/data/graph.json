@@ -2,13 +2,13 @@
   "version": 1,
   "wikiRoot": "wiki",
   "counts": {
-    "nodes": 38,
-    "edges": 73,
+    "nodes": 41,
+    "edges": 78,
     "byType": {
       "index": 3,
-      "journal": 15,
-      "plan": 15,
-      "topic": 5
+      "journal": 16,
+      "plan": 16,
+      "topic": 6
     }
   },
   "nodes": [
@@ -18,8 +18,8 @@
       "type": "index",
       "aliases": [],
       "githubRefs": [],
-      "bytes": 1582,
-      "degree": 4,
+      "bytes": 1676,
+      "degree": 5,
       "x": 1,
       "y": 0,
       "size": 12
@@ -39,8 +39,8 @@
       ],
       "bytes": 2186,
       "degree": 2,
-      "x": 0.945817,
-      "y": 0.324699,
+      "x": 0.953396,
+      "y": 0.301721,
       "size": 8
     },
     {
@@ -70,8 +70,8 @@
       ],
       "bytes": 2152,
       "degree": 2,
-      "x": 0.879474,
-      "y": 0.475947,
+      "x": 0.896166,
+      "y": 0.44372,
       "size": 8
     },
     {
@@ -89,8 +89,8 @@
       ],
       "bytes": 2103,
       "degree": 3,
-      "x": 0.789141,
-      "y": 0.614213,
+      "x": 0.817929,
+      "y": 0.575319,
       "size": 8
     },
     {
@@ -108,8 +108,8 @@
       ],
       "bytes": 1551,
       "degree": 3,
-      "x": 0.677282,
-      "y": 0.735724,
+      "x": 0.720522,
+      "y": 0.693433,
       "size": 8
     },
     {
@@ -127,8 +127,8 @@
       ],
       "bytes": 4200,
       "degree": 3,
-      "x": 0.546948,
-      "y": 0.837166,
+      "x": 0.606225,
+      "y": 0.795293,
       "size": 8
     },
     {
@@ -146,8 +146,8 @@
       ],
       "bytes": 2180,
       "degree": 2,
-      "x": 0.401695,
-      "y": 0.915773,
+      "x": 0.47772,
+      "y": 0.878512,
       "size": 8
     },
     {
@@ -165,8 +165,8 @@
       ],
       "bytes": 2766,
       "degree": 2,
-      "x": 0.245485,
-      "y": 0.9694,
+      "x": 0.338017,
+      "y": 0.94114,
       "size": 8
     },
     {
@@ -196,8 +196,8 @@
       ],
       "bytes": 1479,
       "degree": 3,
-      "x": 0.082579,
-      "y": 0.996584,
+      "x": 0.190391,
+      "y": 0.981708,
       "size": 8
     },
     {
@@ -215,8 +215,8 @@
       ],
       "bytes": 898,
       "degree": 4,
-      "x": -0.082579,
-      "y": 0.996584,
+      "x": 0.038303,
+      "y": 0.999266,
       "size": 8
     },
     {
@@ -234,8 +234,8 @@
       ],
       "bytes": 1525,
       "degree": 2,
-      "x": -0.245485,
-      "y": 0.9694,
+      "x": -0.114683,
+      "y": 0.993402,
       "size": 8
     },
     {
@@ -253,8 +253,8 @@
       ],
       "bytes": 2188,
       "degree": 2,
-      "x": -0.401695,
-      "y": 0.915773,
+      "x": -0.264982,
+      "y": 0.964253,
       "size": 8
     },
     {
@@ -272,8 +272,8 @@
       ],
       "bytes": 1830,
       "degree": 4,
-      "x": -0.546948,
-      "y": 0.837166,
+      "x": -0.409069,
+      "y": 0.912504,
       "size": 8
     },
     {
@@ -291,8 +291,8 @@
       ],
       "bytes": 1388,
       "degree": 2,
-      "x": -0.677282,
-      "y": 0.735724,
+      "x": -0.543568,
+      "y": 0.839365,
       "size": 8
     },
     {
@@ -310,8 +310,27 @@
       ],
       "bytes": 883,
       "degree": 1,
-      "x": -0.789141,
-      "y": 0.614213,
+      "x": -0.665326,
+      "y": 0.746553,
+      "size": 8
+    },
+    {
+      "id": "wiki/journal/2026-10-01-read-only-diff-review.md",
+      "label": "Add read-only diff review",
+      "type": "journal",
+      "aliases": [],
+      "githubRefs": [
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 45,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/45"
+        }
+      ],
+      "bytes": 838,
+      "degree": 2,
+      "x": -0.771489,
+      "y": 0.636242,
       "size": 8
     },
     {
@@ -329,8 +348,8 @@
       ],
       "bytes": 1910,
       "degree": 3,
-      "x": -0.879474,
-      "y": 0.475947,
+      "x": -0.85957,
+      "y": 0.511019,
       "size": 8
     },
     {
@@ -341,8 +360,8 @@
       "githubRefs": [],
       "bytes": 2904,
       "degree": 2,
-      "x": 0.986361,
-      "y": 0.164595,
+      "x": 0.98828,
+      "y": 0.152649,
       "size": 12
     },
     {
@@ -360,8 +379,8 @@
       ],
       "bytes": 1235,
       "degree": 4,
-      "x": -0.945817,
-      "y": 0.324699,
+      "x": -0.927502,
+      "y": 0.373817,
       "size": 8
     },
     {
@@ -385,8 +404,8 @@
       ],
       "bytes": 3057,
       "degree": 3,
-      "x": -0.986361,
-      "y": 0.164595,
+      "x": -0.973695,
+      "y": 0.227854,
       "size": 8
     },
     {
@@ -397,8 +416,8 @@
       "githubRefs": [],
       "bytes": 4084,
       "degree": 3,
-      "x": -1,
-      "y": 0,
+      "x": -0.997066,
+      "y": 0.076549,
       "size": 8
     },
     {
@@ -416,8 +435,8 @@
       ],
       "bytes": 4673,
       "degree": 3,
-      "x": -0.986361,
-      "y": -0.164595,
+      "x": -0.997066,
+      "y": -0.076549,
       "size": 8
     },
     {
@@ -435,8 +454,8 @@
       ],
       "bytes": 1396,
       "degree": 3,
-      "x": -0.945817,
-      "y": -0.324699,
+      "x": -0.973695,
+      "y": -0.227854,
       "size": 8
     },
     {
@@ -454,8 +473,8 @@
       ],
       "bytes": 1060,
       "degree": 3,
-      "x": -0.879474,
-      "y": -0.475947,
+      "x": -0.927502,
+      "y": -0.373817,
       "size": 8
     },
     {
@@ -466,8 +485,8 @@
       "githubRefs": [],
       "bytes": 4946,
       "degree": 3,
-      "x": -0.789141,
-      "y": -0.614213,
+      "x": -0.85957,
+      "y": -0.511019,
       "size": 8
     },
     {
@@ -485,8 +504,8 @@
       ],
       "bytes": 1365,
       "degree": 3,
-      "x": -0.677282,
-      "y": -0.735724,
+      "x": -0.771489,
+      "y": -0.636242,
       "size": 8
     },
     {
@@ -504,8 +523,8 @@
       ],
       "bytes": 1341,
       "degree": 3,
-      "x": -0.546948,
-      "y": -0.837166,
+      "x": -0.665326,
+      "y": -0.746553,
       "size": 8
     },
     {
@@ -523,8 +542,8 @@
       ],
       "bytes": 4387,
       "degree": 3,
-      "x": -0.401695,
-      "y": -0.915773,
+      "x": -0.543568,
+      "y": -0.839365,
       "size": 8
     },
     {
@@ -535,8 +554,8 @@
       "githubRefs": [],
       "bytes": 2229,
       "degree": 4,
-      "x": -0.245485,
-      "y": -0.9694,
+      "x": -0.409069,
+      "y": -0.912504,
       "size": 8
     },
     {
@@ -547,8 +566,8 @@
       "githubRefs": [],
       "bytes": 4144,
       "degree": 3,
-      "x": -0.082579,
-      "y": -0.996584,
+      "x": -0.264982,
+      "y": -0.964253,
       "size": 8
     },
     {
@@ -559,8 +578,27 @@
       "githubRefs": [],
       "bytes": 9238,
       "degree": 4,
-      "x": 0.082579,
-      "y": -0.996584,
+      "x": -0.114683,
+      "y": -0.993402,
+      "size": 8
+    },
+    {
+      "id": "wiki/plans/2026-10-01-final-8532f8f2e0.md",
+      "label": "2026-10-01-final-8532f8f2e0",
+      "type": "plan",
+      "aliases": [],
+      "githubRefs": [
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 45,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/45"
+        }
+      ],
+      "bytes": 21176,
+      "degree": 3,
+      "x": 0.038303,
+      "y": -0.999266,
       "size": 8
     },
     {
@@ -571,8 +609,8 @@
       "githubRefs": [],
       "bytes": 3866,
       "degree": 4,
-      "x": 0.245485,
-      "y": -0.9694,
+      "x": 0.190391,
+      "y": -0.981708,
       "size": 8
     },
     {
@@ -583,8 +621,8 @@
       "githubRefs": [],
       "bytes": 1988,
       "degree": 3,
-      "x": 0.401695,
-      "y": -0.915773,
+      "x": 0.338017,
+      "y": -0.94114,
       "size": 8
     },
     {
@@ -625,15 +663,21 @@
         },
         {
           "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 45,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/45"
+        },
+        {
+          "repository": "jfusco/agent-review-workflows",
           "kind": "pull-request",
           "number": 8,
           "url": "https://github.com/jfusco/agent-review-workflows/pull/8"
         }
       ],
-      "bytes": 22994,
-      "degree": 17,
-      "x": 0.546948,
-      "y": -0.837166,
+      "bytes": 23217,
+      "degree": 18,
+      "x": 0.47772,
+      "y": -0.878512,
       "size": 12
     },
     {
@@ -663,8 +707,27 @@
       ],
       "bytes": 4483,
       "degree": 5,
-      "x": 0.677282,
-      "y": -0.735724,
+      "x": 0.606225,
+      "y": -0.795293,
+      "size": 8
+    },
+    {
+      "id": "wiki/topics/diff-review.md",
+      "label": "Diff review",
+      "type": "topic",
+      "aliases": [],
+      "githubRefs": [
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 45,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/45"
+        }
+      ],
+      "bytes": 840,
+      "degree": 3,
+      "x": 0.720522,
+      "y": -0.693433,
       "size": 8
     },
     {
@@ -700,8 +763,8 @@
       ],
       "bytes": 5827,
       "degree": 16,
-      "x": 0.789141,
-      "y": -0.614213,
+      "x": 0.817929,
+      "y": -0.575319,
       "size": 8
     },
     {
@@ -719,8 +782,8 @@
       ],
       "bytes": 1245,
       "degree": 4,
-      "x": 0.879474,
-      "y": -0.475947,
+      "x": 0.896166,
+      "y": -0.44372,
       "size": 8
     },
     {
@@ -738,8 +801,8 @@
       ],
       "bytes": 1784,
       "degree": 4,
-      "x": 0.945817,
-      "y": -0.324699,
+      "x": 0.953396,
+      "y": -0.301721,
       "size": 8
     },
     {
@@ -769,12 +832,19 @@
       ],
       "bytes": 3762,
       "degree": 7,
-      "x": 0.986361,
-      "y": -0.164595,
+      "x": 0.98828,
+      "y": -0.152649,
       "size": 8
     }
   ],
   "edges": [
+    {
+      "id": "029b691ba083a6c6",
+      "source": "wiki/plans/INDEX.md",
+      "target": "wiki/plans/2026-10-01-final-8532f8f2e0.md",
+      "type": "link",
+      "relation": "link"
+    },
     {
       "id": "09ee3fedbbd1edc3",
       "source": "wiki/INDEX.md",
@@ -909,6 +979,20 @@
       "relation": "topic"
     },
     {
+      "id": "2c7091d3f749c233",
+      "source": "wiki/INDEX.md",
+      "target": "wiki/topics/diff-review.md",
+      "type": "link",
+      "relation": "link"
+    },
+    {
+      "id": "2c73adffcbc2c0fb",
+      "source": "wiki/journal/2026-10-01-read-only-diff-review.md",
+      "target": "wiki/topics/diff-review.md",
+      "type": "topic",
+      "relation": "topic"
+    },
+    {
       "id": "2e6bd05b0933c7c5",
       "source": "wiki/journal/2026-09-28-deterministic-pull-request-structure.md",
       "target": "wiki/topics/contributor-quality-and-delivery.md",
@@ -977,6 +1061,13 @@
       "target": "wiki/topics/implementation-review-evidence.md",
       "type": "topic",
       "relation": "topic"
+    },
+    {
+      "id": "5267c5b70f0e71b3",
+      "source": "wiki/journal/2026-10-01-read-only-diff-review.md",
+      "target": "wiki/plans/2026-10-01-final-8532f8f2e0.md",
+      "type": "plan",
+      "relation": "plan"
     },
     {
       "id": "6054eb89bc06ebe2",
@@ -1178,6 +1269,13 @@
       "id": "d68febad601fd984",
       "source": "wiki/plans/2026-09-28-configurable-per-skill-agent-profiles-7f6f47fa15.md",
       "target": "wiki/topics/review-agent-profiles.md",
+      "type": "topic",
+      "relation": "topic"
+    },
+    {
+      "id": "d8fcf575388c8051",
+      "source": "wiki/plans/2026-10-01-final-8532f8f2e0.md",
+      "target": "wiki/topics/diff-review.md",
       "type": "topic",
       "relation": "topic"
     },
