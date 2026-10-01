@@ -2,12 +2,12 @@
   "version": 1,
   "wikiRoot": "wiki",
   "counts": {
-    "nodes": 36,
-    "edges": 69,
+    "nodes": 38,
+    "edges": 73,
     "byType": {
       "index": 3,
-      "journal": 14,
-      "plan": 14,
+      "journal": 15,
+      "plan": 15,
       "topic": 5
     }
   },
@@ -39,8 +39,8 @@
       ],
       "bytes": 2186,
       "degree": 2,
-      "x": 0.939693,
-      "y": 0.34202,
+      "x": 0.945817,
+      "y": 0.324699,
       "size": 8
     },
     {
@@ -70,8 +70,8 @@
       ],
       "bytes": 2152,
       "degree": 2,
-      "x": 0.866025,
-      "y": 0.5,
+      "x": 0.879474,
+      "y": 0.475947,
       "size": 8
     },
     {
@@ -89,8 +89,8 @@
       ],
       "bytes": 2103,
       "degree": 3,
-      "x": 0.766044,
-      "y": 0.642788,
+      "x": 0.789141,
+      "y": 0.614213,
       "size": 8
     },
     {
@@ -108,8 +108,8 @@
       ],
       "bytes": 1551,
       "degree": 3,
-      "x": 0.642788,
-      "y": 0.766044,
+      "x": 0.677282,
+      "y": 0.735724,
       "size": 8
     },
     {
@@ -127,8 +127,8 @@
       ],
       "bytes": 4200,
       "degree": 3,
-      "x": 0.5,
-      "y": 0.866025,
+      "x": 0.546948,
+      "y": 0.837166,
       "size": 8
     },
     {
@@ -146,8 +146,8 @@
       ],
       "bytes": 2180,
       "degree": 2,
-      "x": 0.34202,
-      "y": 0.939693,
+      "x": 0.401695,
+      "y": 0.915773,
       "size": 8
     },
     {
@@ -165,8 +165,8 @@
       ],
       "bytes": 2766,
       "degree": 2,
-      "x": 0.173648,
-      "y": 0.984808,
+      "x": 0.245485,
+      "y": 0.9694,
       "size": 8
     },
     {
@@ -196,8 +196,8 @@
       ],
       "bytes": 1479,
       "degree": 3,
-      "x": 0,
-      "y": 1,
+      "x": 0.082579,
+      "y": 0.996584,
       "size": 8
     },
     {
@@ -215,8 +215,8 @@
       ],
       "bytes": 898,
       "degree": 4,
-      "x": -0.173648,
-      "y": 0.984808,
+      "x": -0.082579,
+      "y": 0.996584,
       "size": 8
     },
     {
@@ -234,8 +234,8 @@
       ],
       "bytes": 1525,
       "degree": 2,
-      "x": -0.34202,
-      "y": 0.939693,
+      "x": -0.245485,
+      "y": 0.9694,
       "size": 8
     },
     {
@@ -253,8 +253,8 @@
       ],
       "bytes": 2188,
       "degree": 2,
-      "x": -0.5,
-      "y": 0.866025,
+      "x": -0.401695,
+      "y": 0.915773,
       "size": 8
     },
     {
@@ -272,8 +272,27 @@
       ],
       "bytes": 1830,
       "degree": 4,
-      "x": -0.642788,
-      "y": 0.766044,
+      "x": -0.546948,
+      "y": 0.837166,
+      "size": 8
+    },
+    {
+      "id": "wiki/journal/2026-10-01-claude-reviewer-host-login.md",
+      "label": "Reuse the host Claude login for reviewer stages",
+      "type": "journal",
+      "aliases": [],
+      "githubRefs": [
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 42,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/42"
+        }
+      ],
+      "bytes": 1388,
+      "degree": 2,
+      "x": -0.677282,
+      "y": 0.735724,
       "size": 8
     },
     {
@@ -291,8 +310,8 @@
       ],
       "bytes": 883,
       "degree": 1,
-      "x": -0.766044,
-      "y": 0.642788,
+      "x": -0.789141,
+      "y": 0.614213,
       "size": 8
     },
     {
@@ -310,8 +329,8 @@
       ],
       "bytes": 1910,
       "degree": 3,
-      "x": -0.866025,
-      "y": 0.5,
+      "x": -0.879474,
+      "y": 0.475947,
       "size": 8
     },
     {
@@ -322,8 +341,8 @@
       "githubRefs": [],
       "bytes": 2904,
       "degree": 2,
-      "x": 0.984808,
-      "y": 0.173648,
+      "x": 0.986361,
+      "y": 0.164595,
       "size": 12
     },
     {
@@ -341,8 +360,8 @@
       ],
       "bytes": 1235,
       "degree": 4,
-      "x": -0.939693,
-      "y": 0.34202,
+      "x": -0.945817,
+      "y": 0.324699,
       "size": 8
     },
     {
@@ -366,8 +385,8 @@
       ],
       "bytes": 3057,
       "degree": 3,
-      "x": -0.984808,
-      "y": 0.173648,
+      "x": -0.986361,
+      "y": 0.164595,
       "size": 8
     },
     {
@@ -397,8 +416,8 @@
       ],
       "bytes": 4673,
       "degree": 3,
-      "x": -0.984808,
-      "y": -0.173648,
+      "x": -0.986361,
+      "y": -0.164595,
       "size": 8
     },
     {
@@ -416,8 +435,8 @@
       ],
       "bytes": 1396,
       "degree": 3,
-      "x": -0.939693,
-      "y": -0.34202,
+      "x": -0.945817,
+      "y": -0.324699,
       "size": 8
     },
     {
@@ -435,8 +454,8 @@
       ],
       "bytes": 1060,
       "degree": 3,
-      "x": -0.866025,
-      "y": -0.5,
+      "x": -0.879474,
+      "y": -0.475947,
       "size": 8
     },
     {
@@ -447,8 +466,8 @@
       "githubRefs": [],
       "bytes": 4946,
       "degree": 3,
-      "x": -0.766044,
-      "y": -0.642788,
+      "x": -0.789141,
+      "y": -0.614213,
       "size": 8
     },
     {
@@ -466,8 +485,8 @@
       ],
       "bytes": 1365,
       "degree": 3,
-      "x": -0.642788,
-      "y": -0.766044,
+      "x": -0.677282,
+      "y": -0.735724,
       "size": 8
     },
     {
@@ -485,8 +504,8 @@
       ],
       "bytes": 1341,
       "degree": 3,
-      "x": -0.5,
-      "y": -0.866025,
+      "x": -0.546948,
+      "y": -0.837166,
       "size": 8
     },
     {
@@ -504,8 +523,8 @@
       ],
       "bytes": 4387,
       "degree": 3,
-      "x": -0.34202,
-      "y": -0.939693,
+      "x": -0.401695,
+      "y": -0.915773,
       "size": 8
     },
     {
@@ -516,8 +535,8 @@
       "githubRefs": [],
       "bytes": 2229,
       "degree": 4,
-      "x": -0.173648,
-      "y": -0.984808,
+      "x": -0.245485,
+      "y": -0.9694,
       "size": 8
     },
     {
@@ -528,8 +547,8 @@
       "githubRefs": [],
       "bytes": 4144,
       "degree": 3,
-      "x": 0,
-      "y": -1,
+      "x": -0.082579,
+      "y": -0.996584,
       "size": 8
     },
     {
@@ -540,8 +559,8 @@
       "githubRefs": [],
       "bytes": 9238,
       "degree": 4,
-      "x": 0.173648,
-      "y": -0.984808,
+      "x": 0.082579,
+      "y": -0.996584,
       "size": 8
     },
     {
@@ -552,8 +571,20 @@
       "githubRefs": [],
       "bytes": 3866,
       "degree": 4,
-      "x": 0.34202,
-      "y": -0.939693,
+      "x": 0.245485,
+      "y": -0.9694,
+      "size": 8
+    },
+    {
+      "id": "wiki/plans/2026-10-01-reuse-the-existing-claude-login-for-reviews-d6e46e6de5.md",
+      "label": "Reuse the existing Claude login for reviews",
+      "type": "plan",
+      "aliases": [],
+      "githubRefs": [],
+      "bytes": 1988,
+      "degree": 3,
+      "x": 0.401695,
+      "y": -0.915773,
       "size": 8
     },
     {
@@ -599,10 +630,10 @@
           "url": "https://github.com/jfusco/agent-review-workflows/pull/8"
         }
       ],
-      "bytes": 22658,
-      "degree": 16,
-      "x": 0.5,
-      "y": -0.866025,
+      "bytes": 22994,
+      "degree": 17,
+      "x": 0.546948,
+      "y": -0.837166,
       "size": 12
     },
     {
@@ -632,8 +663,8 @@
       ],
       "bytes": 4483,
       "degree": 5,
-      "x": 0.642788,
-      "y": -0.766044,
+      "x": 0.677282,
+      "y": -0.735724,
       "size": 8
     },
     {
@@ -669,8 +700,8 @@
       ],
       "bytes": 5827,
       "degree": 16,
-      "x": 0.766044,
-      "y": -0.642788,
+      "x": 0.789141,
+      "y": -0.614213,
       "size": 8
     },
     {
@@ -688,8 +719,8 @@
       ],
       "bytes": 1245,
       "degree": 4,
-      "x": 0.866025,
-      "y": -0.5,
+      "x": 0.879474,
+      "y": -0.475947,
       "size": 8
     },
     {
@@ -707,8 +738,8 @@
       ],
       "bytes": 1784,
       "degree": 4,
-      "x": 0.939693,
-      "y": -0.34202,
+      "x": 0.945817,
+      "y": -0.324699,
       "size": 8
     },
     {
@@ -728,12 +759,18 @@
           "kind": "issue",
           "number": 30,
           "url": "https://github.com/jfusco/agent-review-workflows/issues/30"
+        },
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 42,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/42"
         }
       ],
-      "bytes": 2952,
-      "degree": 5,
-      "x": 0.984808,
-      "y": -0.173648,
+      "bytes": 3762,
+      "degree": 7,
+      "x": 0.986361,
+      "y": -0.164595,
       "size": 8
     }
   ],
@@ -865,6 +902,13 @@
       "relation": "plan"
     },
     {
+      "id": "2c3f77a5d5071da8",
+      "source": "wiki/plans/2026-10-01-reuse-the-existing-claude-login-for-reviews-d6e46e6de5.md",
+      "target": "wiki/topics/review-agent-profiles.md",
+      "type": "topic",
+      "relation": "topic"
+    },
+    {
       "id": "2e6bd05b0933c7c5",
       "source": "wiki/journal/2026-09-28-deterministic-pull-request-structure.md",
       "target": "wiki/topics/contributor-quality-and-delivery.md",
@@ -905,6 +949,13 @@
       "target": "wiki/MECHANICS.md",
       "type": "link",
       "relation": "link"
+    },
+    {
+      "id": "38d0e70b3032e7f5",
+      "source": "wiki/journal/2026-10-01-claude-reviewer-host-login.md",
+      "target": "wiki/plans/2026-10-01-reuse-the-existing-claude-login-for-reviews-d6e46e6de5.md",
+      "type": "plan",
+      "relation": "plan"
     },
     {
       "id": "397387df20bf3e7e",
@@ -982,6 +1033,13 @@
       "target": "wiki/topics/implementation-review-evidence.md",
       "type": "topic",
       "relation": "topic"
+    },
+    {
+      "id": "854888324ab4b8f0",
+      "source": "wiki/plans/INDEX.md",
+      "target": "wiki/plans/2026-10-01-reuse-the-existing-claude-login-for-reviews-d6e46e6de5.md",
+      "type": "link",
+      "relation": "link"
     },
     {
       "id": "85f6271a2480ec14",
@@ -1155,6 +1213,13 @@
       "id": "e313d4dc641b4245",
       "source": "wiki/plans/2026-09-28-add-contributor-quality-gates-and-repository-wiki-00cc492088.md",
       "target": "wiki/topics/contributor-quality-and-delivery.md",
+      "type": "topic",
+      "relation": "topic"
+    },
+    {
+      "id": "e472f6fc24b61399",
+      "source": "wiki/journal/2026-10-01-claude-reviewer-host-login.md",
+      "target": "wiki/topics/review-agent-profiles.md",
       "type": "topic",
       "relation": "topic"
     },

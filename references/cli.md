@@ -58,6 +58,19 @@ PYTHON HELPER rerun-checks /path/to/run
 
 The helper serializes the protocol and launches all three provider roles through the CLIs. Inspect `handoff.md`, `final.md`, `artifacts/`, and `calls/` within the run. `step` runs one stage. Stop at `complete`, `unresolved`, `needs_user`, or a reported blocker. No automatic model fallback, recursive agent delegation, or publication occurs.
 
+### Claude login visibility in a sandbox
+
+The helper checks `auth status --json` with the run's saved Claude executable immediately before each Claude reviewer call. For an initial implementation review, configured checks run and their receipts are saved first. If login is unavailable in that execution context, the reviewer stage remains `ready`; no provider call, session, or ledger entry is created. A malformed or failed status check also stops before dispatch. Do not run `claude auth login` inside a sandbox that cannot see the host's existing login.
+
+When sandboxed `claude auth status` reports logged out but the same command in an approved host context reports logged in, keep the run directory accessible in both contexts and use this sequence for a full review:
+
+1. Run `PYTHON HELPER run RUN` in the sandbox. Let it stop at the reviewer auth-context diagnostic; initial implementation checks are now recorded in the sandbox.
+2. Confirm `PYTHON HELPER status RUN` is `ready` at a Claude `review`, legacy `reply`, or `recheck` stage. Check host `claude auth status` without recording its raw output or credentials.
+3. Use approved host execution for `PYTHON HELPER step RUN --reviewer-only` only. The guard checks the role under the project lock and rejects Codex stages or implementation reviews without current check receipts. It dispatches one reviewer stage with the frozen model, tools, session, packet, and schema.
+4. Resume `PYTHON HELPER run RUN` in the sandbox. Repeat the guarded host step only if another Claude reviewer stage is reached. Continue through the normal terminal state without asking the user to log in for each stage.
+
+Never run an unrestricted `run` or ordinary `step` with host access as an auth workaround. If host authentication is also absent or expired, the user must complete one interactive host CLI login before a reviewer stage can proceed. Do not copy Keychain contents, OAuth tokens, API keys, or raw auth output into environment files, packets, or run artifacts. A host permission decision remains subject to the invoking tool's policy.
+
 If this conversation verifiably matches the frozen coordinator model and effort, use `run RUN --external-coordinator`. `--external-astra` remains a compatibility alias. At `awaiting_coordinator`, read `external-request.json`, produce the requested response JSON in a separate file outside the target project (for example, within the run directory), then submit with the exact requested values:
 
 ```text
@@ -93,6 +106,8 @@ PYTHON HELPER step /path/to/run
 ```
 
 Call `step` only when `status` reports `ready` and the invoking conversation permits the stage. It selects the receiving CLI role and frozen model settings, sends the canonical packet, and accepts the response through the existing validation and persistence path. No model overrides or external-coordinator flags are needed. An implementation repair may write only through the designated implementer; Plan mode in the invoking conversation still prohibits dispatching that repair.
+
+For a Claude stage with a sandbox-hidden login, follow [Claude login visibility in a sandbox](#claude-login-visibility-in-a-sandbox). A sandboxed `step` may stop after recording initial checks but before dispatch; a subsequent approved host `step RUN --reviewer-only` is the single dispatched stage. Stop after that one reviewer dispatch. The reviewer-only guard fails before provider execution if the stage changed or initial implementation checks are missing.
 
 Stop after one attempt and report the attempted stage, resulting status, blocker if any, and `handoff.md`. A ready next stage requires another invocation. Non-ready states, including external-coordinator waits, use [Recovery](#recovery) or the existing [external submission procedure](#run-and-interact); the handoff skill performs neither automatically. If output is lost, read `status` without replaying `step`. The existing `run` command and full review skills continue to support complete cycles.
 
