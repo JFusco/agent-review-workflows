@@ -25,6 +25,12 @@ identify an authorized project-relative file, optionally with a line or line
 range. Their stable ID, severity, location, evidence, recommended correction,
 and acceptance check form an immutable definition after introduction.
 
+[Issue #49](https://github.com/JFusco/agent-review-workflows/issues/49) asks
+review roles for exact locations where supported, the smallest simple
+correction, lean tests at material risk boundaries, and concise findings. This
+changes prompt guidance only; evidence, scope, and repair authority remain
+unchanged.
+
 ## Decision and repair authority
 
 New runs use implementation evidence version 2. The independent reviewer finds

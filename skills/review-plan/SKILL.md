@@ -14,7 +14,7 @@ Capture the original request, complete draft, scope, constraints, success criter
 
 Run the plan mode. For new runs, the reviewer independently critiques; the coordinator always assesses completeness, adjudicates findings, and returns any complete refinement in the same response; the reviewer independently rechecks refined plans; the helper completes deterministically. Follow the supplied stage schema and [plan protocol](references/plan-protocol.md); the helper owns canonical records, finding IDs, and routing. Existing runs retain their recorded stages. Use the current conversation for coordinator stages only when its actual model and effort exactly match the frozen run profile. Otherwise use the helper's pinned CLI sessions.
 
-Refine deliberately. Keep changes precise, surgical, and in scope. Prefer existing components and straightforward mechanics. Challenge unnecessary abstractions, dependencies, configuration, and workflow stages. Require added complexity to solve a concrete need. Retain sound decisions; a review need not manufacture defects. Make the final choices and acceptance criteria clear enough for another engineer to implement.
+Follow the shared [review style](references/cli.md#review-style). Retain sound decisions; a review need not manufacture defects. Make the final choices and acceptance criteria clear enough to implement.
 
 Let evidence decide disagreements. Keep stable finding IDs, supported rejection reasons, and current revision context. Do not repeat a withdrawn finding without new evidence. Continue ordinary authorized review steps without approval at each step. Stop at the recorded two-pass limit or a material user decision.
 

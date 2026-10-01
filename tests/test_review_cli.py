@@ -159,6 +159,9 @@ class ReviewTests(unittest.TestCase):
         self.assertIn('FAILED', current['checks'][0]['output'])
         self.assertEqual(current['checks'][0]['target_fingerprint'], self.state['target_fingerprint'])
         self.assertIn('actual target diff', r.prompt(self.state))
+        self.assertIn('pragmatic, minimalist senior software architect', r.prompt(self.state))
+        self.assertIn('unit tests only for critical logic, edge cases, and high-risk boundaries',
+                      r.prompt(self.state))
 
     def test_duplicate_json_keys_rejected(self):
         p=self.root/'duplicate.json'

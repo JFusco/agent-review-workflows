@@ -8,6 +8,12 @@ Issue [#33](https://github.com/JFusco/agent-review-workflows/issues/33) keeps tw
 perspectives even when the first reviewer finds no defects: the coordinator
 always assesses completeness. Independent recheck follows every refinement.
 
+[Issue #49](https://github.com/JFusco/agent-review-workflows/issues/49) adds
+concise, pragmatic review guidance to the helper prompt. A newly refined plan
+uses an actionable checklist of evidenced edits and necessary verification;
+an unchanged sound plan retains its text. Routing and response schemas stay
+the same.
+
 The protocol removes advisory exchanges, the separate refinement call, and the
 verbatim finalization call. The common paths take two calls for a sound unchanged
 plan, three for a first-pass corrected plan, and five when a second refinement is
