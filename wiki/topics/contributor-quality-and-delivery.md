@@ -36,10 +36,12 @@ repository permissions and disable Husky because checks run explicitly.
 
 The Git flow in [AGENTS.md](../../AGENTS.md) requires a verified labeled issue,
 an issue-numbered branch from updated `main`, the full local gate, an ordinary
-Git commit and push, and a conventional pull request. The PR body must include
-`Closes #<issue-number>` so GitHub links the artifacts and closes the issue after
-merge. Delivery finishes only after verifying the merged PR, closed issue,
-updated local `main`, and clean worktree.
+Git commit and push, and a conventional pull request. The PR body must
+include `Closes #<issue-number>` so GitHub links the artifacts and closes the
+issue if the user later merges the PR. Delivery stops after the saved PR
+is verified; agents leave review and merging to the user and do not enable
+auto-merge, delete the branch, or close the issue as part of this flow. This
+boundary was adopted in [issue #39](https://github.com/JFusco/agent-review-workflows/issues/39).
 
 [JFusco/agent-review-workflows issue #4](https://github.com/JFusco/agent-review-workflows/issues/4)
 turns that prose policy into a deterministic pull-request contract. GitHub's
