@@ -1,8 +1,8 @@
 ---
 topics: [diff-review]
 plans: [2026-10-01-final-8532f8f2e0.md]
-issues: ['https://github.com/JFusco/agent-review-workflows/issues/45']
-issue: 'https://github.com/JFusco/agent-review-workflows/issues/45'
+issues: ['https://github.com/jfusco/agent-review-workflows/issues/45']
+issue: 'https://github.com/jfusco/agent-review-workflows/issues/45'
 ---
 # Add read-only diff review
 
