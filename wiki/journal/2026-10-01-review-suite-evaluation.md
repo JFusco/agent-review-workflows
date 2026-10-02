@@ -1,8 +1,8 @@
 ---
 topics: [review-suite-evaluation]
 plans: [2026-10-01-review-suite-eval-delivery-1654c27d2a.md]
-issues: ['https://github.com/JFusco/agent-review-workflows/issues/47']
-issue: 'https://github.com/JFusco/agent-review-workflows/issues/47'
+issues: ['https://github.com/jfusco/agent-review-workflows/issues/47']
+issue: 'https://github.com/jfusco/agent-review-workflows/issues/47'
 ---
 # Add maintainer review-suite evaluation
 
