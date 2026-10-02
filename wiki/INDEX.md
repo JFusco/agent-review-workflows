@@ -10,6 +10,7 @@ This wiki is the durable project record for decisions, executed plans, and subst
 - [Plan review protocol](./topics/plan-review-protocol.md) — deterministic handoffs and bounded refinement.
 - [Diff review](./topics/diff-review.md) — read-only scoped diff review and check evidence.
 - [Review-suite evaluation](./topics/review-suite-evaluation.md) — comparison of saved review evidence.
+- [Review delivery](./topics/review-delivery.md) — PR readiness from terminal review evidence.
 - `wiki/topics/` — durable decision and domain pages.
 - `wiki/journal/` — chronological substantive-change entries.
 - `wiki/connections.md` — generated relationship summary.

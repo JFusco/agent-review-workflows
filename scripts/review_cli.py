@@ -350,6 +350,184 @@ def assert_fresh(state):
         raise ReviewError('Target fingerprint changed; refusing stale handoff.')
 
 
+def verify_target(run, head, pr_base):
+    names = ('eligible_run', 'saved_snapshot', 'head', 'clean_checkout', 'scoped_files',
+             'check_context', 'ancestry', 'changed_paths', 'stable_checkout')
+    result = {'run': str(run), 'saved_fingerprint': None, 'head': head, 'pr_base': pr_base,
+              'status': 'UNKNOWN',
+              'conditions': {name: {'status': 'UNKNOWN', 'explanation': 'Not assessed.'} for name in names}}
+
+    def record(name, status, explanation, **details):
+        result['conditions'][name] = {'status': status, 'explanation': explanation, **details}
+
+    def finish():
+        statuses = {item['status'] for item in result['conditions'].values()}
+        result['status'] = 'BLOCKED' if 'BLOCKED' in statuses else 'UNKNOWN' if 'UNKNOWN' in statuses else 'PASS'
+        return result
+
+    try:
+        state = read_json(run / 'state.json')
+    except ReviewError as exc:
+        record('eligible_run', 'UNKNOWN', str(exc))
+        return finish()
+    if not isinstance(state, dict):
+        record('eligible_run', 'UNKNOWN', 'Saved run state is not an object.')
+        return finish()
+    result['saved_fingerprint'] = state.get('target_fingerprint')
+    if (state.get('mode'), state.get('status')) not in (('implementation', 'complete'), ('diff', 'reported')):
+        record('eligible_run', 'BLOCKED', 'Run is not a completed implementation or reported diff review.')
+        return finish()
+    record('eligible_run', 'PASS', 'Run has an eligible terminal review status.')
+
+    ledger = state.get('ledger')
+    scope = state.get('scope')
+    base = state.get('base')
+    if (not isinstance(ledger, list) or not ledger or not isinstance(ledger[-1], dict) or
+            not isinstance(scope, list) or not scope or any(not isinstance(p, str) or not p or p == '.' or
+            Path(p).is_absolute() or '..' in Path(p).parts for p in scope) or
+            not isinstance(base, str) or not re.fullmatch(r'[0-9a-fA-F]{40,64}', base)):
+        record('saved_snapshot', 'UNKNOWN', 'Saved ledger, scope, or frozen Git base is incomplete.')
+        return finish()
+    entry = ledger[-1]
+    expected_stage = 'adjudicate' if state['mode'] == 'diff' else 'finalize'
+    artifact_id = entry.get('artifact_id')
+    artifact = None
+    snapshot_error = None
+    if (entry.get('stage') != expected_stage or not isinstance(artifact_id, str) or
+            not re.fullmatch(r'revision-[0-9]+', artifact_id)):
+        snapshot_error = 'Terminal accepted artifact is unavailable.'
+    else:
+        try:
+            artifact = read_json(run / 'artifacts' / f'{artifact_id}.json')
+        except ReviewError as exc:
+            snapshot_error = str(exc)
+    saved = artifact.get('target') if isinstance(artifact, dict) else None
+    fingerprint = state.get('target_fingerprint')
+    if artifact is None:
+        record('saved_snapshot', 'UNKNOWN', snapshot_error or 'Accepted artifact is missing.')
+    else:
+        if (not isinstance(saved, dict) or not isinstance(saved.get('files'), dict) or
+                not isinstance(fingerprint, str) or not isinstance(artifact.get('target_after'), str)):
+            record('saved_snapshot', 'UNKNOWN', 'Accepted target or fingerprint is missing.')
+        elif (digest(saved) != fingerprint or artifact['target_after'] != fingerprint or
+              entry.get('target_after') != fingerprint or artifact.get('run_id') != state.get('run_id') or
+              saved.get('base') != base or set(saved['files']) != set(scope)):
+            record('saved_snapshot', 'BLOCKED',
+                   'Accepted artifact disagrees with saved run identity, base, or scope.')
+        else:
+            record('saved_snapshot', 'PASS',
+                   'Accepted artifact matches the saved fingerprint, base, and scope.')
+
+    project_value = state.get('project')
+    project = Path(project_value) if isinstance(project_value, str) else None
+    if project is None or not project.is_dir():
+        record('head', 'UNKNOWN', 'Saved project directory is unavailable.')
+        return finish()
+
+    def git(*argv):
+        try:
+            return subprocess.run(['git', *argv], cwd=project, capture_output=True, timeout=30, check=False)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise ReviewError(f'Git inspection failed: {exc}') from exc
+
+    if any(not isinstance(sha, str) or not re.fullmatch(r'[0-9a-fA-F]{40,64}', sha)
+           for sha in (head, pr_base)):
+        record('head', 'BLOCKED', 'Head and PR base must be commit SHAs.')
+        return finish()
+    try:
+        resolved = {}
+        for label, sha in (('head', head), ('pr_base', pr_base), ('frozen_base', base)):
+            probe = git('rev-parse', '--verify', f'{sha}^{{commit}}')
+            if probe.returncode:
+                record('head', 'UNKNOWN', f'{label} commit is unavailable locally.')
+                return finish()
+            resolved[label] = probe.stdout.strip().decode('ascii')
+        before_head = git('rev-parse', '--verify', 'HEAD^{commit}')
+        before_status = git('--no-optional-locks', 'status', '--porcelain=v1', '-z', '--untracked-files=all')
+        if before_head.returncode or before_status.returncode:
+            record('head', 'UNKNOWN', 'Cannot inspect current HEAD or checkout status.')
+            return finish()
+        current_head = before_head.stdout.strip().decode('ascii')
+        record('head', 'PASS' if current_head == resolved['head'] else 'BLOCKED',
+               'Checkout HEAD matches the supplied PR head.' if current_head == resolved['head'] else
+               'Checkout HEAD differs from the supplied PR head.', observed=current_head)
+        record('clean_checkout', 'PASS' if not before_status.stdout else 'BLOCKED',
+               'Checkout and index are clean.' if not before_status.stdout else
+               'Checkout has staged, unstaged, or nonignored untracked changes.')
+
+        if result['conditions']['saved_snapshot']['status'] == 'PASS':
+            differing = []
+            for name, expected in saved['files'].items():
+                path = project / name
+                try:
+                    resolved_path = path.resolve()
+                    actual = (object() if path.is_symlink() or resolved_path != path or
+                              not resolved_path.is_relative_to(project) else
+                              None if not path.exists() else text_file(path))
+                except (ReviewError, OSError):
+                    actual = object()
+                if actual != expected:
+                    differing.append(name)
+            record('scoped_files', 'BLOCKED' if differing else 'PASS',
+                   'Scoped content differs from the accepted target.' if differing else
+                   'Scoped content matches the accepted target.', paths=sorted(differing))
+
+        saved_inventory = state.get('inventory')
+        saved_files = saved_inventory.get('files') if isinstance(saved_inventory, dict) else None
+        if not isinstance(saved_files, dict):
+            record('check_context', 'UNKNOWN', 'Terminal file inventory is missing.')
+        else:
+            try:
+                current_files = inventory(project)['files']
+                context_diff = sorted(name for name in saved_files.keys() | current_files.keys()
+                                      if saved_files.get(name) != current_files.get(name))
+                record('check_context', 'BLOCKED' if context_diff else 'PASS',
+                       'File inventory changed since review checks.' if context_diff else
+                       'File inventory matches the review check context.',
+                       paths=context_diff, outside_scope=sorted(set(context_diff) - set(scope)))
+            except (ReviewError, OSError, ValueError) as exc:
+                record('check_context', 'UNKNOWN', str(exc))
+
+        ancestry = [git('merge-base', '--is-ancestor', resolved['frozen_base'], resolved[name])
+                    for name in ('head', 'pr_base')]
+        if any(probe.returncode not in (0, 1) for probe in ancestry):
+            record('ancestry', 'UNKNOWN', 'Cannot establish frozen-base ancestry.')
+        else:
+            record('ancestry', 'BLOCKED' if any(probe.returncode for probe in ancestry) else 'PASS',
+                   'Frozen base is not an ancestor of both supplied commits.' if any(
+                       probe.returncode for probe in ancestry) else
+                   'Frozen base is an ancestor of both supplied commits.')
+
+        changes = {}
+        for label, revision in (('frozen_base_to_head', (resolved['frozen_base'], resolved['head'])),
+                                ('pr_base_to_head', (resolved['pr_base'] + '...' + resolved['head'],))):
+            probe = git('diff', '--name-only', '-z', '--no-renames', '--no-ext-diff', '--no-textconv',
+                        *revision, '--')
+            if probe.returncode:
+                record('changed_paths', 'UNKNOWN', f'Cannot inspect {label} changed paths.')
+                break
+            changes[label] = sorted(os.fsdecode(name) for name in probe.stdout.split(b'\0') if name)
+        else:
+            outside = sorted(set(changes['frozen_base_to_head'] + changes['pr_base_to_head']) - set(scope))
+            record('changed_paths', 'BLOCKED' if outside else 'PASS',
+                   'PR contains changes outside the recorded scope.' if outside else
+                   'Both Git change sets remain within the recorded scope.',
+                   outside_scope=outside, **changes)
+
+        after_head = git('rev-parse', '--verify', 'HEAD^{commit}')
+        after_status = git('--no-optional-locks', 'status', '--porcelain=v1', '-z', '--untracked-files=all')
+        if after_head.returncode or after_status.returncode:
+            record('stable_checkout', 'UNKNOWN', 'Cannot recheck HEAD or checkout status.')
+        else:
+            stable = before_head.stdout == after_head.stdout and before_status.stdout == after_status.stdout
+            record('stable_checkout', 'PASS' if stable else 'BLOCKED',
+                   'Checkout remained unchanged during inspection.' if stable else
+                   'Checkout changed during inspection.')
+    except (ReviewError, UnicodeError, OSError, ValueError) as exc:
+        record('stable_checkout', 'UNKNOWN', str(exc))
+    return finish()
+
+
 def role(state):
     stage = state['stage']
     if stage in ('review', 'reply', 'recheck'):
@@ -1593,6 +1771,10 @@ def build_parser():
     start.add_argument('--coordinator-effort', choices=sorted(PROVIDER_EFFORTS['codex']))
     start.add_argument('--implementer-model')
     start.add_argument('--implementer-effort', choices=sorted(PROVIDER_EFFORTS['codex']))
+    verify = sub.add_parser('verify-target', help='Compare terminal review evidence with a clean PR checkout without writing.')
+    verify.add_argument('run', type=Path)
+    verify.add_argument('--head', required=True, help='Observed PR head commit SHA.')
+    verify.add_argument('--pr-base', required=True, help='Observed PR base commit SHA.')
     for action in ('run', 'step', 'status', 'retry', 'rerun-checks', 'reconcile', 'submit', 'decide'):
         p = sub.add_parser(action)
         p.add_argument('run', type=Path)
@@ -1617,6 +1799,10 @@ def build_parser():
 def main():
     args = build_parser().parse_args()
     try:
+        if args.action == 'verify-target':
+            report = verify_target(args.run.expanduser().resolve(), args.head, args.pr_base)
+            print(dumps(report), end='')
+            sys.exit({'PASS': 0, 'BLOCKED': 1, 'UNKNOWN': 2}[report['status']])
         if args.action == 'start':
             if not 1 <= args.timeout <= 3600:
                 raise ReviewError('Timeout must be 1–3600 seconds.')

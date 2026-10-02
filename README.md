@@ -1,11 +1,12 @@
 # Agent Review Workflows
 
-Agent Review Workflows provides five installable agent skills for evidence-backed review and evaluation:
+Agent Review Workflows provides six installable agent skills for evidence-backed review and evaluation:
 
 - `review-plan`: a Claude reviewer critiques and rechecks; a Codex coordinator adjudicates and refines; the helper completes the plan review.
 - `review-implementation`: a Claude reviewer finds and rechecks defects; a Codex coordinator locks accepted repairs and closes successful reviews; a Codex implementer makes the scoped repair.
 - `review-handoff`: dispatches one authorized stage of an existing review run through the helper, then reports its status.
 - `review-diff`: a Claude reviewer and Codex coordinator report findings for a scoped local Git change without repair.
+- `review-delivery`: assesses an explicit GitHub PR against a terminal review run, its issue, and required checks without changing them.
 - `review-suite-eval`: compares the evidence and observable cost of two existing review runs without changing them.
 
 The built-in profile for new runs is Opus 5.5 High, Astra 6 Max, and Sol 6.1 Extra High (`xhigh`). Installation-local profiles and explicit per-run overrides can select other model and effort combinations without changing provider or permission boundaries.
@@ -30,6 +31,8 @@ Transient configured-check failures on an unchanged implementation target can be
 
 Diff reviews require a frozen Git base, scoped files, and a local check. They run `review → adjudicate` and end at `reported`, including when findings remain accepted or checks fail. The final report and handoff retain the decisions and check evidence; diff mode never repairs or independently verifies findings. See the [CLI procedure](references/cli.md) for the exact contract.
 
+PR delivery assessment compares an explicit PR with one terminal run. The read-only `verify-target` command checks local identity and the invoking conversation assesses issue coverage, required hosted checks, and review state. See the [delivery procedure](references/delivery.md).
+
 No model is silently substituted, and publication, deployment, or merge actions are outside the workflow.
 
 ## Use
@@ -39,6 +42,8 @@ From any project in Codex CLI, invoke `$review-plan` with a draft, `$review-impl
 For one stage of an existing run, invoke `$review-handoff` with its run directory. It uses the existing `step` command and the run's frozen CLI model settings, with no dedicated handoff model or additional stage. See [Single-stage handoff](references/cli.md#single-stage-handoff).
 
 Invoke `$review-suite-eval` with explicit baseline and candidate run directories to compare recorded outcomes. It runs in the invoking conversation, has no helper profile, and is not selected implicitly. See the [comparison procedure](references/suite-eval.md).
+
+Invoke `$review-delivery` with an explicit GitHub PR URL and completed implementation or reported diff run directory. It runs in the invoking conversation, has no helper profile, and is not selected implicitly. A matching local target alone does not establish PR readiness.
 
 New implementation and diff runs require Git, an explicit local `--base`, one or more `--scope` files, and at least one `--check`. They fail before creating artifacts if the base is invalid or the initial scoped diff is empty. Plan runs keep base and checks optional. Previously created runs retain their recorded contracts.
 
@@ -87,6 +92,8 @@ The installer adds links under `~/.agents/skills` and refuses to replace unrelat
 
 `review-suite-eval` uses only saved run artifacts and does not invoke a provider.
 
+`review-delivery` reads the saved run and GitHub PR evidence without invoking a provider or changing either.
+
 If the Codex executable on PATH cannot access a selected model, install with `--codex-bin /path/to/compatible/codex`. This updates only `codex_binary` in ignored `runtime.local.json` and preserves saved skill profiles. `AGENT_REVIEW_CODEX_BIN` and `AGENT_REVIEW_CLAUDE_BIN` override local executable selection; otherwise the helper uses PATH. Runs capture the selected executable. Missing or unsupported models stop the cycle without substitution.
 
 [CLI use and recovery](references/cli.md) describes profile validation, explicit scope, artifact storage, current-chat coordinator integration, and continuation after interruption. [Authoring](references/authoring.md) records best-practice sources and evaluation principles.
@@ -117,6 +124,7 @@ The trial creator makes separate disposable Git projects and prints their run di
 
 - `skills/` contains the installable skill instructions and agent metadata.
 - `references/suite-eval.md` contains the maintainer comparison procedure.
+- `references/delivery.md` contains the PR assessment procedure.
 - `scripts/review_cli.py` implements the review protocol and recovery commands.
 - `scripts/install_skills.py` installs safe, idempotent skill links.
 - `schemas/response.json` defines the structured handoff contract.

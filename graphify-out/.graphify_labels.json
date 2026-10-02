@@ -2,7 +2,7 @@
   "0": "review_cli.py",
   "2": "on-merge-sync.cjs",
   "3": "audit-plan-candidates.cjs",
-  "4": "plans.cjs",
+  "4": "common.cjs",
   "5": "archive-plan.cjs",
   "6": "viewer.js",
   "7": "routing.cjs",
