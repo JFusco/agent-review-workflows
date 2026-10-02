@@ -1,8 +1,8 @@
 ---
 topics: [plan-review-protocol, implementation-review-evidence]
 plans: [2026-10-01-concise-review-style-delivery-8a196b4377.md]
-issues: ['https://github.com/JFusco/agent-review-workflows/issues/49']
-issue: 'https://github.com/JFusco/agent-review-workflows/issues/49'
+issues: ['https://github.com/jfusco/agent-review-workflows/issues/49']
+issue: 'https://github.com/jfusco/agent-review-workflows/issues/49'
 ---
 # Apply concise architect review style
 
