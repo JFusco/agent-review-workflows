@@ -2,6 +2,10 @@
 
 Resolve the skill symlink to its source, then take the parent of `skills` as the installation root. Use that root's `.venv/bin/python` with `scripts/review_cli.py`. Do not assume the current working directory is the installation. All paths passed to `--scope` are project-relative **files**, including intended new or deleted files.
 
+## Review style
+
+Review packets ask each role to act as a pragmatic, minimalist senior software architect. Name exact edit locations when supported, stay with the immediate requirement, prefer simple corrections, and suggest unit tests only for critical logic, edge cases, and high-risk boundaries. Keep findings concise. A newly refined plan is an actionable checklist without a preamble; an unchanged plan retains its existing text.
+
 ## Agent profiles
 
 The ignored installation-local `runtime.local.json` may contain partial profiles under `skills.review-plan`, `skills.review-implementation`, and `skills.review-diff`. Plan and diff support `reviewer` (Claude) and `coordinator` (Codex); implementation also supports `implementer` (Codex). Each role accepts `model` and `effort` only. Providers and permissions are fixed and cannot be configured.

@@ -78,6 +78,9 @@ class PlanProtocolTests(unittest.TestCase):
             self.accept(self.response())
             self.assertEqual((self.state['stage'], self.state['status']), ('adjudicate', 'ready'))
             self.assertIn('Assess the complete plan even if', r.prompt(self.state))
+            self.assertIn('clean, actionable checklist', r.prompt(self.state))
+            self.assertIn('unit tests only for critical logic, edge cases, and high-risk boundaries',
+                          r.prompt(self.state))
             self.accept(self.response())
         self.assertEqual([e['stage'] for e in self.state['ledger']], ['review', 'adjudicate'])
         self.assertEqual((self.state['stage'], self.state['status'], self.state['round']), ('finalize', 'complete', 0))
