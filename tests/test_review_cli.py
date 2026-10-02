@@ -95,6 +95,20 @@ class ReviewTests(unittest.TestCase):
         args.runs_dir = str(self.root/'diff-runs')
         self.run, self.state = r.initialize(args)
 
+    def reported_diff(self):
+        self.start_diff()
+        r.perform_checks(self.run, self.state)
+        self.accept(self.response([]))
+        self.accept(self.response([]))
+        self.assertEqual(self.state['status'], 'reported')
+
+    def commit_fixture(self, *paths):
+        subprocess.run(['git', '-C', str(self.project), 'add', '--', *paths], check=True)
+        subprocess.run(['git', '-C', str(self.project), '-c', 'user.name=Fixture',
+                        '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'Reviewed'], check=True)
+        return subprocess.run(['git', '-C', str(self.project), 'rev-parse', 'HEAD'],
+                              check=True, capture_output=True, text=True).stdout.strip()
+
     def to_repair(self):
         self.accept(self.response([finding()]))
         data=self.response()
@@ -324,6 +338,129 @@ class ReviewTests(unittest.TestCase):
         self.assertEqual(len(saved['ledger']), 2)
         r.render(self.run, saved)
         self.assertIn('REJECTED', (self.run/'final.md').read_text())
+
+    def test_verify_target_accepts_committed_diff_with_reordered_addition_and_forward_base(self):
+        (self.project/'added.py').write_text('value = 1\n')
+        self.args.scope.append('added.py')
+        self.reported_diff()
+        accepted_diff = r.read_json(self.run/'artifacts/revision-002.json')['target']['diff']
+        head = self.commit_fixture('calculator.py', 'added.py')
+        self.assertNotEqual(r.target(self.state)['diff'], accepted_diff)
+        base_tree = subprocess.run(['git', '-C', str(self.project), 'rev-parse',
+                                    self.state['base'] + '^{tree}'], check=True,
+                                   capture_output=True, text=True).stdout.strip()
+        forward_base = subprocess.run(['git', '-C', str(self.project), '-c', 'user.name=Fixture',
+                                       '-c', 'user.email=fixture@example.invalid',
+                                       'commit-tree', base_tree, '-p', self.state['base']],
+                                      input='Forward base\n', check=True, capture_output=True,
+                                      text=True).stdout.strip()
+        before = {p.relative_to(self.run).as_posix(): p.read_bytes()
+                  for p in self.run.rglob('*') if p.is_file()}
+        project_before = r.inventory(self.project)
+        report = r.verify_target(self.run, head, forward_base)
+        self.assertEqual(report['status'], 'PASS')
+        self.assertEqual({item['status'] for item in report['conditions'].values()}, {'PASS'})
+        self.assertEqual(before, {p.relative_to(self.run).as_posix(): p.read_bytes()
+                                  for p in self.run.rglob('*') if p.is_file()})
+        self.assertEqual(project_before, r.inventory(self.project))
+        cli = subprocess.run([sys.executable, str(ROOT/'scripts/review_cli.py'), 'verify-target',
+                              str(self.run), '--head', head, '--pr-base', forward_base],
+                             capture_output=True, text=True)
+        self.assertEqual(cli.returncode, 0, cli.stderr)
+        self.assertEqual(json.loads(cli.stdout)['status'], 'PASS')
+
+    def test_verify_target_reports_wrong_head_dirty_mode_and_incompatible_ancestry(self):
+        self.reported_diff()
+        head = self.commit_fixture('calculator.py')
+        base = self.state['base']
+        wrong = r.verify_target(self.run, base, base)
+        self.assertEqual(wrong['conditions']['head']['status'], 'BLOCKED')
+        self.assertEqual(wrong['status'], 'BLOCKED')
+        (self.project/'calculator.py').write_text('changed after review\n')
+        dirty = r.verify_target(self.run, head, base)
+        self.assertEqual(dirty['conditions']['clean_checkout']['status'], 'BLOCKED')
+        self.assertEqual(dirty['conditions']['scoped_files']['status'], 'BLOCKED')
+        (self.project/'calculator.py').write_text((ROOT/'tests/fixtures/calculator.py').read_text())
+        (self.project/'calculator.py').chmod(0o755)
+        mode = r.verify_target(self.run, head, base)
+        self.assertEqual(mode['conditions']['check_context']['status'], 'BLOCKED')
+        self.assertIn('calculator.py', mode['conditions']['check_context']['paths'])
+        (self.project/'calculator.py').chmod(0o644)
+        tree = subprocess.run(['git', '-C', str(self.project), 'rev-parse', 'HEAD^{tree}'],
+                              check=True, capture_output=True, text=True).stdout.strip()
+        unrelated = subprocess.run(['git', '-C', str(self.project), '-c', 'user.name=Fixture',
+                                    '-c', 'user.email=fixture@example.invalid', 'commit-tree', tree],
+                                   input='Unrelated\n', check=True, capture_output=True,
+                                   text=True).stdout.strip()
+        ancestry = r.verify_target(self.run, head, unrelated)
+        self.assertEqual(ancestry['conditions']['ancestry']['status'], 'BLOCKED')
+        self.assertEqual(ancestry['status'], 'BLOCKED')
+
+    def test_verify_target_separates_unscoped_check_context_from_checkout_cleanliness(self):
+        notes = self.project/'notes.txt'
+        notes.write_text('Unrelated local note\n')
+        self.reported_diff()
+        head = self.commit_fixture('calculator.py')
+        retained = r.verify_target(self.run, head, self.state['base'])
+        self.assertEqual(retained['conditions']['clean_checkout']['status'], 'BLOCKED')
+        self.assertEqual(retained['conditions']['check_context']['status'], 'PASS')
+        notes.unlink()
+        removed = r.verify_target(self.run, head, self.state['base'])
+        self.assertEqual(removed['conditions']['clean_checkout']['status'], 'PASS')
+        self.assertEqual(removed['conditions']['scoped_files']['status'], 'PASS')
+        self.assertEqual(removed['conditions']['check_context']['status'], 'BLOCKED')
+        self.assertEqual(removed['conditions']['check_context']['outside_scope'], ['notes.txt'])
+        self.assertEqual(removed['status'], 'BLOCKED')
+
+    def test_verify_target_rejects_extra_pr_path_and_missing_evidence(self):
+        self.reported_diff()
+        (self.project/'extra.txt').write_text('Not reviewed\n')
+        head = self.commit_fixture('calculator.py', 'extra.txt')
+        extra = r.verify_target(self.run, head, self.state['base'])
+        self.assertEqual(extra['conditions']['changed_paths']['status'], 'BLOCKED')
+        self.assertEqual(extra['conditions']['changed_paths']['outside_scope'], ['extra.txt'])
+        (self.run/'artifacts/revision-002.json').unlink()
+        missing = r.verify_target(self.run, head, self.state['base'])
+        self.assertEqual(missing['conditions']['saved_snapshot']['status'], 'UNKNOWN')
+        self.assertEqual(missing['status'], 'BLOCKED')
+        self.assertEqual(missing['conditions']['changed_paths']['status'], 'BLOCKED')
+        cli = subprocess.run([sys.executable, str(ROOT/'scripts/review_cli.py'), 'verify-target',
+                              str(self.run), '--head', head, '--pr-base', self.state['base']],
+                             capture_output=True, text=True)
+        self.assertEqual(cli.returncode, 1, cli.stderr)
+        self.assertEqual(json.loads(cli.stdout)['status'], 'BLOCKED')
+
+    def test_verify_target_missing_artifact_without_known_blocker_is_unknown(self):
+        self.reported_diff()
+        head = self.commit_fixture('calculator.py')
+        (self.run/'artifacts/revision-002.json').unlink()
+        report = r.verify_target(self.run, head, self.state['base'])
+        self.assertEqual(report['conditions']['saved_snapshot']['status'], 'UNKNOWN')
+        self.assertEqual(report['status'], 'UNKNOWN')
+        cli = subprocess.run([sys.executable, str(ROOT/'scripts/review_cli.py'), 'verify-target',
+                              str(self.run), '--head', head, '--pr-base', self.state['base']],
+                             capture_output=True, text=True)
+        self.assertEqual(cli.returncode, 2, cli.stderr)
+        self.assertEqual(json.loads(cli.stdout)['status'], 'UNKNOWN')
+
+    def test_verify_target_known_snapshot_mismatch_precedes_unavailable_commit(self):
+        self.reported_diff()
+        artifact_path = self.run/'artifacts/revision-002.json'
+        artifact = r.read_json(artifact_path)
+        artifact['target_after'] = '0' * 64
+        artifact_path.write_text(json.dumps(artifact))
+        report = r.verify_target(self.run, '0' * 40, self.state['base'])
+        self.assertEqual(report['conditions']['saved_snapshot']['status'], 'BLOCKED')
+        self.assertEqual(report['conditions']['head']['status'], 'UNKNOWN')
+        self.assertEqual(report['status'], 'BLOCKED')
+
+    def test_verify_target_accepts_completed_implementation(self):
+        self.use_passing_check()
+        self.accept(self.response([]))
+        self.accept(self.response())
+        self.assertEqual(self.state['status'], 'complete')
+        head = self.commit_fixture('calculator.py')
+        self.assertEqual(r.verify_target(self.run, head, self.state['base'])['status'], 'PASS')
 
     def test_plan_start_remains_base_and_check_optional(self):
         args = copy.deepcopy(self.args)
@@ -1599,7 +1736,7 @@ class ReviewTests(unittest.TestCase):
         for _ in range(2):
             result = subprocess.run(argv, capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
-        for name in ('review-plan','review-implementation','review-handoff','review-diff','review-suite-eval'):
+        for name in ('review-plan','review-implementation','review-handoff','review-diff','review-delivery','review-suite-eval'):
             self.assertTrue((destination/name/'references/cli.md').is_file())
         (destination/'review-handoff').unlink()
         (destination/'review-handoff').mkdir()
@@ -1614,7 +1751,7 @@ class ReviewTests(unittest.TestCase):
         source = self.root/'installer-source'
         (source/'scripts').mkdir(parents=True)
         (source/'scripts/install_skills.py').write_text((ROOT/'scripts/install_skills.py').read_text())
-        for name in ('review-plan', 'review-implementation', 'review-handoff', 'review-diff', 'review-suite-eval'):
+        for name in ('review-plan', 'review-implementation', 'review-handoff', 'review-diff', 'review-delivery', 'review-suite-eval'):
             skill = source/'skills'/name
             skill.mkdir(parents=True)
             (skill/'SKILL.md').write_text(f'---\nname: {name}\ndescription: Fixture.\n---\n')

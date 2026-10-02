@@ -1,0 +1,6 @@
+interface:
+  display_name: "Review PR delivery"
+  short_description: "Assess a PR against saved review evidence"
+  default_prompt: "Use $review-delivery to assess this PR and terminal review run."
+policy:
+  allow_implicit_invocation: false

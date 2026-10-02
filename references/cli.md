@@ -59,6 +59,18 @@ Checks are user-authorized local commands, parsed into argv without a shell. She
 
 A local implementation or diff review may include unrelated dirty files. To reuse its check evidence for later PR delivery verification, start the run with unscoped tracked files matching the committed checkout in content and mode, no unscoped staged or unstaged changes, and no unscoped nonignored untracked files. Keep that context unchanged through review. Scoped changes may be committed unchanged afterward. This is a delivery-evidence prerequisite, not a restriction on local review. Removing or committing unrelated files afterward does not update the old check evidence; start a fresh review in the appropriate context.
 
+### Verify a terminal target for delivery
+
+```text
+PYTHON HELPER verify-target RUN --head PR_HEAD_SHA --pr-base PR_BASE_SHA
+```
+
+This read-only command accepts a completed implementation or reported diff run. It validates the terminal accepted artifact against the saved fingerprint, base, and scope; requires the supplied commits to exist locally; matches checkout HEAD to the PR head; requires a clean tracked/nonignored checkout and index; compares scoped content and mode plus the full saved check-context file inventory; and checks frozen-base ancestry and both frozen-base-to-head and PR-base-to-head changed paths against scope. It rechecks HEAD and cleanliness before returning. A later commit may reorder serialized diff text without changing reviewed files, so this command uses saved artifact identity and file/inventory equality rather than rehashing a newly serialized diff. The PR base may advance beyond the frozen review base.
+
+JSON conditions are `eligible_run`, `saved_snapshot`, `head`, `clean_checkout`, `scoped_files`, `check_context`, `ancestry`, `changed_paths`, and `stable_checkout`. Differing inventory paths and outside-scope paths are reported separately. Aggregate `PASS` exits 0, known `BLOCKED` mismatches exit 1, and missing or unsupported `UNKNOWN` evidence exits 2; a known blocker takes precedence over an unknown condition. PASS proves local identity only. The [PR delivery procedure](delivery.md) assesses hosted checks, issue coverage, and review state. The command does not fetch, save, render, run checks, invoke a provider, or write to the project or run. Ongoing-review freshness still uses its existing guard.
+
+If the [clean-context prerequisite](#preparing-review-evidence-for-delivery) was missed, retaining unrelated files fails `clean_checkout`; removing or restoring them can fail `check_context`; committing them outside scope fails `changed_paths`. Report the affected condition and paths. A fresh review in the appropriate context is required before reusing its checks; never rewrite the old run or clean unrelated files automatically.
+
 Artifact root precedence: `--runs-dir`, `AGENT_REVIEW_RUNS_DIR`, `$CODEX_HOME/review-runs`, then `~/.codex/review-runs`. Artifacts must remain outside the target project. The target defaults to the invocation directory; Git projects must use their repository root. Run permissions may require access to this artifact directory and the selected project.
 
 ## Run and interact

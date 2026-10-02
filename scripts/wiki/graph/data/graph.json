@@ -2,13 +2,13 @@
   "version": 1,
   "wikiRoot": "wiki",
   "counts": {
-    "nodes": 46,
-    "edges": 89,
+    "nodes": 49,
+    "edges": 94,
     "byType": {
       "index": 3,
-      "journal": 18,
-      "plan": 18,
-      "topic": 7
+      "journal": 19,
+      "plan": 19,
+      "topic": 8
     }
   },
   "nodes": [
@@ -18,8 +18,8 @@
       "type": "index",
       "aliases": [],
       "githubRefs": [],
-      "bytes": 1782,
-      "degree": 6,
+      "bytes": 1879,
+      "degree": 7,
       "x": 1,
       "y": 0,
       "size": 12
@@ -39,8 +39,8 @@
       ],
       "bytes": 2186,
       "degree": 2,
-      "x": 0.962917,
-      "y": 0.269797,
+      "x": 0.967295,
+      "y": 0.253655,
       "size": 8
     },
     {
@@ -70,8 +70,8 @@
       ],
       "bytes": 2152,
       "degree": 2,
-      "x": 0.917211,
-      "y": 0.398401,
+      "x": 0.926917,
+      "y": 0.375267,
       "size": 8
     },
     {
@@ -89,8 +89,8 @@
       ],
       "bytes": 2103,
       "degree": 3,
-      "x": 0.854419,
-      "y": 0.519584,
+      "x": 0.871319,
+      "y": 0.490718,
       "size": 8
     },
     {
@@ -108,8 +108,8 @@
       ],
       "bytes": 1551,
       "degree": 3,
-      "x": 0.775711,
-      "y": 0.631088,
+      "x": 0.801414,
+      "y": 0.598111,
       "size": 8
     },
     {
@@ -127,8 +127,8 @@
       ],
       "bytes": 4200,
       "degree": 3,
-      "x": 0.682553,
-      "y": 0.730836,
+      "x": 0.718349,
+      "y": 0.695683,
       "size": 8
     },
     {
@@ -146,8 +146,8 @@
       ],
       "bytes": 2180,
       "degree": 2,
-      "x": 0.57668,
-      "y": 0.81697,
+      "x": 0.62349,
+      "y": 0.781831,
       "size": 8
     },
     {
@@ -165,8 +165,8 @@
       ],
       "bytes": 2766,
       "degree": 2,
-      "x": 0.460065,
-      "y": 0.887885,
+      "x": 0.518393,
+      "y": 0.855143,
       "size": 8
     },
     {
@@ -196,8 +196,8 @@
       ],
       "bytes": 1479,
       "degree": 3,
-      "x": 0.33488,
-      "y": 0.942261,
+      "x": 0.404783,
+      "y": 0.914413,
       "size": 8
     },
     {
@@ -215,8 +215,8 @@
       ],
       "bytes": 898,
       "degree": 4,
-      "x": 0.203456,
-      "y": 0.979084,
+      "x": 0.284528,
+      "y": 0.958668,
       "size": 8
     },
     {
@@ -234,8 +234,8 @@
       ],
       "bytes": 1525,
       "degree": 2,
-      "x": 0.068242,
-      "y": 0.997669,
+      "x": 0.1596,
+      "y": 0.987182,
       "size": 8
     },
     {
@@ -253,8 +253,8 @@
       ],
       "bytes": 2188,
       "degree": 2,
-      "x": -0.068242,
-      "y": 0.997669,
+      "x": 0.032052,
+      "y": 0.999486,
       "size": 8
     },
     {
@@ -272,8 +272,8 @@
       ],
       "bytes": 1830,
       "degree": 4,
-      "x": -0.203456,
-      "y": 0.979084,
+      "x": -0.096023,
+      "y": 0.995379,
       "size": 8
     },
     {
@@ -291,8 +291,8 @@
       ],
       "bytes": 1388,
       "degree": 2,
-      "x": -0.33488,
-      "y": 0.942261,
+      "x": -0.222521,
+      "y": 0.974928,
       "size": 8
     },
     {
@@ -310,8 +310,8 @@
       ],
       "bytes": 956,
       "degree": 3,
-      "x": -0.460065,
-      "y": 0.887885,
+      "x": -0.345365,
+      "y": 0.938468,
       "size": 8
     },
     {
@@ -329,8 +329,8 @@
       ],
       "bytes": 883,
       "degree": 1,
-      "x": -0.57668,
-      "y": 0.81697,
+      "x": -0.462538,
+      "y": 0.886599,
       "size": 8
     },
     {
@@ -348,8 +348,8 @@
       ],
       "bytes": 838,
       "degree": 2,
-      "x": -0.682553,
-      "y": 0.730836,
+      "x": -0.572117,
+      "y": 0.820172,
       "size": 8
     },
     {
@@ -367,8 +367,27 @@
       ],
       "bytes": 1910,
       "degree": 3,
-      "x": -0.775711,
-      "y": 0.631088,
+      "x": -0.672301,
+      "y": 0.740278,
+      "size": 8
+    },
+    {
+      "id": "wiki/journal/2026-10-01-review-delivery.md",
+      "label": "Add PR delivery assessment",
+      "type": "journal",
+      "aliases": [],
+      "githubRefs": [
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 53,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/53"
+        }
+      ],
+      "bytes": 915,
+      "degree": 2,
+      "x": -0.761446,
+      "y": 0.648228,
       "size": 8
     },
     {
@@ -386,8 +405,8 @@
       ],
       "bytes": 710,
       "degree": 2,
-      "x": -0.854419,
-      "y": 0.519584,
+      "x": -0.838088,
+      "y": 0.545535,
       "size": 8
     },
     {
@@ -398,8 +417,8 @@
       "githubRefs": [],
       "bytes": 2904,
       "degree": 2,
-      "x": 0.990686,
-      "y": 0.136167,
+      "x": 0.99179,
+      "y": 0.127877,
       "size": 12
     },
     {
@@ -417,8 +436,8 @@
       ],
       "bytes": 1235,
       "degree": 4,
-      "x": -0.917211,
-      "y": 0.398401,
+      "x": -0.900969,
+      "y": 0.433884,
       "size": 8
     },
     {
@@ -442,8 +461,8 @@
       ],
       "bytes": 3057,
       "degree": 3,
-      "x": -0.962917,
-      "y": 0.269797,
+      "x": -0.949056,
+      "y": 0.315108,
       "size": 8
     },
     {
@@ -454,8 +473,8 @@
       "githubRefs": [],
       "bytes": 4084,
       "degree": 3,
-      "x": -0.990686,
-      "y": 0.136167,
+      "x": -0.981559,
+      "y": 0.191159,
       "size": 8
     },
     {
@@ -473,8 +492,8 @@
       ],
       "bytes": 4673,
       "degree": 3,
-      "x": -1,
-      "y": 0,
+      "x": -0.997945,
+      "y": 0.06407,
       "size": 8
     },
     {
@@ -492,8 +511,8 @@
       ],
       "bytes": 1396,
       "degree": 3,
-      "x": -0.990686,
-      "y": -0.136167,
+      "x": -0.997945,
+      "y": -0.06407,
       "size": 8
     },
     {
@@ -511,8 +530,8 @@
       ],
       "bytes": 1060,
       "degree": 3,
-      "x": -0.962917,
-      "y": -0.269797,
+      "x": -0.981559,
+      "y": -0.191159,
       "size": 8
     },
     {
@@ -523,8 +542,8 @@
       "githubRefs": [],
       "bytes": 4946,
       "degree": 3,
-      "x": -0.917211,
-      "y": -0.398401,
+      "x": -0.949056,
+      "y": -0.315108,
       "size": 8
     },
     {
@@ -542,8 +561,8 @@
       ],
       "bytes": 1365,
       "degree": 3,
-      "x": -0.854419,
-      "y": -0.519584,
+      "x": -0.900969,
+      "y": -0.433884,
       "size": 8
     },
     {
@@ -561,8 +580,8 @@
       ],
       "bytes": 1341,
       "degree": 3,
-      "x": -0.775711,
-      "y": -0.631088,
+      "x": -0.838088,
+      "y": -0.545535,
       "size": 8
     },
     {
@@ -580,8 +599,8 @@
       ],
       "bytes": 4387,
       "degree": 3,
-      "x": -0.682553,
-      "y": -0.730836,
+      "x": -0.761446,
+      "y": -0.648228,
       "size": 8
     },
     {
@@ -592,8 +611,8 @@
       "githubRefs": [],
       "bytes": 2229,
       "degree": 4,
-      "x": -0.57668,
-      "y": -0.81697,
+      "x": -0.672301,
+      "y": -0.740278,
       "size": 8
     },
     {
@@ -604,8 +623,8 @@
       "githubRefs": [],
       "bytes": 4144,
       "degree": 3,
-      "x": -0.460065,
-      "y": -0.887885,
+      "x": -0.572117,
+      "y": -0.820172,
       "size": 8
     },
     {
@@ -616,8 +635,8 @@
       "githubRefs": [],
       "bytes": 9238,
       "degree": 4,
-      "x": -0.33488,
-      "y": -0.942261,
+      "x": -0.462538,
+      "y": -0.886599,
       "size": 8
     },
     {
@@ -635,8 +654,8 @@
       ],
       "bytes": 960,
       "degree": 4,
-      "x": -0.203456,
-      "y": -0.979084,
+      "x": -0.345365,
+      "y": -0.938468,
       "size": 8
     },
     {
@@ -654,8 +673,8 @@
       ],
       "bytes": 21176,
       "degree": 3,
-      "x": -0.068242,
-      "y": -0.997669,
+      "x": -0.222521,
+      "y": -0.974928,
       "size": 8
     },
     {
@@ -666,8 +685,8 @@
       "githubRefs": [],
       "bytes": 3866,
       "degree": 4,
-      "x": 0.068242,
-      "y": -0.997669,
+      "x": -0.096023,
+      "y": -0.995379,
       "size": 8
     },
     {
@@ -678,8 +697,8 @@
       "githubRefs": [],
       "bytes": 1988,
       "degree": 3,
-      "x": 0.203456,
-      "y": -0.979084,
+      "x": 0.032052,
+      "y": -0.999486,
       "size": 8
     },
     {
@@ -697,8 +716,27 @@
       ],
       "bytes": 1001,
       "degree": 3,
-      "x": 0.33488,
-      "y": -0.942261,
+      "x": 0.1596,
+      "y": -0.987182,
+      "size": 8
+    },
+    {
+      "id": "wiki/plans/2026-10-02-review-delivery-delivery-59470a81ed.md",
+      "label": "Review-delivery delivery",
+      "type": "plan",
+      "aliases": [],
+      "githubRefs": [
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 53,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/53"
+        }
+      ],
+      "bytes": 1092,
+      "degree": 3,
+      "x": 0.284528,
+      "y": -0.958668,
       "size": 8
     },
     {
@@ -757,15 +795,21 @@
         },
         {
           "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 53,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/53"
+        },
+        {
+          "repository": "jfusco/agent-review-workflows",
           "kind": "pull-request",
           "number": 8,
           "url": "https://github.com/jfusco/agent-review-workflows/pull/8"
         }
       ],
-      "bytes": 23814,
-      "degree": 20,
-      "x": 0.460065,
-      "y": -0.887885,
+      "bytes": 24083,
+      "degree": 21,
+      "x": 0.404783,
+      "y": -0.914413,
       "size": 12
     },
     {
@@ -795,8 +839,8 @@
       ],
       "bytes": 4483,
       "degree": 5,
-      "x": 0.57668,
-      "y": -0.81697,
+      "x": 0.518393,
+      "y": -0.855143,
       "size": 8
     },
     {
@@ -814,8 +858,8 @@
       ],
       "bytes": 840,
       "degree": 3,
-      "x": 0.682553,
-      "y": -0.730836,
+      "x": 0.62349,
+      "y": -0.781831,
       "size": 8
     },
     {
@@ -857,8 +901,8 @@
       ],
       "bytes": 6140,
       "degree": 18,
-      "x": 0.775711,
-      "y": -0.631088,
+      "x": 0.718349,
+      "y": -0.695683,
       "size": 8
     },
     {
@@ -876,8 +920,8 @@
       ],
       "bytes": 1245,
       "degree": 4,
-      "x": 0.854419,
-      "y": -0.519584,
+      "x": 0.801414,
+      "y": -0.598111,
       "size": 8
     },
     {
@@ -901,8 +945,8 @@
       ],
       "bytes": 2102,
       "degree": 6,
-      "x": 0.917211,
-      "y": -0.398401,
+      "x": 0.871319,
+      "y": -0.490718,
       "size": 8
     },
     {
@@ -932,8 +976,27 @@
       ],
       "bytes": 3762,
       "degree": 7,
-      "x": 0.962917,
-      "y": -0.269797,
+      "x": 0.926917,
+      "y": -0.375267,
+      "size": 8
+    },
+    {
+      "id": "wiki/topics/review-delivery.md",
+      "label": "Review delivery",
+      "type": "topic",
+      "aliases": [],
+      "githubRefs": [
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 53,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/53"
+        }
+      ],
+      "bytes": 984,
+      "degree": 3,
+      "x": 0.967295,
+      "y": -0.253655,
       "size": 8
     },
     {
@@ -951,8 +1014,8 @@
       ],
       "bytes": 717,
       "degree": 3,
-      "x": 0.990686,
-      "y": -0.136167,
+      "x": 0.99179,
+      "y": -0.127877,
       "size": 8
     }
   ],
@@ -1203,11 +1266,25 @@
       "relation": "topic"
     },
     {
+      "id": "51e04b8d4e7fa056",
+      "source": "wiki/journal/2026-10-01-review-delivery.md",
+      "target": "wiki/plans/2026-10-02-review-delivery-delivery-59470a81ed.md",
+      "type": "plan",
+      "relation": "plan"
+    },
+    {
       "id": "5267c5b70f0e71b3",
       "source": "wiki/journal/2026-10-01-read-only-diff-review.md",
       "target": "wiki/plans/2026-10-01-final-8532f8f2e0.md",
       "type": "plan",
       "relation": "plan"
+    },
+    {
+      "id": "56506f43f3ad032e",
+      "source": "wiki/plans/INDEX.md",
+      "target": "wiki/plans/2026-10-02-review-delivery-delivery-59470a81ed.md",
+      "type": "link",
+      "relation": "link"
     },
     {
       "id": "6054eb89bc06ebe2",
@@ -1378,6 +1455,13 @@
       "relation": "plan"
     },
     {
+      "id": "9bc22ff9c547be62",
+      "source": "wiki/plans/2026-10-02-review-delivery-delivery-59470a81ed.md",
+      "target": "wiki/topics/review-delivery.md",
+      "type": "topic",
+      "relation": "topic"
+    },
+    {
       "id": "a5b0f49143709598",
       "source": "wiki/plans/2026-10-01-review-suite-eval-delivery-1654c27d2a.md",
       "target": "wiki/topics/review-suite-evaluation.md",
@@ -1418,6 +1502,13 @@
       "target": "wiki/topics/implementation-review-evidence.md",
       "type": "topic",
       "relation": "topic"
+    },
+    {
+      "id": "c329c2c005d64472",
+      "source": "wiki/INDEX.md",
+      "target": "wiki/topics/review-delivery.md",
+      "type": "link",
+      "relation": "link"
     },
     {
       "id": "c7cb743b2d89a3c2",
@@ -1523,6 +1614,13 @@
       "target": "wiki/plans/INDEX.md",
       "type": "link",
       "relation": "link"
+    },
+    {
+      "id": "e983bde76e6eb5bc",
+      "source": "wiki/journal/2026-10-01-review-delivery.md",
+      "target": "wiki/topics/review-delivery.md",
+      "type": "topic",
+      "relation": "topic"
     },
     {
       "id": "ec16fc1117f87382",

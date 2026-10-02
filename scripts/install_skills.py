@@ -12,7 +12,7 @@ parser.add_argument('--skills-dir',type=Path,default=Path.home()/'.agents/skills
 parser.add_argument('--codex-bin',help='Record an explicit Codex executable for this installation only.')
 args=parser.parse_args()
 destination=args.skills_dir.expanduser()
-pairs=[(root/'skills'/name,destination/name) for name in ('review-plan','review-implementation','review-handoff','review-diff','review-suite-eval')]
+pairs=[(root/'skills'/name,destination/name) for name in ('review-plan','review-implementation','review-handoff','review-diff','review-delivery','review-suite-eval')]
 codex_binary = shutil.which(os.path.expanduser(args.codex_bin)) if args.codex_bin else None
 if args.codex_bin and not codex_binary:
     parser.error(f'Codex executable is unavailable: {args.codex_bin}')
