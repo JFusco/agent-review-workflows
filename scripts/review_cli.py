@@ -40,7 +40,7 @@ PROVIDER_EFFORTS = {
     'claude': frozenset({'low', 'medium', 'high', 'xhigh', 'max'}),
     'codex': frozenset({'none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max', 'ultra'}),
 }
-V1_PROFILES = {
+DEFAULT_PROFILES = {
     'review-plan': {
         'reviewer': {'model': 'claude-opus-5-5', 'effort': 'high'},
         'coordinator': {'model': 'gpt-6-astra', 'effort': 'max'},
@@ -48,19 +48,21 @@ V1_PROFILES = {
     'review-implementation': {
         'reviewer': {'model': 'claude-opus-5-5', 'effort': 'high'},
         'coordinator': {'model': 'gpt-6-astra', 'effort': 'max'},
-        'implementer': {'model': 'gpt-6-sol', 'effort': 'xhigh'},
+        'implementer': {'model': 'gpt-6.1-sol', 'effort': 'xhigh'},
     },
 }
-DEFAULT_PROFILES = copy.deepcopy(V1_PROFILES)
-DEFAULT_PROFILES['review-implementation']['implementer']['model'] = 'gpt-6.1-sol'
-DEFAULT_PROFILES['review-diff'] = copy.deepcopy(V1_PROFILES['review-plan'])
+DEFAULT_PROFILES['review-diff'] = copy.deepcopy(DEFAULT_PROFILES['review-plan'])
 SCHEMA = json.loads((ROOT / 'schemas/response.json').read_text())
 VALIDATOR = Draft202012Validator(SCHEMA)
 # Provider CLIs accept the common keyword subset but may not register the local dialect URI.
 PROVIDER_SCHEMA = {k: v for k, v in SCHEMA.items() if k != '$schema'}
 MAX_BYTES = 4 * 1024 * 1024  # Bounded packet; fail visibly, never truncate a plan or source.
 EXCLUDED = {'.git', '.venv', 'node_modules', '__pycache__', '.next', 'dist', 'build'}
-STAGES = {'review', 'respond', 'reply', 'adjudicate', 'refine', 'repair', 'recheck', 'finalize'}
+STAGES = {
+    'plan': {'review', 'adjudicate', 'recheck', 'finalize'},
+    'implementation': {'review', 'adjudicate', 'repair', 'recheck', 'finalize'},
+    'diff': {'review', 'adjudicate'},
+}
 FINDING_DEFINITION_FIELDS = ('severity', 'location', 'evidence', 'correction_recommended', 'acceptance_check')
 ACTIVE_LOCK = None
 LOCK_ROOT = Path('/tmp').resolve()
@@ -178,13 +180,22 @@ def resolve_agent_profile(args, config):
 
 
 def effective_profile(state):
+    require_current_protocol(state)
     skill_name = MODE_TO_SKILL[state['mode']]
-    profile = state.get('agent_profile')
-    if profile is None:
-        if state.get('schema_version', 1) != 1:
-            raise ReviewError('Run state is missing its frozen agent profile.')
-        profile = V1_PROFILES[skill_name]
-    return validate_complete_profile(skill_name, profile, 'run agent profile')
+    return validate_complete_profile(skill_name, state['agent_profile'], 'run agent profile')
+
+
+def require_current_protocol(state):
+    def current(value):
+        return type(value) is int and value == 2
+
+    mode = state.get('mode')
+    if (not current(state.get('schema_version')) or mode not in STAGES or
+            state.get('stage') not in STAGES[mode] or not isinstance(state.get('agent_profile'), dict) or
+            (mode == 'plan' and not current(state.get('plan_protocol_version'))) or
+            (mode in ('implementation', 'diff') and not current(state.get('implementation_evidence_version'))) or
+            (mode == 'implementation' and not current(state.get('implementation_response_version')))):
+        raise ReviewError('Saved run uses an unsupported review protocol; preserve its artifacts and start a new run.')
 
 
 def agent_settings(state, who):
@@ -315,6 +326,7 @@ def scoped_diff(project, base, scope):
 
 
 def target(state):
+    require_current_protocol(state)
     project = Path(state['project'])
     files = {}
     for name in state['scope']:
@@ -328,7 +340,7 @@ def target(state):
         plan = text_file(Path(state['plan_file']))
     data = {'files': files, 'plan': plan, 'base': state.get('base')}
     if state.get('base'):
-        if state.get('implementation_evidence_version') in (1, 2):
+        if state['mode'] in ('implementation', 'diff'):
             data['diff'] = scoped_diff(project, state['base'], state['scope'])
         else:
             result = command(['git', 'diff', '--no-ext-diff', '--no-textconv', state['base'], '--', *state['scope']], project)
@@ -374,6 +386,11 @@ def verify_target(run, head, pr_base):
         record('eligible_run', 'UNKNOWN', 'Saved run state is not an object.')
         return finish()
     result['saved_fingerprint'] = state.get('target_fingerprint')
+    try:
+        require_current_protocol(state)
+    except ReviewError as exc:
+        record('eligible_run', 'BLOCKED', str(exc))
+        return finish()
     if (state.get('mode'), state.get('status')) not in (('implementation', 'complete'), ('diff', 'reported')):
         record('eligible_run', 'BLOCKED', 'Run is not a completed implementation or reported diff review.')
         return finish()
@@ -530,33 +547,26 @@ def verify_target(run, head, pr_base):
 
 def role(state):
     stage = state['stage']
-    if stage in ('review', 'reply', 'recheck'):
+    if stage in ('review', 'recheck'):
         return 'opus'
-    if stage == 'repair' or (stage == 'respond' and state['mode'] == 'implementation'):
+    if stage == 'repair':
         return 'sol'
     return 'astra'
 
 
 def collapsed_implementation(state):
-    return state['mode'] == 'implementation' and state.get('implementation_evidence_version') == 2
+    require_current_protocol(state)
+    return state['mode'] == 'implementation'
 
 
 def implementation_response_v2(state):
-    if 'implementation_response_version' not in state:
-        return False
-    version = state['implementation_response_version']
-    if state['mode'] != 'implementation' or not collapsed_implementation(state) or type(version) is not int or version != 2:
-        raise ReviewError('Unsupported implementation_response_version; refusing to change the recorded protocol.')
-    return True
+    require_current_protocol(state)
+    return state['mode'] == 'implementation'
 
 
 def collapsed_plan(state):
-    if 'plan_protocol_version' not in state:
-        return False
-    version = state['plan_protocol_version']
-    if state['mode'] != 'plan' or type(version) is not int or version != 2:
-        raise ReviewError('Unsupported plan_protocol_version; refusing to change the recorded protocol.')
-    return True
+    require_current_protocol(state)
+    return state['mode'] == 'plan'
 
 
 def evidence_catalog(state):
@@ -587,14 +597,7 @@ def packet(state):
         result['implementation_response_version'] = 2
     if collapsed_implementation(state) and state['stage'] == 'repair':
         result['repair_lock'] = copy.deepcopy(state['ledger'][-1].get('repair_lock')) if state['ledger'] else None
-    if state.get('implementation_plan') is not None:
-        result['implementation_plan'] = copy.deepcopy(state['implementation_plan'])
     return result
-
-
-def advisory_stage(state):
-    return (state.get('implementation_evidence_version') == 1 and
-            state['stage'] in ('respond', 'reply'))
 
 
 def prompt(state):
@@ -602,34 +605,25 @@ def prompt(state):
     compact_repair = implementation_response_v2(state) and state['stage'] == 'repair'
     stage_text = {
         'review': 'Independently review this target. New findings must be OPEN and UNVERIFIED. No findings is valid.',
-        'respond': 'Evaluate every finding, accept it, rebut it with evidence, or identify a user decision. Propose surgical corrections. Do not edit files.',
-        'reply': 'Respond to the other agent\'s assessment. Test its reasoning against source. Keep withdrawn findings with REJECTED and a reason. Do not edit files.',
         'adjudicate': 'Resolve technical disagreements from evidence. Every finding must be ACCEPTED, REJECTED, or PENDING_USER. Do not edit files.',
-        'refine': 'Return the COMPLETE refined plan in plan_markdown. Incorporate accepted recommendations, preserve sound decisions. Never implement code or write the plan file.',
-        'repair': 'Implement only ACCEPTED findings inside the listed scope. Run relevant local checks. Do not commit, stage, push, merge, deploy, modify instructions, or edit outside scope. Keep verdicts UNVERIFIED until independent review.',
+        'repair': 'Implement only ACCEPTED findings inside the listed scope. Run relevant local checks. Do not commit, stage, push, merge, deploy, modify instructions, or edit outside scope.',
         'recheck': 'Independently verify the revised target and evidence. Retain all previous finding IDs. Mark accepted findings PASSED only with specific current evidence references; otherwise FAILED, BLOCKED or UNVERIFIED. New findings remain OPEN.',
         'finalize': 'Summarize the reviewed outcome and remaining limitations. Do not edit anything. Copy the entire findings array verbatim, preserving every field, string, and ordering exactly. For plan mode return the current plan verbatim in plan_markdown.',
     }
-    if state.get('implementation_evidence_version') in (1, 2):
+    if state['mode'] in ('implementation', 'diff'):
         stage_text.update({
             'review': 'Independently review the requirements, actual target diff, scoped sources, and check results. New findings must be OPEN and UNVERIFIED. No findings is valid.',
         })
-        if collapsed_implementation(state):
+        if state['mode'] == 'implementation':
             stage_text['adjudicate'] = ('Decide each finding from the independent review, scoped source, and checks. '
                                         'Preserve existing definitions; append only evidence-backed scoped gaps. '
                                         'The helper locks accepted repairs after this response. Do not edit files.')
             stage_text['repair'] += ' Follow the current repair_lock exactly.'
-        elif state['mode'] == 'diff':
+        else:
             stage_text['adjudicate'] = ('Assess the full scoped change even if the reviewer found no gaps. '
                                         'Decide each finding from the diff and checks; append only evidenced scoped gaps. '
                                         'Report decisions without repairing files. Do not edit files.')
-        else:
-            stage_text.update({
-                'respond': 'Recommend ACCEPTED, REJECTED, or PENDING_USER for every finding and explain the evidence. This recommendation is advisory; propose surgical corrections and do not edit files.',
-                'reply': 'Independently answer the implementer recommendation for every finding. This reply is advisory; test its reasoning against source and do not edit files.',
-                'adjudicate': 'Make the authoritative finding decisions from the review, implementer recommendation, reviewer reply, source, and checks. Every finding must be ACCEPTED, REJECTED, or PENDING_USER. Do not edit files.',
-            })
-    if plan_v2:
+    else:
         stage_text.update({
             'review': 'Independently review the requirements, complete plan, and scoped source evidence. '
                       'Return new findings; no findings is valid.',
@@ -644,10 +638,6 @@ def prompt(state):
                        'Return verification assessments for accepted findings only and report new gaps separately.',
         })
     finding_instructions = (
-        'Return each existing finding exactly once and in its current order. For each finding, return only id, '
-        'disposition, and rationale; the helper retains the immutable definition and verification fields. '
-        'Do not introduce findings in this advisory stage. '
-        if advisory_stage(state) else
         'Preserve every existing finding ID; assign new sequential FIND-001 style IDs. '
         'Include a substantive rationale for every disposition. verification_evidence contains exact '
         'evidence_catalog keys only, without line suffixes or explanatory prose; put explanations in rationale. '
@@ -697,21 +687,20 @@ def prompt(state):
               + ('Only adjudicate may return plan_markdown, under the rules above.\n' if plan_v2 else
                  'Do not return plan_markdown.\n' if compact_repair else
                  'Set plan_markdown to null.\n' if state['mode'] == 'diff' else
-                 'Set plan_markdown to null except at refine/finalize in plan mode.\n'))
+                 'Set plan_markdown to null.\n'))
     if state['mode'] == 'plan':
         header += ('This is a PLAN review. Each finding and acceptance_check must assess the document: '
                    'whether it specifies a correct, scoped, implementable change and appropriate future verification. '
                    'An existing code defect is evidence for improving the plan, not an obligation to fix code now. '
                    'At recheck, PASSED means the revised plan addresses the objection; it never claims implementation or tests passed. '
                    'Do not execute project code or test commands during plan review.\n')
-        if state['stage'] in ('adjudicate', 'refine'):
+        if state['stage'] == 'adjudicate':
             header += ('When producing a refined plan, use a clean, actionable checklist of exact edits and '
                        'necessary verification; preserve sound decisions.\n')
-        if plan_v2:
-            header += ('Assess requirement completeness, relevant behavior and interfaces, failure handling, '
-                       'assumptions, and observable acceptance criteria. Identify material unresolved user choices. '
-                       'Do not add boilerplate for concerns that do not apply.\n')
-    elif state.get('implementation_evidence_version') in (1, 2):
+        header += ('Assess requirement completeness, relevant behavior and interfaces, failure handling, '
+                   'assumptions, and observable acceptance criteria. Identify material unresolved user choices. '
+                   'Do not add boilerplate for concerns that do not apply.\n')
+    else:
         header += ('This is a ' + ('DIFF' if state['mode'] == 'diff' else 'IMPLEMENTATION') +
                    ' review. Every new finding location must be an exact scoped project-relative '
                    'file path, optionally followed by :line or :start-end. BLOCKER, WARN, and SUGGESTION are the only '
@@ -731,18 +720,6 @@ def provider_schema(state):
         schema['properties'][key]['enum'] = [state[key]]
     if implementation_response_v2(state) and state['stage'] == 'repair':
         return repair_response_schema(state, schema)
-    if advisory_stage(state):
-        findings = schema['properties']['findings']
-        item = findings['items']
-        item['properties'] = {
-            key: item['properties'][key] for key in ('id', 'disposition', 'rationale')
-        }
-        item['required'] = ['id', 'disposition', 'rationale']
-        item['properties']['id']['enum'] = [finding['id'] for finding in state['findings']]
-        item['properties']['disposition']['enum'] = ['ACCEPTED', 'REJECTED', 'PENDING_USER']
-        findings['minItems'] = len(state['findings'])
-        findings['maxItems'] = len(state['findings'])
-        return schema
     evidence = schema['properties']['findings']['items']['properties']['verification_evidence']
     keys = sorted(evidence_catalog(state))
     if keys:
@@ -969,6 +946,7 @@ def response_error_detail(error, data):
 
 
 def validate_response(state, data):
+    require_current_protocol(state)
     plan_v2 = collapsed_plan(state)
     implementation_response_v2(state)
     errors = sorted(VALIDATOR.iter_errors(data), key=lambda e: str(list(e.path)))
@@ -1000,10 +978,10 @@ def validate_response(state, data):
                 raise ReviewError('New adjudication findings must start UNVERIFIED without verification evidence.')
         elif f['id'] not in old and (f['disposition'] != 'OPEN' or f['verification_status'] != 'UNVERIFIED'):
             raise ReviewError('New review findings must start OPEN and UNVERIFIED.')
-        if f['id'] not in old and state.get('implementation_evidence_version') in (1, 2):
+        if f['id'] not in old and state['mode'] in ('implementation', 'diff'):
             if not valid_scoped_location(state, f['location']):
                 raise ReviewError('New implementation findings require a scoped project-relative file location with an optional line or line range.')
-        if (plan_v2 or state.get('implementation_evidence_version') in (1, 2)) and f['id'] in old:
+        if f['id'] in old:
             for field in FINDING_DEFINITION_FIELDS:
                 if f[field] != old[f['id']][field]:
                     raise ReviewError(f'{f["id"]}.{field}: Existing finding definitions are immutable; '
@@ -1022,34 +1000,26 @@ def validate_response(state, data):
                 raise ReviewError('Only independent recheck may newly mark a finding PASSED.')
         if state['stage'] == 'adjudicate' and f['disposition'] == 'OPEN':
             raise ReviewError('Adjudication must decide each finding or identify a user decision.')
-        if (state.get('implementation_evidence_version') in (1, 2) and
-                state['stage'] in ('respond', 'reply') and f['disposition'] == 'OPEN'):
-            raise ReviewError('Implementer and reviewer recommendations must assess every finding.')
-        if ((plan_v2 or state.get('implementation_evidence_version') in (1, 2)) and f['id'] in old and
-                state['stage'] != 'recheck'):
+        if f['id'] in old and state['stage'] != 'recheck':
             for field in ('verification_status', 'verification_evidence'):
                 if f[field] != old[f['id']][field]:
                     raise ReviewError(f'{f["id"]}.{field}: Only independent recheck may change verification fields.')
-    if state['stage'] in ('repair', 'refine', 'recheck'):
+    if state['stage'] in ('repair', 'recheck'):
         for f in data['findings']:
             if f['id'] in old and f['disposition'] != old[f['id']]['disposition']:
-                raise ReviewError(f'{f["id"]}.disposition: Repair/refinement/recheck cannot change '
+                raise ReviewError(f'{f["id"]}.disposition: Repair/recheck cannot change '
                                   'the adjudicated dispositions.')
     if state['stage'] == 'finalize' and data['findings'] != state['findings']:
         raise ReviewError('Finalization cannot change the independently reviewed findings.')
-    plan_stage = state['mode'] == 'plan' and state['stage'] in ('refine', 'finalize')
-    if plan_v2:
-        plan_stage = (state['stage'] == 'adjudicate' and
-                      not any(f['disposition'] == 'PENDING_USER' for f in data['findings']) and
-                      any(f['disposition'] == 'ACCEPTED' and f['verification_status'] != 'PASSED'
-                          for f in data['findings']))
+    plan_stage = (plan_v2 and state['stage'] == 'adjudicate' and
+                  not any(f['disposition'] == 'PENDING_USER' for f in data['findings']) and
+                  any(f['disposition'] == 'ACCEPTED' and f['verification_status'] != 'PASSED'
+                      for f in data['findings']))
     if plan_stage:
-        if plan_v2 and state['round'] >= 2:
+        if state['round'] >= 2:
             raise ReviewError('Two-refinement limit reached.')
         if not data['plan_markdown'] or not data['plan_markdown'].strip():
             raise ReviewError('A complete plan is required.')
-        if state['stage'] == 'finalize' and data['plan_markdown'] != target(state)['plan']:
-            raise ReviewError('Finalization changed the reviewed plan. A new review is required.')
     elif data['plan_markdown'] is not None:
         raise ReviewError('This stage cannot publish a plan.')
     if state['stage'] == 'finalize' and (not complete_findings(state) or not checks_pass(state)):
@@ -1096,23 +1066,7 @@ def normalize_response(state, data):
         return {**{key: data[key] for key in
                    ('run_id', 'stage', 'handoff_revision', 'target_fingerprint', 'summary')},
                 'findings': findings, 'plan_markdown': data.get('plan_markdown')}
-    if not advisory_stage(state):
-        return data
-    errors = sorted(Draft202012Validator(provider_schema(state)).iter_errors(data),
-                    key=lambda error: str(list(error.path)))
-    if errors:
-        raise ReviewError('Invalid advisory handoff: ' + errors[0].message)
-    expected = [finding['id'] for finding in state['findings']]
-    received = [assessment['id'] for assessment in data['findings']]
-    if received != expected:
-        raise ReviewError('Advisory findings must contain every existing ID exactly once and in current order.')
-    normalized = copy.deepcopy(data)
-    normalized['findings'] = []
-    for finding, assessment in zip(state['findings'], data['findings']):
-        canonical = copy.deepcopy(finding)
-        canonical.update(disposition=assessment['disposition'], rationale=assessment['rationale'])
-        normalized['findings'].append(canonical)
-    return normalized
+    return data
 
 
 def changed(before, after):
@@ -1170,7 +1124,7 @@ def diff_checks_current(state):
 def checks_pass(state):
     if state['mode'] == 'plan':
         return True
-    if state.get('implementation_evidence_version') in (1, 2) and not state['check_commands']:
+    if not state['check_commands']:
         return False
     return (
         len(state['checks']) == len(state['check_commands']) and
@@ -1230,10 +1184,11 @@ def next_artifact(run, state):
 def accept(run, state, data, config, session=None):
     current = state
     state = copy.deepcopy(current)
+    require_current_protocol(state)
     plan_v2 = collapsed_plan(state)
     compact_repair = implementation_response_v2(state) and state['stage'] == 'repair'
     if plan_v2 or state['mode'] == 'diff':
-        if state['status'] not in ('ready', 'running', 'awaiting_coordinator', 'awaiting_astra'):
+        if state['status'] not in ('ready', 'running', 'awaiting_coordinator'):
             raise ReviewError('Read-only run is not accepting a stage response.')
         assert_fresh(state)
     if state['mode'] == 'diff':
@@ -1242,8 +1197,6 @@ def accept(run, state, data, config, session=None):
         if not diff_checks_current(state):
             raise ReviewError('Diff review requires complete current check receipts before accepting a response.')
     submitted_response = copy.deepcopy(data) if plan_v2 or compact_repair else None
-    if collapsed_implementation(state) and state['stage'] in ('respond', 'reply'):
-        raise ReviewError('Advisory stages are not part of this implementation run.')
     if collapsed_implementation(state) and state['stage'] == 'repair':
         if state['round'] >= 1:
             raise ReviewError('This implementation run permits one repair pass.')
@@ -1263,10 +1216,8 @@ def accept(run, state, data, config, session=None):
     if session:
         state['sessions'][role(state)] = session
     submitted_findings = copy.deepcopy(data['findings'])
-    advisory = state.get('implementation_evidence_version') == 1 and stage in ('respond', 'reply')
-    if not advisory:
-        state['findings'] = copy.deepcopy(submitted_findings)
-    refined = stage == 'refine' or (plan_v2 and stage == 'adjudicate' and data['plan_markdown'] is not None)
+    state['findings'] = copy.deepcopy(submitted_findings)
+    refined = plan_v2 and stage == 'adjudicate' and data['plan_markdown'] is not None
     if refined:
         state['current_plan'] = data['plan_markdown']
     if refined or stage == 'repair':
@@ -1284,8 +1235,7 @@ def accept(run, state, data, config, session=None):
              'stage': stage, 'agent': config, 'summary': data['summary'], 'target_before': previous_fingerprint,
              'target_after': state['target_fingerprint'], 'finding_ids': [f['id'] for f in submitted_findings],
              'orphaned_artifacts': orphaned, 'handoff_revision': state['handoff_revision']}
-    if plan_v2 or state.get('implementation_evidence_version') in (1, 2):
-        entry['finding_assessments'] = finding_assessments(submitted_findings)
+    entry['finding_assessments'] = finding_assessments(submitted_findings)
     if collapsed_implementation(state) and stage == 'adjudicate':
         lock = build_repair_lock(state, state['handoff_revision'] + 1)
         if lock is not None:
@@ -1304,16 +1254,8 @@ def accept(run, state, data, config, session=None):
     state['status'] = 'ready'
     state['error'] = None
     if stage == 'review':
-        if plan_v2 or state['mode'] == 'diff':
-            state['stage'] = 'adjudicate'
-        elif state['findings']:
-            state['stage'] = 'adjudicate' if collapsed_implementation(state) else 'respond'
-        else:
-            state['stage'] = 'refine' if state['mode'] == 'plan' else 'finalize'
-    elif stage == 'respond':
-        state['stage'] = 'reply'
-    elif stage == 'reply':
-        state['stage'] = 'adjudicate'
+        state['stage'] = ('adjudicate' if plan_v2 or state['mode'] == 'diff' or state['findings']
+                          else 'finalize')
     elif stage == 'adjudicate':
         if any(f['disposition'] == 'PENDING_USER' for f in state['findings']):
             state['status'] = 'needs_user'
@@ -1321,25 +1263,24 @@ def accept(run, state, data, config, session=None):
             state['status'] = 'reported'
         elif plan_v2:
             state.update(stage='recheck' if refined else 'finalize', status='ready' if refined else 'complete')
-        elif any(f['disposition'] == 'ACCEPTED' for f in state['findings']) or state['mode'] == 'plan':
-            state['stage'] = 'refine' if state['mode'] == 'plan' else 'repair'
+        elif any(f['disposition'] == 'ACCEPTED' for f in state['findings']):
+            state['stage'] = 'repair'
         else:
             state['stage'] = 'finalize'
-    elif stage in ('refine', 'repair'):
+    elif stage == 'repair':
         state['stage'] = 'recheck'
     elif stage == 'recheck':
-        if collapsed_implementation(state) and complete_findings(state):
-            state['stage'] = 'finalize'
-        elif collapsed_implementation(state):
-            state.update(status='unresolved', error='Independent recheck did not pass every accepted finding or found a new gap; this run permits one repair pass.')
-        elif complete_findings(state) and checks_pass(state):
-            state['stage'] = 'finalize'
-            if plan_v2:
-                state['status'] = 'complete'
+        if state['mode'] == 'implementation':
+            if complete_findings(state):
+                state['stage'] = 'finalize'
+            else:
+                state.update(status='unresolved', error='Independent recheck did not pass every accepted finding or found a new gap; this run permits one repair pass.')
+        elif complete_findings(state):
+            state.update(stage='finalize', status='complete')
         elif state['round'] >= 2:
             state['status'] = 'unresolved'
         else:
-            state['stage'] = 'adjudicate' if plan_v2 else 'respond'
+            state['stage'] = 'adjudicate'
     elif stage == 'finalize':
         state['status'] = 'complete'
     if state['stage'] == 'finalize' and not checks_pass(state):
@@ -1355,7 +1296,8 @@ def accept(run, state, data, config, session=None):
 
 
 def rerun_checks(run, state):
-    if state.get('implementation_evidence_version') not in (1, 2) or not state.get('check_commands'):
+    require_current_protocol(state)
+    if state['mode'] not in ('implementation', 'diff') or not state.get('check_commands'):
         raise ReviewError('Check reruns require a current implementation or diff review with configured checks.')
     if state['stage'] == 'repair' or state['status'] not in ('ready', 'blocked', 'unresolved'):
         raise ReviewError('Checks may rerun only while a review is in a read-only recoverable state.')
@@ -1411,6 +1353,7 @@ def rerun_checks(run, state):
 
 
 def reconcile(run, state, note):
+    require_current_protocol(state)
     if state['status'] not in ('interrupted', 'running') or state['stage'] != 'repair':
         raise ReviewError('Reconcile is only for interrupted repairs.')
     if not note.strip():
@@ -1426,8 +1369,7 @@ def reconcile(run, state, note):
              'target_before': before, 'target_after': state['target_fingerprint'],
              'finding_ids': [f['id'] for f in state['findings']], 'orphaned_artifacts': orphaned,
              'handoff_revision': state['handoff_revision']}
-    if state.get('implementation_evidence_version') in (1, 2):
-        entry['finding_assessments'] = finding_assessments(state['findings'])
+    entry['finding_assessments'] = finding_assessments(state['findings'])
     state['checks'] = []
     for finding in state['findings']:
         if finding['disposition'] == 'ACCEPTED':
@@ -1459,9 +1401,6 @@ def render(run, state):
     lines.append('')
     if state.get('error'):
         lines += ['Current blocker: ' + state['error'], '']
-    if state.get('implementation_plan') is not None:
-        lines += ['## Legacy implementation plan', '', '```json',
-                  dumps(state['implementation_plan']).rstrip(), '```', '']
     for entry in state['ledger']:
         model = entry['agent']['model']
         lines += [f'## {entry["artifact_id"]}: {entry["stage"]}', '',
@@ -1545,7 +1484,7 @@ def project_lock(project):
 
 
 def advance(run, state, external_coordinator=False):
-    implementation_response_v2(state)
+    require_current_protocol(state)
     assert_fresh(state)
     if state['status'] != 'ready':
         raise ReviewError(f'Run is {state["status"]}; inspect status before resuming.')
@@ -1556,16 +1495,12 @@ def advance(run, state, external_coordinator=False):
             raise ReviewError('Two-refinement limit reached.')
     if state['mode'] == 'diff' and state['stage'] not in ('review', 'adjudicate'):
         raise ReviewError('Diff reviews can dispatch only review and adjudication.')
-    if collapsed_implementation(state) and state['stage'] in ('respond', 'reply'):
-        raise ReviewError('Advisory stages are not part of this implementation run.')
     if state['mode'] == 'plan' and state['stage'] == 'repair':
         raise ReviewError('Plan review cannot enter repair.')
     if collapsed_implementation(state) and state['stage'] == 'repair':
         if state['round'] >= 1:
             raise ReviewError('This implementation run permits one repair pass.')
         validate_repair_lock(run, state)
-    if state['stage'] in ('refine', 'repair') and state['round'] >= 2:
-        raise ReviewError('Two-pass limit reached.')
     if state['mode'] == 'implementation' and state['stage'] == 'review' and not state['checks']:
         perform_checks(run, state)
         save(run, state)
@@ -1739,7 +1674,7 @@ def initialize(args):
     original = {'requirements': requirements, 'target': initial,
                 'inventory': state['inventory'], 'instructions': state['instructions'],
                 'agent_profile': agent_profile}
-    if state.get('implementation_evidence_version') in (1, 2):
+    if state['mode'] in ('implementation', 'diff'):
         original.update(check_commands=check_commands,
                         implementation_evidence_version=state['implementation_evidence_version'])
     if implementation_response_v2(state):
@@ -1779,7 +1714,7 @@ def build_parser():
         p = sub.add_parser(action)
         p.add_argument('run', type=Path)
         if action in ('run', 'step'):
-            p.add_argument('--external-coordinator', '--external-astra', dest='external_coordinator',
+            p.add_argument('--external-coordinator', dest='external_coordinator',
                            action='store_true',
                            help='Yield coordinator stages to a conversation matching the frozen model and effort.')
         if action == 'step':
@@ -1813,13 +1748,13 @@ def main():
             return
         run = args.run.expanduser().resolve()
         state = read_json(run / 'state.json')
-        collapsed_plan(state)
+        require_current_protocol(state)
         if args.action == 'status':
             print(dumps(status_payload(run, state)), end='')
             return
         with project_lock(Path(state['project'])):
             state = read_json(run / 'state.json')
-            collapsed_plan(state)
+            require_current_protocol(state)
             if args.action == 'retry':
                 if state['status'] not in ('blocked', 'running') or state['stage'] == 'repair':
                     raise ReviewError('Only blocked read-only stages may retry; interrupted repairs require reconcile.')
@@ -1842,7 +1777,7 @@ def main():
                 state.update(stage='adjudicate', status='ready', error=None)
                 save(run, state)
             elif args.action == 'submit':
-                if state['status'] not in ('awaiting_coordinator', 'awaiting_astra') or role(state) != 'astra':
+                if state['status'] != 'awaiting_coordinator' or role(state) != 'astra':
                     raise ReviewError('No external coordinator stage is waiting.')
                 assert_fresh(state)
                 data = read_json(args.response)

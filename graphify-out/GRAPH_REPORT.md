@@ -1,16 +1,16 @@
-# Graph Report - agent-review-workflows  (2026-10-01)
+# Graph Report - agent-review-workflows  (2026-10-02)
 
 ## Corpus Check
-- 26 files · ~24,417 words
+- 26 files · ~23,845 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 383 nodes · 1051 edges · 14 communities (13 shown, 1 thin omitted)
+- 383 nodes · 1053 edges · 14 communities (13 shown, 1 thin omitted)
 - Extraction: 89% EXTRACTED · 11% INFERRED · 0% AMBIGUOUS · INFERRED: 120 edges (avg confidence: 0.5)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `d88a737f`
+- Built from commit: `6403128e`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -29,8 +29,8 @@
 - routing.js
 
 ## God Nodes (most connected - your core abstractions)
-1. `ReviewError` - 37 edges
-2. `accept()` - 28 edges
+1. `ReviewError` - 35 edges
+2. `accept()` - 29 edges
 3. `advance()` - 26 edges
 4. `repoRoot()` - 26 edges
 5. `main()` - 24 edges
@@ -58,8 +58,8 @@
 ## Communities (14 total, 1 thin omitted)
 
 ### Community 0 - "review_cli.py"
-Cohesion: 0.12
-Nodes (69): Exception, accept(), advance(), advisory_stage(), agent_settings(), assert_claude_auth(), assert_fresh(), assert_idle_group() (+61 more)
+Cohesion: 0.13
+Nodes (69): Exception, accept(), advance(), agent_settings(), assert_claude_auth(), assert_fresh(), assert_idle_group(), build_parser() (+61 more)
 
 ### Community 2 - "on-merge-sync.cjs"
 Cohesion: 0.09
@@ -129,7 +129,7 @@ _Questions this graph is uniquely positioned to answer:_
 - **What connects `fs`, `path`, `{ spawnSync }` to the rest of the system?**
   _89 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `review_cli.py` be split into smaller, more focused modules?**
-  _Cohesion score 0.12434607645875252 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.12515090543259558 - nodes in this community are weakly interconnected._
 - **Should `on-merge-sync.cjs` be split into smaller, more focused modules?**
   _Cohesion score 0.09176470588235294 - nodes in this community are weakly interconnected._
 - **Should `audit-plan-candidates.cjs` be split into smaller, more focused modules?**

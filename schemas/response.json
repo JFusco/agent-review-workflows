@@ -17,10 +17,7 @@
       "type": "string",
       "enum": [
         "review",
-        "respond",
-        "reply",
         "adjudicate",
-        "refine",
         "repair",
         "recheck",
         "finalize"
