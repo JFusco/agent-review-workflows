@@ -12,6 +12,12 @@ untracked files while excluding unrelated repository changes. An invalid base,
 missing check, empty initial diff, or oversized target fails before run
 artifacts are created.
 
+[Issue #57](https://github.com/JFusco/agent-review-workflows/issues/57)
+corrects scoped filename handling for implementation and diff evidence. Git
+pathspec characters are treated literally when collecting the frozen diff and
+checking whether a scoped file is tracked. Older runs without this evidence
+contract retain their recorded target behavior.
+
 ## Independent review packet
 
 The initial reviewer receives the frozen base SHA, actual scoped diff, full

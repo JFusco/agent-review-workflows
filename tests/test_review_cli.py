@@ -503,6 +503,20 @@ class ReviewTests(unittest.TestCase):
         self.assertEqual(current['files']['empty.py'], '')
         self.assertEqual(state['requirements'], (ROOT/'tests/fixtures/requirements.md').read_text())
 
+    def test_scoped_diff_matches_pathspec_characters_literally(self):
+        (self.project/'i.py').write_text('OLD = 1\n')
+        self.commit_fixture('i.py')
+        (self.project/'i.py').write_text('NEW = 2\n')
+        (self.project/'[id].py').write_text('VALUE = 1\n')
+        args = copy.deepcopy(self.args)
+        args.scope = ['[id].py']
+        args.runs_dir = str(self.root/'literal-scope-runs')
+        _, state = r.initialize(args)
+        scoped = r.target(state)['diff']
+        self.assertIn('diff --git a/[id].py b/[id].py', scoped)
+        self.assertIn('new file mode', scoped)
+        self.assertNotIn('diff --git a/i.py b/i.py', scoped)
+
     def test_initialize_rejects_symlinked_scope_parent(self):
         (self.project/'.gitignore').write_text('__pycache__/\nbuild/\n')
         (self.project/'build').mkdir()
