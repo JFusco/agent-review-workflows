@@ -1,0 +1,6 @@
+interface:
+  display_name: "Evaluate review runs"
+  short_description: "Compare existing review evidence and cost"
+  default_prompt: "Use $review-suite-eval to compare these two existing review runs."
+policy:
+  allow_implicit_invocation: false

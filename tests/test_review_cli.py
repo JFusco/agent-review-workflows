@@ -1596,7 +1596,7 @@ class ReviewTests(unittest.TestCase):
         for _ in range(2):
             result = subprocess.run(argv, capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
-        for name in ('review-plan','review-implementation','review-handoff','review-diff'):
+        for name in ('review-plan','review-implementation','review-handoff','review-diff','review-suite-eval'):
             self.assertTrue((destination/name/'references/cli.md').is_file())
         (destination/'review-handoff').unlink()
         (destination/'review-handoff').mkdir()
@@ -1611,7 +1611,7 @@ class ReviewTests(unittest.TestCase):
         source = self.root/'installer-source'
         (source/'scripts').mkdir(parents=True)
         (source/'scripts/install_skills.py').write_text((ROOT/'scripts/install_skills.py').read_text())
-        for name in ('review-plan', 'review-implementation', 'review-handoff', 'review-diff'):
+        for name in ('review-plan', 'review-implementation', 'review-handoff', 'review-diff', 'review-suite-eval'):
             skill = source/'skills'/name
             skill.mkdir(parents=True)
             (skill/'SKILL.md').write_text(f'---\nname: {name}\ndescription: Fixture.\n---\n')

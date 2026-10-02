@@ -9,6 +9,7 @@ This wiki is the durable project record for decisions, executed plans, and subst
 - [Maintainer workflow](./topics/maintainer-workflow.md) — commit guidance and Graphify code-map boundaries.
 - [Plan review protocol](./topics/plan-review-protocol.md) — deterministic handoffs and bounded refinement.
 - [Diff review](./topics/diff-review.md) — read-only scoped diff review and check evidence.
+- [Review-suite evaluation](./topics/review-suite-evaluation.md) — comparison of saved review evidence.
 - `wiki/topics/` — durable decision and domain pages.
 - `wiki/journal/` — chronological substantive-change entries.
 - `wiki/connections.md` — generated relationship summary.
