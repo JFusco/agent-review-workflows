@@ -89,6 +89,12 @@ class ReviewTests(unittest.TestCase):
         self.state['check_commands'] = [[sys.executable, '-c', 'pass']]
         r.perform_checks(self.run, self.state)
 
+    def start_diff(self):
+        args = copy.deepcopy(self.args)
+        args.mode = 'diff'
+        args.runs_dir = str(self.root/'diff-runs')
+        self.run, self.state = r.initialize(args)
+
     def to_repair(self):
         self.accept(self.response([finding()]))
         data=self.response()
@@ -189,6 +195,132 @@ class ReviewTests(unittest.TestCase):
         with self.assertRaisesRegex(r.ReviewError, 'nonempty scoped diff'):
             r.initialize(args)
         self.assertFalse(Path(args.runs_dir).exists())
+
+    def test_diff_preflight_and_frozen_readonly_profile(self):
+        for name, changes, message in (
+                ('base', {'base': None}, 'explicit --base'),
+                ('scope', {'scope': []}, 'explicit --scope'),
+                ('checks', {'check': []}, 'at least one explicit --check'),
+                ('invalid-base', {'base': 'missing-ref'}, 'local commit')):
+            with self.subTest(name=name):
+                args = copy.deepcopy(self.args)
+                args.mode = 'diff'
+                args.runs_dir = str(self.root/f'diff-{name}')
+                for field, value in changes.items():
+                    setattr(args, field, value)
+                with self.assertRaisesRegex(r.ReviewError, message):
+                    r.initialize(args)
+                self.assertFalse(Path(args.runs_dir).exists())
+        args = copy.deepcopy(self.args)
+        args.mode = 'diff'
+        args.implementer_model = 'gpt-6-sol'
+        with self.assertRaisesRegex(r.ReviewError, 'do not have an implementer'):
+            r.initialize(args)
+        original = subprocess.run(
+            ['git', '-C', str(self.project), 'show', 'HEAD:calculator.py'],
+            check=True, capture_output=True, text=True,
+        ).stdout
+        (self.project/'calculator.py').write_text(original)
+        args.implementer_model = None
+        args.runs_dir = str(self.root/'diff-empty')
+        with self.assertRaisesRegex(r.ReviewError, 'nonempty scoped diff'):
+            r.initialize(args)
+        self.assertFalse(Path(args.runs_dir).exists())
+        (self.project/'calculator.py').write_text((ROOT/'tests/fixtures/calculator.py').read_text())
+        self.start_diff()
+        self.assertEqual(set(self.state['agent_profile']), {'reviewer', 'coordinator'})
+        self.assertEqual(self.state['agent_profile']['reviewer']['model'],
+                         r.DEFAULT_PROFILES['review-diff']['reviewer']['model'])
+        self.assertEqual(self.state['implementation_evidence_version'], 2)
+        self.assertNotIn('implementation_response_version', self.state)
+        self.assertIn('diff --git', r.target(self.state)['diff'])
+        self.state['stage'] = 'adjudicate'
+        argv = r.cli_argv(self.state, self.run/'calls')
+        self.assertIn('sandbox_mode="read-only"', argv)
+        self.assertNotIn('implementer recommendation', r.prompt(self.state).lower())
+
+    def test_diff_reports_accepted_finding_and_failed_check_without_repair(self):
+        self.start_diff()
+        r.perform_checks(self.run, self.state)
+        self.assertFalse(r.checks_pass(self.state))
+        self.accept(self.response([finding()]))
+        self.assertEqual(self.state['stage'], 'adjudicate')
+        decision = self.response()
+        decision['findings'][0].update(disposition='ACCEPTED', rationale='Defect is supported by the scoped diff.')
+        self.accept(decision)
+        self.assertEqual((self.state['stage'], self.state['status'], self.state['round']),
+                         ('adjudicate', 'reported', 0))
+        self.assertEqual([entry['stage'] for entry in self.state['ledger']], ['review', 'adjudicate'])
+        self.assertEqual(self.state['findings'][0]['verification_status'], 'UNVERIFIED')
+        artifact = r.read_json(self.run/'artifacts/revision-002.json')
+        self.assertEqual(artifact['checks'], self.state['checks'])
+        self.assertNotIn('repair_lock', artifact)
+        report = (self.run/'final.md').read_text()
+        self.assertIn('Status: reported', report)
+        self.assertIn('exit 1', report)
+        self.assertIn('FIND-001', report)
+        self.assertIn('Verification: UNVERIFIED', report)
+        with self.assertRaisesRegex(r.ReviewError, 'reported'):
+            r.advance(self.run, self.state)
+        with self.assertRaisesRegex(r.ReviewError, 'read-only recoverable'):
+            r.rerun_checks(self.run, self.state)
+        (self.project/'calculator.py').write_text('changed after report\n')
+        r.render(self.run, self.state)
+        self.assertEqual((self.run/'final.md').read_text(), report)
+        self.assertIn('diff --git', (self.run/'handoff.md').read_text())
+
+    def test_diff_empty_rejected_and_pending_outcomes(self):
+        for outcome in ('empty', 'rejected', 'pending'):
+            with self.subTest(outcome=outcome):
+                self.start_diff()
+                r.perform_checks(self.run, self.state)
+                self.accept(self.response([] if outcome == 'empty' else [finding()]))
+                decision = self.response()
+                if outcome != 'empty':
+                    decision['findings'][0].update(
+                        disposition='PENDING_USER' if outcome == 'pending' else 'REJECTED',
+                        rationale='Decision requires user input.' if outcome == 'pending' else
+                                  'The scoped source does not support this finding.',
+                    )
+                self.accept(decision)
+                self.assertEqual(self.state['status'], 'needs_user' if outcome == 'pending' else 'reported')
+                self.assertEqual(self.state['stage'], 'adjudicate')
+
+    def test_diff_rejects_unverified_claims_and_recovers_partial_checks(self):
+        self.start_diff()
+        bad = finding()
+        bad['verification_status'] = 'FAILED'
+        with self.assertRaisesRegex(r.ReviewError, 'UNVERIFIED'):
+            r.validate_response(self.state, self.response([bad]))
+        bad = finding()
+        bad['location'] = 'unrelated.py:1'
+        with self.assertRaisesRegex(r.ReviewError, 'scoped project-relative'):
+            r.validate_response(self.state, self.response([bad]))
+        self.state['check_commands'] = [[sys.executable, '-c', 'pass'],
+                                        [sys.executable, '-c', 'pass']]
+        r.perform_checks(self.run, self.state)
+        self.state['checks'].pop()
+        with patch.object(r, 'assert_claude_auth', side_effect=r.ReviewError('Auth preflight stop')):
+            with self.assertRaisesRegex(r.ReviewError, 'Auth preflight stop'):
+                r.advance(self.run, self.state)
+        self.assertTrue(r.diff_checks_current(self.state))
+        self.assertEqual(len(self.state['checks']), 2)
+        self.assertEqual(len(list((self.run/'checks').glob('*.json'))), 4)
+
+    def test_diff_accepted_report_survives_view_failure(self):
+        self.start_diff()
+        r.perform_checks(self.run, self.state)
+        self.accept(self.response([finding()]))
+        decision = self.response()
+        decision['findings'][0].update(disposition='REJECTED', rationale='Fixture finding is unsupported.')
+        with patch.object(r, 'render', side_effect=OSError('view failed')):
+            with self.assertRaisesRegex(OSError, 'view failed'):
+                self.accept(decision)
+        saved = r.read_json(self.run/'state.json')
+        self.assertEqual(saved['status'], 'reported')
+        self.assertEqual(len(saved['ledger']), 2)
+        r.render(self.run, saved)
+        self.assertIn('REJECTED', (self.run/'final.md').read_text())
 
     def test_plan_start_remains_base_and_check_optional(self):
         args = copy.deepcopy(self.args)
@@ -1464,7 +1596,7 @@ class ReviewTests(unittest.TestCase):
         for _ in range(2):
             result = subprocess.run(argv, capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
-        for name in ('review-plan','review-implementation','review-handoff'):
+        for name in ('review-plan','review-implementation','review-handoff','review-diff'):
             self.assertTrue((destination/name/'references/cli.md').is_file())
         (destination/'review-handoff').unlink()
         (destination/'review-handoff').mkdir()
@@ -1479,7 +1611,7 @@ class ReviewTests(unittest.TestCase):
         source = self.root/'installer-source'
         (source/'scripts').mkdir(parents=True)
         (source/'scripts/install_skills.py').write_text((ROOT/'scripts/install_skills.py').read_text())
-        for name in ('review-plan', 'review-implementation', 'review-handoff'):
+        for name in ('review-plan', 'review-implementation', 'review-handoff', 'review-diff'):
             skill = source/'skills'/name
             skill.mkdir(parents=True)
             (skill/'SKILL.md').write_text(f'---\nname: {name}\ndescription: Fixture.\n---\n')
