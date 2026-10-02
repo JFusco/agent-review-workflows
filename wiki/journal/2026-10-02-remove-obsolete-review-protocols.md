@@ -1,7 +1,7 @@
 ---
 topics: [plan-review-protocol, implementation-review-evidence]
-issues: ['https://github.com/JFusco/agent-review-workflows/issues/59']
-issue: 'https://github.com/JFusco/agent-review-workflows/issues/59'
+issues: ['https://github.com/jfusco/agent-review-workflows/issues/59']
+issue: 'https://github.com/jfusco/agent-review-workflows/issues/59'
 ---
 # Remove obsolete review protocols
 
