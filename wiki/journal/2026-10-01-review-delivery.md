@@ -1,8 +1,8 @@
 ---
 topics: [review-delivery]
 plans: [2026-10-02-review-delivery-delivery-59470a81ed.md]
-issues: ['https://github.com/JFusco/agent-review-workflows/issues/53']
-issue: 'https://github.com/JFusco/agent-review-workflows/issues/53'
+issues: ['https://github.com/jfusco/agent-review-workflows/issues/53']
+issue: 'https://github.com/jfusco/agent-review-workflows/issues/53'
 ---
 # Add PR delivery assessment
 
