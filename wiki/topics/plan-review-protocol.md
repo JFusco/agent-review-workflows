@@ -26,13 +26,14 @@ remains useful for rationale, evidence, corrections, acceptance criteria, and th
 complete refined plan. The full contract is maintained in the
 [protocol reference](../../references/plan-protocol.md).
 
-New runs use `plan_protocol_version: 2`. Legacy runs remain resumable without
-migration; implementation review retains its own versioning and authority chain.
+Runs use `plan_protocol_version: 2`. Older runs remain as historical artifacts
+but cannot resume; start a fresh review from the current plan and requirements.
+Implementation review retains its own versioning and authority chain.
 Opus 5.5 High and Astra Max remain the defaults, with per-run profiles frozen.
 At most two refinement attempts are permitted, and incomplete second rechecks
 remain unresolved. Completion views derive from accepted snapshots rather than
 mutable draft files.
 
 Deterministic fixtures establish routing, schema, persistence, permission, and
-compatibility behavior. They do not establish comparative model quality, actual
+obsolete-run rejection. They do not establish comparative model quality, actual
 provider effort, or production behavior.

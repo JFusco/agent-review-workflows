@@ -15,8 +15,7 @@ artifacts are created.
 [Issue #57](https://github.com/JFusco/agent-review-workflows/issues/57)
 corrects scoped filename handling for implementation and diff evidence. Git
 pathspec characters are treated literally when collecting the frozen diff and
-checking whether a scoped file is tracked. Older runs without this evidence
-contract retain their recorded target behavior.
+checking whether a scoped file is tracked.
 
 ## Independent review packet
 
@@ -89,18 +88,15 @@ When failed checks are the sole reason finalization is unresolved, a fully
 passing rerun makes that same finalization ready. Other blocked or unresolved
 states retain their status and use their existing recovery path.
 
-## Compatibility and evidence policy
+## Current evidence policy
 
-The contract is versioned on new implementation runs. Plan review remains
-read-only and may omit a base and checks. Evidence version 1 runs retain their
-implementer response, reviewer reply, and two-pass behavior, including when
-paused at an advisory stage. Saved implementation-plan data from the unmerged
-issue #20 branch remains readable. Artifact recovery and prior fingerprints do
-not change.
+Implementation and diff runs require evidence version 2; implementation repair
+also requires response version 2 and the frozen profile. Older saved runs are
+retained as historical artifacts but cannot dispatch another provider or writer.
+Start a fresh run against the current target and requirements. Plan review
+remains read-only and may omit a base and checks.
 
-An absent implementation response version retains the prior full-finding
-response, including for an already-created evidence version 2 run. Unsupported
-explicit response versions fail closed. A response rejected after writer exit
+A response rejected after writer exit
 records an interrupted repair with an actionable inspection and reconciliation
 message. Reconciliation consumes one pass and advances to independent recheck;
 it never replays the writer.

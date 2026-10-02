@@ -61,11 +61,6 @@ class ReviewTests(unittest.TestCase):
 
     def response(self, fs=None):
         findings = copy.deepcopy(self.state['findings'] if fs is None else fs)
-        if r.advisory_stage(self.state):
-            findings = [
-                {key: item[key] for key in ('id', 'disposition', 'rationale')}
-                for item in findings
-            ]
         return {'run_id': self.state['run_id'], 'target_fingerprint': self.state['target_fingerprint'],
                 'handoff_revision': self.state['handoff_revision'],
                 'stage': self.state['stage'], 'summary': 'Fixture result, not provider evidence.',
@@ -739,15 +734,6 @@ class ReviewTests(unittest.TestCase):
         with self.assertRaisesRegex(r.ReviewError, 'saved adjudication artifact'):
             self.accept(self.repair_response())
 
-    def test_old_implementation_run_keeps_full_repair_response(self):
-        self.state.pop('implementation_response_version')
-        self.to_repair()
-        self.assertIn('findings', r.provider_schema(self.state)['properties'])
-        self.assertNotIn('implementation_response_version', r.status_payload(self.run, self.state))
-        self.accept(self.response())
-        artifact = r.read_json(self.run/'artifacts/revision-003.json')
-        self.assertNotIn('submitted_response', artifact)
-        self.assertEqual(artifact['response']['findings'], self.state['findings'])
 
     def test_unknown_implementation_response_versions_fail_closed(self):
         for version in (None, 1, 3, '2', 2.0, True):
@@ -755,8 +741,39 @@ class ReviewTests(unittest.TestCase):
                 self.state['implementation_response_version'] = version
                 for operation in (lambda: r.status_payload(self.run, self.state),
                                   lambda: r.packet(self.state), lambda: r.provider_schema(self.state)):
-                    with self.assertRaisesRegex(r.ReviewError, 'Unsupported implementation_response_version'):
+                    with self.assertRaisesRegex(r.ReviewError, 'unsupported review protocol'):
                         operation()
+
+    def test_obsolete_run_stops_before_writer_dispatch(self):
+        self.to_repair()
+        for name, change in (
+            ('schema', lambda state: state.update(schema_version=1)),
+            ('profile', lambda state: state.pop('agent_profile')),
+            ('evidence', lambda state: state.update(implementation_evidence_version=1)),
+            ('response', lambda state: state.pop('implementation_response_version')),
+            ('stage', lambda state: state.update(stage='respond')),
+        ):
+            with self.subTest(name=name):
+                obsolete = copy.deepcopy(self.state)
+                change(obsolete)
+                r.save(self.run, obsolete)
+                original = (self.run/'state.json').read_bytes()
+                with patch.object(sys, 'argv', ['review_cli.py', 'step', str(self.run)]), \
+                        patch.object(sys, 'stderr', new_callable=io.StringIO) as errors, \
+                        patch.object(r, 'execute_process') as execute, \
+                        self.assertRaises(SystemExit) as stopped:
+                    r.main()
+                self.assertEqual(stopped.exception.code, 2)
+                self.assertIn('start a new run', errors.getvalue())
+                execute.assert_not_called()
+                self.assertEqual((self.run/'state.json').read_bytes(), original)
+        r.save(self.run, self.state)
+
+    def test_obsolete_diff_run_rejected(self):
+        self.start_diff()
+        self.state['implementation_evidence_version'] = 1
+        with self.assertRaisesRegex(r.ReviewError, 'start a new run'):
+            r.require_current_protocol(self.state)
 
     def test_pending_decision_locks_only_after_readjudication(self):
         self.accept(self.response([finding()]))
@@ -861,31 +878,7 @@ class ReviewTests(unittest.TestCase):
         self.assertEqual([entry['stage'] for entry in self.state['ledger'] if entry['stage'] == 'repair'],
                          ['repair'])
 
-    def test_legacy_plan_never_repairs(self):
-        self.args.mode='plan'
-        self.args.plan=str(ROOT/'tests/fixtures/sound-plan.md')
-        self.run,self.state=r.initialize(self.args)
-        self.state.pop('plan_protocol_version')
-        self.accept(self.response([]))
-        self.assertEqual(self.state['stage'],'refine')
-        data=self.response([])
-        data['plan_markdown']='A complete fixture plan preserving scope and meaningful acceptance checks.'
-        self.accept(data)
-        self.accept(self.response([]))
-        data=self.response([])
-        data['plan_markdown']=self.state['current_plan']
-        self.accept(data)
-        self.assertEqual(self.state['status'],'complete')
-        self.assertFalse(any(x['stage']=='repair' for x in self.state['ledger']))
-        self.assertEqual(r.inventory(self.project),self.state['inventory'])
 
-    def test_final_plan_cannot_change_after_recheck(self):
-        self.args.mode='plan'; self.args.plan=str(ROOT/'tests/fixtures/sound-plan.md')
-        self.run,self.state=r.initialize(self.args)
-        self.state.pop('plan_protocol_version')
-        self.state.update(stage='finalize',current_plan='Reviewed plan')
-        data=self.response([]); data['plan_markdown']='Different plan'
-        with self.assertRaises(r.ReviewError): r.validate_response(self.state,data)
 
     def test_missing_findings_and_invented_evidence_rejected(self):
         self.state['findings']=[finding()]; self.state['stage']='recheck'
@@ -898,43 +891,6 @@ class ReviewTests(unittest.TestCase):
         data=self.response(); data['findings'][0].update(disposition='REJECTED',rationale='Changed mind')
         with self.assertRaises(r.ReviewError): r.validate_response(self.state,data)
 
-    def test_coordinator_receives_both_advisory_assessments(self):
-        self.state['implementation_evidence_version'] = 1
-        self.state.pop('implementation_response_version')
-        self.accept(self.response([finding()]))
-        implementer = self.response()
-        implementer['findings'][0].update(
-            disposition='ACCEPTED', rationale='Implementer recommends accepting the reproduced defect.',
-        )
-        self.accept(implementer)
-        self.assertEqual(self.state['findings'][0]['disposition'], 'OPEN')
-        reviewer = self.response()
-        reviewer['findings'][0].update(
-            disposition='ACCEPTED', rationale='Reviewer independently agrees with the recommendation.',
-        )
-        self.accept(reviewer)
-        self.assertEqual(self.state['stage'], 'adjudicate')
-        self.assertEqual(self.state['findings'][0]['disposition'], 'OPEN')
-        history = r.packet(self.state)['decision_ledger']
-        self.assertEqual([entry['stage'] for entry in history], ['review', 'respond', 'reply'])
-        self.assertEqual(
-            history[1]['finding_assessments'][0]['rationale'],
-            'Implementer recommends accepting the reproduced defect.',
-        )
-        self.assertEqual(
-            history[2]['finding_assessments'][0]['rationale'],
-            'Reviewer independently agrees with the recommendation.',
-        )
-        coordinator = self.response()
-        coordinator['findings'][0].update(
-            disposition='ACCEPTED', rationale='Coordinator authoritatively accepts the finding.',
-        )
-        self.accept(coordinator)
-        self.assertEqual(self.state['stage'], 'repair')
-        self.assertEqual(self.state['findings'][0]['disposition'], 'ACCEPTED')
-        artifact = r.read_json(self.run/'artifacts/revision-004.json')
-        self.assertEqual(artifact['response']['findings'][0]['evidence'], finding()['evidence'])
-        self.assertEqual(artifact['response']['findings'][0]['disposition'], 'ACCEPTED')
 
     def test_only_recheck_can_change_implementation_verification(self):
         self.accept(self.response([finding()]))
@@ -1136,35 +1092,6 @@ class ReviewTests(unittest.TestCase):
             r.initialize(args)
         self.assertFalse(Path(args.runs_dir).exists())
 
-    def test_version_one_runs_keep_original_pins(self):
-        legacy = copy.deepcopy(self.state)
-        legacy['schema_version'] = 1
-        legacy.pop('agent_profile')
-        expected = {
-            'reviewer': {'model': 'claude-opus-5-5', 'effort': 'high'},
-            'coordinator': {'model': 'gpt-6-astra', 'effort': 'max'},
-            'implementer': {'model': 'gpt-6-sol', 'effort': 'xhigh'},
-        }
-        with patch.dict(r.DEFAULT_PROFILES['review-implementation']['implementer'],
-                        {'model': 'gpt-future-default', 'effort': 'low'}):
-            self.assertEqual(r.V1_PROFILES['review-implementation'], expected)
-            self.assertEqual(r.V1_PROFILES['review-plan'],
-                             {key: value for key, value in expected.items() if key != 'implementer'})
-            self.assertEqual(r.effective_profile(legacy), expected)
-            for who, stage in [('opus', 'review'), ('astra', 'adjudicate'), ('sol', 'repair')]:
-                legacy['stage'] = stage
-                model, effort = r.agent_settings(legacy, who)
-                settings = expected[r.AGENT_TO_PROFILE_ROLE[who]]
-                self.assertEqual((model, effort), (settings['model'], settings['effort']))
-                argv = r.cli_argv(legacy, self.run)
-                self.assertEqual(argv[argv.index('--model')+1], settings['model'])
-                if who == 'opus':
-                    self.assertEqual(argv[argv.index('--effort')+1], settings['effort'])
-                else:
-                    self.assertIn(f'model_reasoning_effort="{settings["effort"]}"', argv)
-        legacy['schema_version'] = 2
-        with self.assertRaisesRegex(r.ReviewError, 'missing its frozen'):
-            r.effective_profile(legacy)
 
     def test_model_settings_on_resume(self):
         self.state['agent_profile'] = {
@@ -1270,10 +1197,10 @@ class ReviewTests(unittest.TestCase):
             r.main()
         advance.assert_called_once()
 
-    def test_plan_cannot_resolve_an_implementation_stage(self):
+    def test_plan_cannot_enter_an_implementation_stage(self):
         self.state.update(mode='plan', stage='repair',
                           agent_profile=copy.deepcopy(r.DEFAULT_PROFILES['review-plan']))
-        with self.assertRaisesRegex(r.ReviewError, 'has no implementer role'):
+        with self.assertRaisesRegex(r.ReviewError, 'unsupported review protocol'):
             r.cli_argv(self.state,self.run)
 
     def test_profile_is_visible_in_status_packet_receipt_and_handoff(self):
@@ -1364,27 +1291,6 @@ class ReviewTests(unittest.TestCase):
         self.assertEqual(self.state['status'],'unresolved')
         self.assertEqual(self.state['ledger'][-1]['stage'], 'recheck')
 
-    def test_version_one_failed_recheck_and_two_pass_limit(self):
-        self.state['implementation_evidence_version'] = 1
-        self.state.pop('implementation_response_version')
-        self.accept(self.response([finding()]))
-        for rationale in ('Implementer recommends repair.', 'Reviewer agrees with repair.'):
-            advisory = self.response()
-            advisory['findings'][0].update(disposition='ACCEPTED', rationale=rationale)
-            self.accept(advisory)
-        decision = self.response()
-        decision['findings'][0].update(disposition='ACCEPTED', rationale='Coordinator accepts repair.')
-        self.accept(decision)
-        self.assertEqual(self.state['stage'], 'repair')
-        self.accept(self.response())
-        recheck = self.response()
-        recheck['findings'][0].update(verification_status='FAILED',
-                                     rationale='The configured acceptance check still fails.')
-        self.accept(recheck)
-        self.assertEqual(self.state['stage'], 'respond')
-        self.state.update(stage='repair', round=2)
-        with self.assertRaisesRegex(r.ReviewError, 'Two-pass limit reached'):
-            r.advance(self.run, self.state)
 
     def test_external_coordinator_yield(self):
         self.state['stage']='adjudicate'
@@ -1404,37 +1310,20 @@ class ReviewTests(unittest.TestCase):
         self.assertEqual(config['model'], 'gpt-6-luna')
         self.assertEqual(config['effort'], 'high')
 
-    def test_external_astra_is_a_compatibility_alias(self):
-        parser = r.build_parser()
-        canonical = parser.parse_args(['run', str(self.run), '--external-coordinator'])
-        legacy = parser.parse_args(['run', str(self.run), '--external-astra'])
-        self.assertTrue(canonical.external_coordinator)
-        self.assertTrue(legacy.external_coordinator)
 
     def test_step_dispatches_one_stage_with_frozen_profile(self):
-        for mode, version, next_stage in (
-            ('plan', None, 'respond'),
-            ('plan', 2, 'adjudicate'),
-            ('implementation', 1, 'respond'),
-            ('implementation', 2, 'adjudicate'),
-        ):
-            with self.subTest(mode=mode, version=version):
+        for mode in ('plan', 'implementation'):
+            with self.subTest(mode=mode):
                 args = copy.deepcopy(self.args)
                 args.mode = mode
                 args.plan = str(ROOT/'tests/fixtures/sound-plan.md') if mode == 'plan' else None
                 self.run, self.state = r.initialize(args)
-                if mode == 'plan' and version is None:
-                    self.state.pop('plan_protocol_version')
-                elif mode == 'implementation' and version is not None:
-                    self.state['implementation_evidence_version'] = version
-                    if version == 1:
-                        self.state.pop('implementation_response_version')
                 self.state['agent_profile']['reviewer'] = {'model': 'fixture-reviewer', 'effort': 'low'}
                 if mode == 'implementation':
                     self.use_passing_check()
                 r.save(self.run, self.state)
                 response = self.response([finding()])
-                if mode == 'plan' and version == 2:
+                if mode == 'plan':
                     response.pop('findings')
                     response.pop('plan_markdown')
                     response.update(plan_protocol_version=2, new_findings=[
@@ -1452,12 +1341,12 @@ class ReviewTests(unittest.TestCase):
                 self.assertEqual(argv[argv.index('--effort') + 1], 'low')
                 self.assertIn(r.dumps(r.packet(self.state)), execute.call_args.args[2])
                 saved = r.read_json(self.run/'state.json')
-                self.assertEqual(saved['stage'], next_stage)
+                self.assertEqual(saved['stage'], 'adjudicate')
                 self.assertEqual(saved['status'], 'ready')
                 self.assertEqual(saved['handoff_revision'], 1)
                 self.assertEqual(len(saved['ledger']), 1)
                 self.assertEqual(len(list((self.run/'calls').iterdir())), 1)
-                self.assertIn(f'"stage": "{next_stage}"', output.getvalue())
+                self.assertIn('"stage": "adjudicate"', output.getvalue())
                 self.assertIn(str(self.run/'handoff.md'), output.getvalue())
 
     def test_step_does_not_dispatch_or_recover_nonready_runs(self):
@@ -1466,7 +1355,7 @@ class ReviewTests(unittest.TestCase):
         self.accept(self.response([]))
         self.assertEqual(self.state['status'], 'complete')
         for status in ('blocked', 'interrupted', 'running', 'complete', 'unresolved',
-                       'needs_user', 'awaiting_coordinator', 'awaiting_astra'):
+                       'needs_user', 'awaiting_coordinator'):
             with self.subTest(status=status):
                 self.state['status'] = status
                 r.save(self.run, self.state)
@@ -1507,44 +1396,6 @@ class ReviewTests(unittest.TestCase):
         data.pop('handoff_revision')
         self.assertFalse(validator.is_valid(data))
 
-    def test_advisory_schema_and_normalization_freeze_findings(self):
-        self.state['implementation_evidence_version'] = 1
-        self.state.pop('implementation_response_version')
-        first = finding()
-        second = finding()
-        second.update(id='FIND-002', location='test_calculator.py:4')
-        for stage in ('respond', 'reply'):
-            with self.subTest(stage=stage):
-                self.state.update(stage=stage, findings=[first, second])
-                schema = r.provider_schema(self.state)
-                item = schema['properties']['findings']['items']
-                self.assertEqual(set(item['properties']), {'id', 'disposition', 'rationale'})
-                self.assertEqual(item['properties']['id']['enum'], ['FIND-001', 'FIND-002'])
-                self.assertEqual(schema['properties']['findings']['minItems'], 2)
-                self.assertEqual(schema['properties']['findings']['maxItems'], 2)
-                self.assertIn('return only id, disposition, and rationale', r.prompt(self.state))
-
-                data = self.response()
-                data['findings'][0].update(disposition='ACCEPTED', rationale='The defect is reproduced.')
-                data['findings'][1].update(disposition='REJECTED', rationale='The evidence disproves this finding.')
-                normalized = r.normalize_response(self.state, data)
-                self.assertEqual(normalized['findings'][0]['evidence'], first['evidence'])
-                self.assertEqual(normalized['findings'][1]['location'], second['location'])
-                self.assertEqual(normalized['findings'][0]['disposition'], 'ACCEPTED')
-                self.assertEqual(normalized['findings'][1]['disposition'], 'REJECTED')
-
-                mutations = [
-                    lambda value: value['findings'].pop(),
-                    lambda value: value['findings'].append(copy.deepcopy(value['findings'][0])),
-                    lambda value: value['findings'].reverse(),
-                    lambda value: value['findings'][0].update(id='FIND-999'),
-                    lambda value: value['findings'][0].update(evidence='Changed definition.'),
-                ]
-                for mutate in mutations:
-                    invalid = copy.deepcopy(data)
-                    mutate(invalid)
-                    with self.assertRaises(r.ReviewError):
-                        r.normalize_response(self.state, invalid)
 
     def test_adjudication_can_add_a_scoped_finding_without_mutating_existing_findings(self):
         existing = finding()
@@ -1596,17 +1447,6 @@ class ReviewTests(unittest.TestCase):
         self.assertEqual([item['id'] for item in self.state['findings']], ['FIND-001', 'FIND-002'])
         self.assertEqual(self.state['findings'][0]['evidence'], existing['evidence'])
 
-    def test_advisory_artifact_retains_full_canonical_findings(self):
-        self.state['implementation_evidence_version'] = 1
-        self.state.pop('implementation_response_version')
-        self.accept(self.response([finding()]))
-        data = self.response()
-        data['findings'][0].update(disposition='ACCEPTED', rationale='Accept the reproduced defect.')
-        self.accept(data)
-        artifact = r.read_json(self.run/'artifacts/revision-002.json')
-        self.assertEqual(artifact['response']['findings'][0]['evidence'], finding()['evidence'])
-        self.assertEqual(artifact['response']['findings'][0]['disposition'], 'ACCEPTED')
-        self.assertEqual(self.state['findings'][0]['disposition'], 'OPEN')
 
     def test_no_findings_cannot_bypass_configured_checks(self):
         r.perform_checks(self.run, self.state)
@@ -1657,7 +1497,7 @@ class ReviewTests(unittest.TestCase):
         self.state.update(stage='repair', status='ready')
         with self.assertRaisesRegex(r.ReviewError, 'read-only recoverable'):
             r.rerun_checks(self.run, self.state)
-        self.state.update(stage='respond', status='blocked')
+        self.state.update(stage='adjudicate', status='blocked')
         (self.project/'calculator.py').write_text('changed')
         before = self.state['handoff_revision']
         with self.assertRaisesRegex(r.ReviewError, 'Project changed'):
@@ -1673,28 +1513,6 @@ class ReviewTests(unittest.TestCase):
                                 'target_fingerprint': '0'*64}]
         self.assertFalse(r.checks_pass(self.state))
 
-    def test_legacy_runs_keep_base_less_and_check_less_compatibility(self):
-        legacy = copy.deepcopy(self.state)
-        legacy.pop('implementation_evidence_version')
-        legacy.pop('implementation_response_version')
-        legacy['base'] = None
-        legacy['check_commands'] = []
-        legacy['checks'] = []
-        self.assertNotIn('diff', r.target(legacy))
-        self.assertTrue(r.checks_pass(legacy))
-        legacy['stage'] = 'respond'
-        legacy['findings'] = [finding()]
-        response = {
-            'run_id': legacy['run_id'], 'target_fingerprint': legacy['target_fingerprint'],
-            'handoff_revision': legacy['handoff_revision'], 'stage': legacy['stage'],
-            'summary': 'Legacy-compatible response.', 'findings': copy.deepcopy(legacy['findings']),
-            'plan_markdown': None,
-        }
-        response['findings'][0]['evidence'] = 'Legacy runs retain their prior mutable definition behavior.'
-        r.validate_response(legacy, response)
-        self.state['check_commands'] = []
-        self.state['checks'] = []
-        self.assertFalse(r.checks_pass(self.state))
 
     def test_context_revision_prevents_replay_after_user_decision(self):
         self.state['stage'] = 'adjudicate'

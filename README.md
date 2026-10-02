@@ -17,7 +17,7 @@ Review runs keep a revision-bound decision ledger and separate review from repai
 
 ## How it works
 
-New plan reviews use `review → adjudicate → recheck` when refinement is needed. The coordinator always checks completeness, even after a clean review. Unchanged sound plans finish in two calls; first-pass corrected plans finish in three, with at most two refinement attempts. Stage-specific JSON responses carry only new findings, owned assessments, and any complete refinement. The helper assigns finding IDs, preserves canonical definitions, validates current evidence, and routes completion. See the [plan protocol](references/plan-protocol.md) for the exact contracts and legacy behavior.
+Plan reviews use `review → adjudicate → recheck` when refinement is needed. The coordinator always checks completeness, even after a clean review. Unchanged sound plans finish in two calls; first-pass corrected plans finish in three, with at most two refinement attempts. Stage-specific JSON responses carry only new findings, owned assessments, and any complete refinement. The helper assigns finding IDs, preserves canonical definitions, validates current evidence, and routes completion. See the [plan protocol](references/plan-protocol.md) for the exact contracts.
 
 Implementation reviews follow this sequence:
 

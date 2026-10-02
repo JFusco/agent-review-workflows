@@ -1,6 +1,6 @@
 # Plan review protocol 2
 
-New plan runs record `plan_protocol_version: 2`. The helper owns identity,
+Plan runs record `plan_protocol_version: 2`. The helper owns identity,
 canonical findings, persistence, routing, and completion. Models supply findings,
 assessments, and complete plan refinements through the schema supplied for their
 current stage. Prose carries evidence and judgment; it never controls routing.
@@ -124,9 +124,6 @@ If a readable-view write fails after acceptance, the durably saved next status i
 preserved. Inspect `status`; for a completed run, `run RUN` regenerates the views
 without invoking a provider. Do not retry an already accepted stage.
 
-Absent `plan_protocol_version` means the legacy plan protocol: its recorded
-advisory, refinement, and finalization stages and existing response shapes remain
-resumable. Unsupported explicit versions are rejected. Do not migrate old runs or
-remove their version markers to change behavior. To return to an older helper,
-preserve protocol-2 artifacts and start fresh legacy runs; the older helper cannot
-safely resume this new protocol. Implementation protocols are unaffected.
+Saved runs without `plan_protocol_version: 2` are unsupported. Preserve their
+artifacts and start a fresh run from the current plan and requirements. Do not
+edit saved state to bypass the protocol guard.

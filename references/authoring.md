@@ -15,4 +15,4 @@ Evaluate observable outcomes before adding instructions. Use the same raw requir
 
 For a comparison of existing runs, follow [review-suite-eval](suite-eval.md). It requires identical original inputs and labels unavailable measurements rather than estimating them.
 
-Tests must demonstrate rejection of malformed/stale handoffs, retained history, no plan-to-code transition, configured and frozen model settings, legacy-run compatibility, and only one implementation writer. Bounded live trials exercise every assigned role. No fixture carries production credentials or performs external writes.
+Tests must demonstrate rejection of malformed/stale handoffs and obsolete saved runs, retained history, no plan-to-code transition, configured and frozen model settings, and only one implementation writer. Bounded live trials exercise every assigned role. No fixture carries production credentials or performs external writes.

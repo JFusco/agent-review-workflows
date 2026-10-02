@@ -338,7 +338,7 @@ class PlanProtocolTests(unittest.TestCase):
             self.state['plan_protocol_version'] = version
             for operation in (lambda: r.status_payload(self.run, self.state),
                               lambda: r.packet(self.state), lambda: r.provider_schema(self.state)):
-                with self.assertRaisesRegex(r.ReviewError, 'Unsupported'):
+                with self.assertRaisesRegex(r.ReviewError, 'unsupported review protocol'):
                     operation()
         self.state['plan_protocol_version'] = 2
         for stage in ('respond', 'reply', 'refine', 'finalize', 'repair'):
@@ -349,23 +349,6 @@ class PlanProtocolTests(unittest.TestCase):
                 execute.assert_not_called()
             self.assert_rejected(self.response())
 
-    def test_legacy_paused_stages_keep_their_recorded_contract(self):
-        self.state.pop('plan_protocol_version')
-        baseline = copy.deepcopy(self.state)
-        for stage, next_stage in (('respond', 'reply'), ('reply', 'adjudicate'),
-                                  ('refine', 'recheck'), ('finalize', 'finalize')):
-            self.state = copy.deepcopy(baseline)
-            self.state['stage'] = stage
-            data = fixtures.ReviewTests.response(self, [])
-            if stage in ('refine', 'finalize'):
-                data['plan_markdown'] = self.draft.read_text()
-            r.Draft202012Validator(r.provider_schema(self.state)).validate(data)
-            self.accept(data)
-            self.assertEqual(self.state['stage'], next_stage)
-            self.assertEqual(self.state['status'], 'complete' if stage == 'finalize' else 'ready')
-            artifact = r.read_json(self.run / 'artifacts' / (self.state['ledger'][-1]['artifact_id'] + '.json'))
-            self.assertNotIn('submitted_response', artifact)
-            self.assertNotIn('plan_protocol_version', artifact)
 
 
 if __name__ == '__main__':
