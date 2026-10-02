@@ -292,7 +292,7 @@ def text_file(path):
 
 
 def scoped_diff(project, base, scope):
-    result = command(['git', 'diff', '--no-ext-diff', '--no-textconv', base, '--', *scope], project)
+    result = command(['git', '--literal-pathspecs', 'diff', '--no-ext-diff', '--no-textconv', base, '--', *scope], project)
     if result.returncode:
         raise ReviewError('Cannot produce scoped diff against the recorded base.')
     sections = [result.stdout.rstrip('\n')] if result.stdout else []
@@ -300,7 +300,7 @@ def scoped_diff(project, base, scope):
         path = project / name
         if not path.exists():
             continue
-        tracked = command(['git', 'ls-files', '--error-unmatch', '--', name], project)
+        tracked = command(['git', '--literal-pathspecs', 'ls-files', '--error-unmatch', '--', name], project)
         if tracked.returncode == 0:
             continue
         addition = command(
