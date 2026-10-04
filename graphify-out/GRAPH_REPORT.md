@@ -4,12 +4,12 @@
 - cluster-only mode — file stats not available
 
 ## Summary
-- 409 nodes · 1137 edges · 13 communities (12 shown, 1 thin omitted)
+- 409 nodes · 1138 edges · 13 communities (12 shown, 1 thin omitted)
 - Extraction: 89% EXTRACTED · 11% INFERRED · 0% AMBIGUOUS · INFERRED: 121 edges (avg confidence: 0.5)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `c887dde6`
+- Built from commit: `6ef3b261`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -17,6 +17,7 @@
 - review_cli.py
 - archive-plan.cjs
 - on-merge-sync.cjs
+- common.cjs
 - audit-plan-candidates.cjs
 - viewer.js
 - routing.cjs
@@ -24,7 +25,6 @@
 - validate_pr_body.cjs
 - python.cjs
 - routing.js
-- common.cjs
 
 ## God Nodes (most connected - your core abstractions)
 1. `ReviewError` - 40 edges
@@ -56,7 +56,7 @@
 ## Communities (13 total, 1 thin omitted)
 
 ### Community 0 - "review_cli.py"
-Cohesion: 0.08
+Cohesion: 0.09
 Nodes (95): Exception, accept(), advance(), agent_settings(), aggregate(), assert_claude_auth(), assert_fresh(), assert_idle_group() (+87 more)
 
 ### Community 1 - "archive-plan.cjs"
@@ -77,6 +77,10 @@ Nodes (59): fs, { key: githubRefKey }, { loadPolicy, policyProblems }, main(), p
   list,
   frontmatterProblems,
 } (+51 more)
+
+### Community 3 - "common.cjs"
+Cohesion: 0.07
+Nodes (49): { collect, resolveWikiLink, kind }, connections(), fs, main(), path, { repoRoot, slash, hasSymlinkComponent, atomicWrite }, { discover }, fs (+41 more)
 
 ### Community 4 - "audit-plan-candidates.cjs"
 Cohesion: 0.12
@@ -102,10 +106,6 @@ Nodes (8): fs, main(), readableText(), REQUIRED_CHECKS, REQUIRED_SECTIONS, secti
 Cohesion: 0.29
 Nodes (6): fs, local, path, result, root, { spawnSync }
 
-### Community 13 - "common.cjs"
-Cohesion: 0.07
-Nodes (49): { collect, resolveWikiLink, kind }, connections(), fs, main(), path, { repoRoot, slash, hasSymlinkComponent, atomicWrite }, { discover }, fs (+41 more)
-
 ## Knowledge Gaps
 - **89 isolated node(s):** `fs`, `path`, `{ spawnSync }`, `root`, `local` (+84 more)
   These have ≤1 connection - possible missing edges or undocumented components.
@@ -116,14 +116,14 @@ _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `repoRoot()` connect `common.cjs` to `archive-plan.cjs`, `on-merge-sync.cjs`, `audit-plan-candidates.cjs`, `reconcile-merges.cjs`?**
   _High betweenness centrality (0.082) - this node is a cross-community bridge._
-- **Why does `git()` connect `archive-plan.cjs` to `audit-plan-candidates.cjs`, `common.cjs`?**
+- **Why does `git()` connect `archive-plan.cjs` to `common.cjs`, `audit-plan-candidates.cjs`?**
   _High betweenness centrality (0.018) - this node is a cross-community bridge._
 - **Why does `atomicWrite()` connect `common.cjs` to `archive-plan.cjs`, `on-merge-sync.cjs`, `audit-plan-candidates.cjs`?**
   _High betweenness centrality (0.017) - this node is a cross-community bridge._
 - **What connects `fs`, `path`, `{ spawnSync }` to the rest of the system?**
   _89 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `review_cli.py` be split into smaller, more focused modules?**
-  _Cohesion score 0.08483676975945018 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.08505154639175258 - nodes in this community are weakly interconnected._
 - **Should `archive-plan.cjs` be split into smaller, more focused modules?**
   _Cohesion score 0.05879917184265011 - nodes in this community are weakly interconnected._
 - **Should `on-merge-sync.cjs` be split into smaller, more focused modules?**

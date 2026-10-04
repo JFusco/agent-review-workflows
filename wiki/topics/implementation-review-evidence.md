@@ -115,7 +115,8 @@ production verification.
 
 [Issue #62](https://github.com/JFusco/agent-review-workflows/issues/62) introduces
 state version 3 for new implementation runs while retaining evidence/response
-version 2 and canonical artifact compatibility. Local finalization uses existing
+version 2 and canonical artifact compatibility. Local finalization validates the
+complete frozen profile before any artifact/state mutation, then uses existing
 acceptance, freshness, check, scope, and independent verification gates; it
 copies canonical findings exactly and records a deterministic ledger actor.
 Clean, rejected, and repaired paths require one, two, and four provider stages

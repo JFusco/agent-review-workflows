@@ -194,6 +194,43 @@ class MechanicsTests(MechanicsFixture, unittest.TestCase):
             r.finish_local(self.run, self.state)
         self.assertEqual(self.state['status'], 'ready')
 
+    def test_local_finalization_rejects_invalid_saved_profiles_without_mutation(self):
+        self.use_passing_check()
+        self.accept(self.response([]))
+        profile = copy.deepcopy(self.state['agent_profile'])
+        invalid = [{}, {role: settings for role, settings in profile.items() if role != 'coordinator'}]
+        for role, field, value in [('reviewer', 'model', ''), ('coordinator', 'model', 'invalid model'),
+                                  ('reviewer', 'effort', 'ultra'), ('implementer', 'effort', None)]:
+            candidate = copy.deepcopy(profile)
+            candidate[role][field] = value
+            invalid.append(candidate)
+        for action in ('run', 'step'):
+            for candidate in invalid:
+                with self.subTest(action=action, profile=candidate):
+                    self.state['agent_profile'] = candidate
+                    r.save(self.run, self.state)
+                    before = r.evidence_snapshot(self.run)
+                    with patch.object(r, 'execute_process') as execute, patch.object(r, 'assert_claude_auth') as auth, \
+                            patch.object(r, 'cli_argv') as argv, patch.object(r, 'resolve_cli') as resolve, \
+                            patch('sys.stderr', io.StringIO()) as errors, self.assertRaises(SystemExit) as stopped:
+                        self.cli(action)
+                    self.assertEqual(stopped.exception.code, 2)
+                    self.assertIn('run agent profile', errors.getvalue())
+                    for mock in (execute, auth, argv, resolve):
+                        mock.assert_not_called()
+                    self.assertEqual(before, r.evidence_snapshot(self.run))
+                    saved = r.read_json(self.run/'state.json')
+                    self.assertEqual((saved['stage'], saved['status']), ('finalize', 'ready'))
+                    self.assertEqual(saved['handoff_revision'], self.state['handoff_revision'])
+                    self.assertFalse((self.run/'final.md').exists())
+        self.state['agent_profile'] = profile
+        r.save(self.run, self.state)
+        with patch.object(r, 'execute_process') as execute, patch.object(r, 'assert_claude_auth') as auth:
+            self.cli('step')
+        execute.assert_not_called()
+        auth.assert_not_called()
+        self.assertEqual(r.read_json(self.run/'state.json')['status'], 'complete')
+
     def test_completion_save_failure_records_orphan_then_accepts_once(self):
         self.use_passing_check()
         self.accept(self.response([]))
@@ -322,7 +359,7 @@ class CollectionTests(MechanicsFixture, unittest.TestCase):
                 'headRefOid': self.head, 'baseRefOid': self.state['base'], 'updatedAt': '2026-10-04T10:00:00Z',
                 'closingIssuesReferences': [{'url': ISSUE}], 'mergeable': 'MERGEABLE', 'reviewDecision': 'APPROVED', **overrides}
 
-    def hosted(self, pr=None, checks=None, code=0, second_pr=None, second_checks=None, mutate=None):
+    def hosted(self, pr=None, checks=None, code=0, second_pr=None, second_checks=None, mutate=None, second_code=None):
         counts = {'pr': 0, 'checks': 0}
         real_command = r.command
         def command(argv, cwd, timeout=30):
@@ -341,7 +378,8 @@ class CollectionTests(MechanicsFixture, unittest.TestCase):
             counts['checks'] += 1
             value = second_checks if counts['checks'] == 2 and second_checks is not None else checks if checks is not None else [
                 {'name': 'test', 'state': 'SUCCESS', 'bucket': 'pass', 'link': 'https://example.invalid/check/1'}]
-            return subprocess.CompletedProcess(argv, code, json.dumps(value), '')
+            check_code = second_code if counts['checks'] == 2 and second_code is not None else code
+            return subprocess.CompletedProcess(argv, check_code, json.dumps(value), '')
         return patch.object(r, 'command', side_effect=command)
 
     def setUp(self):
@@ -397,6 +435,66 @@ class CollectionTests(MechanicsFixture, unittest.TestCase):
         with self.hosted(second_checks=[{'name': 'test', 'state': 'PENDING', 'bucket': 'pending', 'link': ''}]):
             self.assertEqual(r.delivery_evidence(self.run, PR)['status'], 'UNKNOWN')
 
+    def test_checkout_changes_override_identity_blockers(self):
+        real_run, verify = subprocess.run, r.verify_target
+        for change, expected, code in [('head', 'UNKNOWN', 2), ('status', 'UNKNOWN', 2), ('stable-mismatch', 'BLOCKED', 1)]:
+            reads, nested = {'head': 0, 'status': 0}, []
+            def checkout(argv, *args, **kwargs):
+                result = real_run(argv, *args, **kwargs)
+                if argv == ['git', 'rev-parse', '--verify', 'HEAD^{commit}']:
+                    reads['head'] += 1
+                    if change == 'stable-mismatch' or (change == 'head' and reads['head'] == 2):
+                        result.stdout = (self.state['base'] + '\n').encode()
+                elif argv == ['git', '--no-optional-locks', 'status', '--porcelain=v1', '-z', '--untracked-files=all']:
+                    reads['status'] += 1
+                    if change == 'status' and reads['status'] == 2:
+                        result.stdout = b' M calculator.py\0'
+                return result
+            def identity(*args):
+                report = verify(*args)
+                nested.append(copy.deepcopy(report))
+                return report
+            with self.subTest(change=change), self.hosted(), patch.object(subprocess, 'run', side_effect=checkout), \
+                    patch.object(r, 'verify_target', side_effect=identity), \
+                    patch.object(sys, 'argv', ['review_cli.py', 'delivery-evidence', str(self.run), '--pr', PR]), \
+                    patch('sys.stdout', io.StringIO()) as output, self.assertRaises(SystemExit) as stopped:
+                r.main()
+            report = json.loads(output.getvalue())
+            self.assertEqual(stopped.exception.code, code)
+            self.assertEqual(report['status'], expected)
+            self.assertEqual(report['conditions']['identity']['report'], nested[0])
+            self.assertEqual(report['conditions']['identity']['status'], 'BLOCKED')
+            stable = report['conditions']['stable_observation']
+            self.assertEqual(stable['status'], 'PASS' if change == 'stable-mismatch' else 'UNKNOWN')
+            self.assertEqual(stable['changed_checkout'], change != 'stable-mismatch')
+            self.assertEqual(nested[0]['conditions']['stable_checkout']['status'],
+                             'PASS' if change == 'stable-mismatch' else 'BLOCKED')
+
+    def test_required_check_reread_exit_and_usable_blockers(self):
+        for first_state, second_state, first_code, second_code, expected, exit_code in [
+                ('SUCCESS', 'SUCCESS', 0, 1, 'UNKNOWN', 2),
+                ('SUCCESS', 'SUCCESS', 0, 0, 'PASS', 0),
+                ('PENDING', 'PENDING', 8, 8, 'BLOCKED', 1),
+                ('SUCCESS', 'PENDING', 0, 8, 'UNKNOWN', 2)]:
+            first_rows = [{'name': 'test', 'state': first_state,
+                           'bucket': 'pass' if first_state == 'SUCCESS' else 'pending', 'link': ''}]
+            second_rows = [{'name': 'test', 'state': second_state,
+                            'bucket': 'pass' if second_state == 'SUCCESS' else 'pending', 'link': ''}]
+            with self.subTest(first=first_state, second=second_state, second_code=second_code), \
+                    self.hosted(checks=first_rows, code=first_code, second_checks=second_rows, second_code=second_code), \
+                    patch.object(sys, 'argv', ['review_cli.py', 'delivery-evidence', str(self.run), '--pr', PR]), \
+                    patch('sys.stdout', io.StringIO()) as output, self.assertRaises(SystemExit) as stopped:
+                r.main()
+            report = json.loads(output.getvalue())
+            self.assertEqual(stopped.exception.code, exit_code)
+            self.assertEqual(report['status'], expected)
+            observations = report['evidence']['hosted']['required_checks']
+            self.assertEqual([item['exit_code'] for item in observations], [first_code, second_code])
+            stable = report['conditions']['stable_observation']
+            self.assertEqual(stable['status'], 'UNKNOWN' if expected == 'UNKNOWN' else 'PASS')
+            if second_state == 'SUCCESS' and second_code:
+                self.assertIn(observations[1]['argv'], stable['unavailable_rereads'])
+
     def test_missing_network_malformed_and_identity_blocker(self):
         with patch.object(r, 'command', side_effect=r.ReviewError('gh unavailable')):
             self.assertEqual(r.delivery_evidence(self.run, PR)['status'], 'UNKNOWN')
@@ -420,6 +518,22 @@ class CollectionTests(MechanicsFixture, unittest.TestCase):
         self.assertEqual(r.finding_condition(self.state, [], [])['status'], 'UNKNOWN')
         self.state['findings'][0].update(disposition='REJECTED')
         self.assertEqual(r.finding_condition(self.state, [], [])['status'], 'PASS')
+
+    def test_local_checks_accept_matching_receipt_among_same_id_history(self):
+        current = copy.deepcopy(self.state['checks'][0])
+        old = {**current, 'output': 'Earlier execution with different timing output.'}
+        old_path = self.run/'checks'/'earlier-attempt.json'
+        r.write_new(old_path, old)
+        def receipts():
+            return [record for record in r.snapshot_records(r.evidence_snapshot(self.run), 'checks/')
+                    if '/' not in record['source'][7:]]
+        self.assertEqual(r.local_check_condition(self.state, receipts())['status'], 'PASS')
+        for path in (self.run/'checks').glob('*.json'):
+            if r.read_json(path) == current:
+                path.unlink()
+        self.assertEqual(r.local_check_condition(self.state, receipts())['status'], 'BLOCKED')
+        old_path.unlink()
+        self.assertEqual(r.local_check_condition(self.state, receipts())['status'], 'UNKNOWN')
 
 
     def test_independent_recheck_support_and_stale_references(self):

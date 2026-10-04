@@ -16,6 +16,35 @@ CLI configuration records are observations from the local runtime, not independe
 
 ## Local validation
 
+### Adversarial mechanics repairs (2026-10-04)
+
+Implementation run `c8622599-17f3-4acc-8e56-c079da647e65` accepted FIND-001
+through FIND-004. Four new temporary-repository/mocked-boundary regressions
+reproduced the defects before repair and pass after correction: exact current
+receipt membership among same-ID history; HEAD/status drift versus a stable
+identity mismatch; independent required-check reread exits with usable pending
+output; and invalid saved profiles rejected by ordinary run/step before state or
+artifact mutation. The valid-profile control still completes locally without
+provider or auth calls.
+
+The writer's gate and the runner's fresh CHECK-1-1 passed Python/JavaScript lint,
+**142 Python tests**, and **17 tooling tests**, then exited **2** because the
+wiki graph was stale after maintained documentation edits. The graph was outside
+that repair lock. Opus independently confirmed every code correction and found
+no new defects, but marked all four acceptance checks **BLOCKED** because each
+also requires the full gate to pass. The saved cycle remains **unresolved**;
+its failure receipts and finding statuses are preserved without migration or
+writer replay.
+
+The invoking agent regenerated the wiki graph and Graphify 0.9.36 map after the
+cycle stopped. Fresh review and delivery verification against that corrected
+checkout are recorded separately in [PR #63](https://github.com/JFusco/agent-review-workflows/pull/63).
+The review CLI invocations requested Opus 5.5/high, Astra 6/max, and Sol
+6.1/xhigh. Claude modelUsage identifies Opus 5.5; Codex results do not expose
+independent model/effort observations. These branch review judgments are distinct
+from fixture checks and do not establish provider latency, billed savings,
+hosted readiness, or production behavior.
+
 ### Deterministic review mechanics (2026-10-04)
 
 Issue [#62](https://github.com/JFusco/agent-review-workflows/issues/62) adds local

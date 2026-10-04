@@ -13,16 +13,18 @@ Collection uses the exact PR fields `url,title,body,state,isDraft,headRefOid,bas
 | Condition | PASS | BLOCKED | UNKNOWN |
 | --- | --- | --- | --- |
 | identity | Nested verify-target passes every condition | Known nested mismatch/ineligible run | Missing commit identity or nested unavailable evidence |
-| local_checks | Nonempty configured set, complete matching current/on-disk receipts, all exit 0 | Nonzero, contradictory, or stale receipts | Missing/incomplete/unreadable receipts |
+| local_checks | Nonempty configured set, complete current receipts with an exact on-disk match for each, all exit 0 | Nonzero, stale, or available on-disk receipts with no exact current match | Missing/incomplete/unreadable receipts |
 | finding_verification | Empty/rejected findings, or accepted findings with PASSED independent recheck and current references | Unresolved/incomplete/stale verification | Supporting records unavailable |
 | pr_state | OPEN, explicitly non-draft, matching PR identity | Draft/CLOSED/MERGED or different valid identity | Missing/unsupported state or identity |
 | mergeable | MERGEABLE | CONFLICTING | UNKNOWN/empty/missing/unsupported |
 | review_decision | APPROVED | REVIEW_REQUIRED/CHANGES_REQUESTED | Empty/missing/unsupported; no inference that reviews are unnecessary |
 | required_checks | Nonempty explicit successful states and pass buckets, successful collection | Fail/cancel/pending, including usable nonzero output | Empty/no-required/skipped/neutral/malformed/contradictory success or unexplained nonzero all-pass output |
 | linked_issues | Nonempty explicit linked URLs and complete requested fields | Issue state alone never blocks | Missing/ambiguous/inaccessible content |
-| stable_observation | Required hosted/local samples unchanged | None | Changed evidence or unavailable required reread |
+| stable_observation | Required hosted/local samples and nested checkout observation unchanged | None | Changed evidence, detected HEAD/status drift, or unavailable required reread |
 
-Consistent observations aggregate BLOCKED over UNKNOWN over PASS, with exits 1/2/0. Useful failing or pending hosted rows remain blockers even when `gh pr checks` exits nonzero (including pending exit 8). Detected hosted or local changes invalidate the combined judgment and force UNKNOWN/2, retaining both sampled observations even if an earlier value blocked. The [GitHub CLI PR](https://cli.github.com/manual/gh_pr_view), [issue](https://cli.github.com/manual/gh_issue_view), and [checks](https://cli.github.com/manual/gh_pr_checks) references document the collected fields.
+Retained same-ID local receipts from earlier executions may differ without invalidating an exact current match. Both hosted check observations use the same validity rules; unexplained nonzero all-pass output makes the required reread unavailable.
+
+Consistent observations aggregate BLOCKED over UNKNOWN over PASS, with exits 1/2/0. Useful failing or pending hosted rows remain blockers even when `gh pr checks` exits nonzero (including pending exit 8). Detected hosted or local changes, including nested `verify-target` checkout drift, invalidate the combined judgment and force UNKNOWN/2, retaining both sampled observations and the unchanged nested report even if an earlier value blocked. A stable checkout HEAD mismatch remains BLOCKED. The [GitHub CLI PR](https://cli.github.com/manual/gh_pr_view), [issue](https://cli.github.com/manual/gh_issue_view), and [checks](https://cli.github.com/manual/gh_pr_checks) references document the collected fields.
 
 Consume the packet and compare PR/issue acceptance criteria against verbatim run requirements, reviewed scope, finding decisions, and actual evidence. Assess missing or unsupported requirements and whether each check demonstrates the claimed behavior. Mechanical PASS alone does not establish READY; issue count/state or clean finding counts do not establish coverage. Without sufficient semantic evidence, return UNKNOWN. For a stable observation, preserve known mechanical blockers and return BLOCKED; otherwise return READY only with supported coverage and every applicable gate satisfied. If samples changed, return UNKNOWN and identify what needs rereading.
 

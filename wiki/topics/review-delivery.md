@@ -25,5 +25,9 @@ invalidates the assessment as UNKNOWN even when a prior sample blocked. Stable
 known blockers take precedence over missing evidence. Mechanical PASS alone
 never establishes semantic coverage or READY. The
 [delivery procedure](../../references/delivery.md) owns exact gate mappings.
+Current local receipts need one exact on-disk match despite retained same-ID
+history. Both hosted check observations are validated, and detected nested
+checkout drift also invalidates the combined observation as UNKNOWN while
+preserving the identity report.
 No provider, check execution, credential acquisition, or project/run/GitHub write
 is part of collection.

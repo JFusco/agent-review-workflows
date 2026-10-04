@@ -1438,6 +1438,7 @@ def completion_report(state):
 def finish_local(run, state):
     if not (local_finalization(state) and state['stage'] == 'finalize' and state['status'] == 'ready'):
         return
+    effective_profile(state)
     print('finalize: local-finalizer (deterministic)', flush=True)
     assert_fresh(state)
     if not complete_findings(state) or not checks_pass(state):
@@ -1833,7 +1834,7 @@ def local_check_condition(state, receipts):
         disk = [r for r in receipts if isinstance(r['value'], dict) and r['value'].get('id') == check.get('id')]
         if not disk:
             gaps.append(f'On-disk receipt unavailable for {check.get("id")}.')
-        elif any(r['value'] != check for r in disk):
+        elif check not in [r['value'] for r in disk]:
             blockers.append(f'On-disk receipt contradicts {check.get("id")}.')
     if len(current) > len(configured):
         blockers.append('Current receipts contain unconfigured checks.')
@@ -2072,6 +2073,9 @@ def delivery_evidence(run, pr):
     # A failed required-check command may still yield useful pending/failing rows.
     reread_missing = [a['argv'] for a, b in pairs if a['value'] is None or b['value'] is None or
                       (a is not first_checks and (a['exit_code'] != 0 or b['exit_code'] != 0))]
+    if any(required_check_condition(observation)['status'] == 'UNKNOWN'
+           for observation in (first_checks, second_checks)):
+        reread_missing.append(second_checks['argv'])
     for value in (first, second_pr['value']):
         if (not isinstance(value, dict) or any(not isinstance(value.get(k), str)
                 for k in PR_FIELDS.split(',') if k not in ('isDraft', 'closingIssuesReferences')) or
@@ -2084,14 +2088,18 @@ def delivery_evidence(run, pr):
             reread_missing.append(a['argv'])
     after = evidence_snapshot(run)
     local_changed = before != after
+    checkout = conditions['identity'].get('report', {}).get('conditions', {}).get('stable_checkout', {})
+    checkout_changed = checkout.get('status') == 'BLOCKED'
+    unstable = bool(changed or local_changed or checkout_changed)
     local_unavailable = [name for name, record in after.items() if not name.endswith('/') and record['bytes'] is None]
     if local_unavailable:
         reread_missing.append({'local_inputs': local_unavailable})
-    conditions['stable_observation'] = condition('UNKNOWN' if changed or local_changed or reread_missing else 'PASS',
-        'Evidence changed during collection.' if changed or local_changed else
+    conditions['stable_observation'] = condition('UNKNOWN' if unstable or reread_missing else 'PASS',
+        'Evidence changed during collection.' if unstable else
         'Required observations could not be reread.' if reread_missing else 'Hosted and local samples remained unchanged.',
-        changed_hosted=changed, changed_local=local_changed, unavailable_rereads=reread_missing)
-    report['status'] = 'UNKNOWN' if changed or local_changed else aggregate(conditions)
+        changed_hosted=changed, changed_local=local_changed, changed_checkout=checkout_changed,
+        unavailable_rereads=reread_missing)
+    report['status'] = 'UNKNOWN' if unstable else aggregate(conditions)
     return report
 
 
