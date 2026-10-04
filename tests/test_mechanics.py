@@ -529,6 +529,20 @@ class CollectionTests(MechanicsFixture, unittest.TestCase):
         self.assertEqual(report['check_time']['recorded_count'], 1)
         self.assertNotIn('total_cost_usd', report)
 
+    def test_malformed_optional_usage_stays_unavailable_and_json_valid(self):
+        for value in ('NaN', 'Infinity', '1e999', '2,"input_tokens":3'):
+            source = self.run/'calls'/'malformed'
+            source.mkdir(parents=True, exist_ok=True)
+            (source/'invocation.json').write_text(r.dumps({'argv': ['codex', 'exec']}))
+            (source/'stdout.log').write_text('{"type":"turn.completed","usage":{"input_tokens":' + value + '}}\n')
+            report = r.compare_runs(self.run, self.run)
+            self.assertEqual(report['status'], 'COMPARABLE')
+            self.assertEqual(report['baseline']['telemetry'], [])
+            self.assertIsNotNone(report['baseline']['launch_attempts'][0]['usage_unavailable_reason'])
+            r.parse_json(r.dumps(report))
+        with self.assertRaises(r.ReviewError):
+            r.parse_json('{"cost":1e999}')
+
     def test_comparison_changing_evidence_unknown(self):
         candidate = self.comparison()
         collect = r.run_comparison_evidence

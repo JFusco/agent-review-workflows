@@ -28,3 +28,8 @@ changing evidence. `tests/test_mechanics.py`, `tests/test_review_cli.py`, and
 live-provider performance, billed savings, hosted acceptance, or production
 behavior. Rollback preserves version-3 artifacts for a compatible helper and
 never retags them as version 2.
+
+Final parsing regression: duplicate keys, nonfinite values, and numeric overflow
+in optional JSONL usage are unavailable evidence. They cannot poison the JSON
+packet or invalidate otherwise comparable original inputs. The shared strict
+JSON decoder also rejects unrepresentable numeric values in required inputs.

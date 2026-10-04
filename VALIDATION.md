@@ -20,7 +20,7 @@ CLI configuration records are observations from the local runtime, not independe
 
 Issue [#62](https://github.com/JFusco/agent-review-workflows/issues/62) adds local
 implementation finalization for state version 3, `delivery-evidence`, and
-`compare-runs`. Twenty-seven new temporary-Git/mocked-boundary tests cover the
+`compare-runs`. Twenty-eight new temporary-Git/mocked-boundary tests cover the
 compatibility matrix, one/two/four provider-stage paths, ordinary and guarded
 entry points, external submission, check-only recovery, canonical findings,
 local provenance, orphan and derived-view failures, blocked post-repair checks
@@ -30,7 +30,7 @@ accepted provenance, failed launch attempts, individual usage accounting, and
 changing local/hosted observations. Existing version-2 regression fixtures retain
 their coordinator contract explicitly.
 
-`pnpm run verify:ci` passes Python/JavaScript lint, **137 Python tests**, **17
+`pnpm run verify:ci` passes Python/JavaScript lint, **138 Python tests**, **17
 tooling tests**, and wiki integrity. The Graphify 0.9.36 map was refreshed using
 local AST extraction and deterministic community naming, without model calls.
 The independently reviewed specification is archived with the wiki journal and

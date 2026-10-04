@@ -1,16 +1,15 @@
-# Graph Report - agent-review-workflows  (2026-10-04)
+# Graph Report - /Users/joe.fusco/Projects/agent-review-workflows  (2026-10-04)
 
 ## Corpus Check
-- 26 files · ~27,220 words
-- Verdict: corpus is large enough that graph structure adds value.
+- cluster-only mode — file stats not available
 
 ## Summary
-- 409 nodes · 1136 edges · 14 communities (13 shown, 1 thin omitted)
+- 409 nodes · 1137 edges · 13 communities (12 shown, 1 thin omitted)
 - Extraction: 89% EXTRACTED · 11% INFERRED · 0% AMBIGUOUS · INFERRED: 121 edges (avg confidence: 0.5)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `4b518398`
+- Built from commit: `c887dde6`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -18,7 +17,6 @@
 - review_cli.py
 - archive-plan.cjs
 - on-merge-sync.cjs
-- dates.cjs
 - audit-plan-candidates.cjs
 - viewer.js
 - routing.cjs
@@ -26,7 +24,7 @@
 - validate_pr_body.cjs
 - python.cjs
 - routing.js
-- serve-graph.cjs
+- common.cjs
 
 ## God Nodes (most connected - your core abstractions)
 1. `ReviewError` - 40 edges
@@ -43,19 +41,19 @@
 ## Surprising Connections (you probably didn't know these)
 - `resolveBaseBranch()` --indirect_call--> `candidate()`  [INFERRED]
   scripts/wiki/audit-plan-candidates.cjs → scripts/wiki/lib/plans.cjs
-- `main()` --calls--> `archive()`  [EXTRACTED]
-  scripts/wiki/apply-plan-audit.cjs → scripts/wiki/archive-plan.cjs
-- `main()` --calls--> `validateArchiveInput()`  [EXTRACTED]
-  scripts/wiki/apply-plan-audit.cjs → scripts/wiki/archive-plan.cjs
 - `main()` --calls--> `repoRoot()`  [EXTRACTED]
   scripts/wiki/apply-plan-audit.cjs → scripts/wiki/lib/common.cjs
-- `validateArchiveInput()` --calls--> `slugify()`  [EXTRACTED]
+- `fromArgs()` --calls--> `slash()`  [EXTRACTED]
+  scripts/wiki/archive-plan.cjs → scripts/wiki/lib/common.cjs
+- `validateArchiveInput()` --calls--> `ensureInside()`  [EXTRACTED]
+  scripts/wiki/archive-plan.cjs → scripts/wiki/lib/common.cjs
+- `validateArchiveInput()` --calls--> `hasSymlinkComponent()`  [EXTRACTED]
   scripts/wiki/archive-plan.cjs → scripts/wiki/lib/common.cjs
 
 ## Import Cycles
 - None detected.
 
-## Communities (14 total, 1 thin omitted)
+## Communities (13 total, 1 thin omitted)
 
 ### Community 0 - "review_cli.py"
 Cohesion: 0.08
@@ -63,11 +61,11 @@ Nodes (95): Exception, accept(), advance(), agent_settings(), aggregate(), asser
 
 ### Community 1 - "archive-plan.cjs"
 Cohesion: 0.06
-Nodes (77): archive(), cell(), { cleanCursor }, { digest, repoRoot, slugify, slash, ensureInside, hasSymlinkComponent, atomicWrite, walk }, ensureIndex(), fromArgs(), fs, { inferPlanDate } (+69 more)
+Nodes (65): { archive, validateArchiveInput, STATUSES }, fs, { inferPlanDate }, main(), parse(), path, { repoRoot }, archive() (+57 more)
 
 ### Community 2 - "on-merge-sync.cjs"
 Cohesion: 0.07
-Nodes (58): fs, { key: githubRefKey }, { loadPolicy, policyProblems }, main(), path, {
+Nodes (59): fs, { key: githubRefKey }, { loadPolicy, policyProblems }, main(), path, {
   repoRoot,
   walk,
   slash,
@@ -78,11 +76,7 @@ Nodes (58): fs, { key: githubRefKey }, { loadPolicy, policyProblems }, main(), p
   scalar,
   list,
   frontmatterProblems,
-} (+50 more)
-
-### Community 3 - "dates.cjs"
-Cohesion: 0.15
-Nodes (21): { archive, validateArchiveInput, STATUSES }, fs, { inferPlanDate }, main(), parse(), path, { repoRoot }, STATUSES (+13 more)
+} (+51 more)
 
 ### Community 4 - "audit-plan-candidates.cjs"
 Cohesion: 0.12
@@ -93,8 +87,8 @@ Cohesion: 0.19
 Nodes (25): addMetaLink(), addMetaRow(), addRelationship(), applyView(), buildIndexes(), buildLegend(), buildModel(), buildRenderer() (+17 more)
 
 ### Community 6 - "routing.cjs"
-Cohesion: 0.12
-Nodes (31): { collect, normalizeWikiRoot }, main(), parseArgs(), { repoRoot }, { route, formatRoute }, usage(), adjacency(), edgeCost() (+23 more)
+Cohesion: 0.16
+Nodes (23): adjacency(), edgeCost(), edgeKey(), edgeType(), EVIDENCE_TYPE_PRIORITY, formatGithubRef(), fs, githubRefText() (+15 more)
 
 ### Community 7 - "reconcile-merges.cjs"
 Cohesion: 0.18
@@ -108,9 +102,9 @@ Nodes (8): fs, main(), readableText(), REQUIRED_CHECKS, REQUIRED_SECTIONS, secti
 Cohesion: 0.29
 Nodes (6): fs, local, path, result, root, { spawnSync }
 
-### Community 13 - "serve-graph.cjs"
-Cohesion: 0.24
-Nodes (9): createServer(), fs, http, listen(), main(), path, { repoRoot, ensureInside }, resolveRequest() (+1 more)
+### Community 13 - "common.cjs"
+Cohesion: 0.07
+Nodes (49): { collect, resolveWikiLink, kind }, connections(), fs, main(), path, { repoRoot, slash, hasSymlinkComponent, atomicWrite }, { discover }, fs (+41 more)
 
 ## Knowledge Gaps
 - **89 isolated node(s):** `fs`, `path`, `{ spawnSync }`, `root`, `local` (+84 more)
@@ -120,17 +114,17 @@ Nodes (9): createServer(), fs, http, listen(), main(), path, { repoRoot, ensureI
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `repoRoot()` connect `archive-plan.cjs` to `on-merge-sync.cjs`, `dates.cjs`, `audit-plan-candidates.cjs`, `routing.cjs`, `reconcile-merges.cjs`, `serve-graph.cjs`?**
+- **Why does `repoRoot()` connect `common.cjs` to `archive-plan.cjs`, `on-merge-sync.cjs`, `audit-plan-candidates.cjs`, `reconcile-merges.cjs`?**
   _High betweenness centrality (0.082) - this node is a cross-community bridge._
-- **Why does `git()` connect `archive-plan.cjs` to `dates.cjs`, `audit-plan-candidates.cjs`?**
+- **Why does `git()` connect `archive-plan.cjs` to `audit-plan-candidates.cjs`, `common.cjs`?**
   _High betweenness centrality (0.018) - this node is a cross-community bridge._
-- **Why does `atomicWrite()` connect `archive-plan.cjs` to `on-merge-sync.cjs`, `audit-plan-candidates.cjs`?**
+- **Why does `atomicWrite()` connect `common.cjs` to `archive-plan.cjs`, `on-merge-sync.cjs`, `audit-plan-candidates.cjs`?**
   _High betweenness centrality (0.017) - this node is a cross-community bridge._
 - **What connects `fs`, `path`, `{ spawnSync }` to the rest of the system?**
   _89 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `review_cli.py` be split into smaller, more focused modules?**
-  _Cohesion score 0.08462199312714777 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.08483676975945018 - nodes in this community are weakly interconnected._
 - **Should `archive-plan.cjs` be split into smaller, more focused modules?**
-  _Cohesion score 0.05622489959839357 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05879917184265011 - nodes in this community are weakly interconnected._
 - **Should `on-merge-sync.cjs` be split into smaller, more focused modules?**
-  _Cohesion score 0.07043650793650794 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.07115384615384615 - nodes in this community are weakly interconnected._

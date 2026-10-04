@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 import fcntl
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -97,7 +98,12 @@ def parse_json(content):
                 raise ReviewError(f'Duplicate JSON key: {key}')
             result[key] = value
         return result
-    return json.loads(content, object_pairs_hook=pairs,
+    def finite_float(value):
+        number = float(value)
+        if not math.isfinite(number):
+            raise ReviewError(f'Nonfinite JSON number: {value}')
+        return number
+    return json.loads(content, object_pairs_hook=pairs, parse_float=finite_float,
                       parse_constant=lambda v: (_ for _ in ()).throw(ReviewError(f'Invalid JSON constant: {v}')))
 
 
@@ -2142,8 +2148,8 @@ def usage_records(snapshot, call, argv):
         thread = None
         for index, line in enumerate(output.splitlines(), 1):
             try:
-                event = json.loads(line)
-            except ValueError:
+                event = parse_json(line)
+            except (ReviewError, ValueError):
                 continue
             if not isinstance(event, dict):
                 continue
