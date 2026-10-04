@@ -64,8 +64,9 @@ response validator and scoped write guard run before acceptance.
 Only the implementer may write within the authorized scope, and only independent
 recheck may mark findings passed. New runs permit one repair and one recheck. An
 incomplete recheck, including a newly discovered gap, ends unresolved without
-another repair or coordinator call. A complete recheck proceeds to coordinator
-finalization, subject to passing checks.
+another repair or coordinator call. A complete recheck proceeds to local
+finalization for state version 3, subject to passing checks. Supported state
+version-2 runs retain their frozen coordinator finalization.
 
 ## Check recovery
 
@@ -85,14 +86,15 @@ older model output is stale. It never changes configured commands, findings,
 the repair count, or the target.
 
 When failed checks are the sole reason finalization is unresolved, a fully
-passing rerun makes that same finalization ready. Other blocked or unresolved
+passing rerun makes that same finalization ready and completes it locally for
+version 3. Other blocked or unresolved
 states retain their status and use their existing recovery path.
 
 ## Current evidence policy
 
 Implementation and diff runs require evidence version 2; implementation repair
-also requires response version 2 and the frozen profile. Older saved runs are
-retained as historical artifacts but cannot dispatch another provider or writer.
+also requires response version 2 and the frozen profile. Runs missing these markers or their frozen profiles are retained as historical
+artifacts but cannot dispatch another provider or writer.
 Start a fresh run against the current target and requirements. Plan review
 remains read-only and may omit a base and checks.
 
@@ -108,3 +110,22 @@ repair or finalizer call. The second completed the five-stage ledger with one
 locked Sol repair, Opus PASS, and Astra finalization. `VALIDATION.md` records
 the run IDs, check results, and limits. These local branch trials do not imply
 production verification.
+
+## Deterministic mechanics
+
+[Issue #62](https://github.com/JFusco/agent-review-workflows/issues/62) introduces
+state version 3 for new implementation runs while retaining evidence/response
+version 2 and canonical artifact compatibility. Local finalization uses existing
+acceptance, freshness, check, scope, and independent verification gates; it
+copies canonical findings exactly and records a deterministic ledger actor.
+Clean, rejected, and repaired paths require one, two, and four provider stages
+respectively, excluding retries. These are fixture-backed routing counts, not
+latency or billing measurements.
+
+Only a final derived-view failure preserves version-3 durable acceptance. Check
+execution, receipt, or freshness failures after repair still block recheck;
+retry restores complete current check evidence without replaying the writer.
+Completed historical views use accepted artifacts even after checkout loss.
+The [CLI contract](../../references/cli.md#saved-contracts-and-local-finalization)
+contains the version matrix and entry-point recovery behavior. Retired protocols
+are not restored or migrated; rollback never retags version-3 artifacts.

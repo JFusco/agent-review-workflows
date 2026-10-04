@@ -15,8 +15,8 @@
     "semantic_hash": "221036df280ecb379ba8886043d8ab53"
   },
   "scripts/review_cli.py": {
-    "mtime": 1790973704.7903154,
-    "ast_hash": "bbbb839d40cca7cd586e6512ae648806",
+    "mtime": 1791118603.1466353,
+    "ast_hash": "c82adcf91bc95baf5a2177e274856c6a",
     "semantic_hash": ""
   },
   "scripts/validate_pr_body.cjs": {

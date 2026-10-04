@@ -81,7 +81,7 @@ PYTHON HELPER status /path/to/run
 PYTHON HELPER rerun-checks /path/to/run
 ```
 
-The helper serializes the protocol and launches the selected roles through the CLIs. Inspect `handoff.md`, `final.md`, `artifacts/`, and `calls/` within the run. `step` runs one stage. Stop at `complete`, `reported`, `unresolved`, `needs_user`, or a reported blocker. No automatic model fallback, recursive agent delegation, or publication occurs.
+The helper serializes the protocol and launches the selected roles through the CLIs. Inspect `handoff.md`, `final.md`, `artifacts/`, and `calls/` within the run. `step` runs at most one provider stage plus an eligible version-3 local completion tail. Stop at `complete`, `reported`, `unresolved`, `needs_user`, or a reported blocker. No automatic model fallback, recursive agent delegation, or publication occurs.
 
 ### Claude login visibility in a sandbox
 
@@ -91,7 +91,7 @@ When sandboxed `claude auth status` reports logged out but the same command in a
 
 1. Run `PYTHON HELPER run RUN` in the sandbox. Let it stop at the reviewer auth-context diagnostic; initial implementation checks are now recorded in the sandbox.
 2. Confirm `PYTHON HELPER status RUN` is `ready` at a Claude `review` or `recheck` stage. Check host `claude auth status` without recording its raw output or credentials.
-3. Use approved host execution for `PYTHON HELPER step RUN --reviewer-only` only. The guard checks the role under the project lock and rejects Codex stages or implementation reviews without current check receipts. It dispatches one reviewer stage with the frozen model, tools, session, packet, and schema.
+3. Use approved host execution for `PYTHON HELPER step RUN --reviewer-only` only. The guard checks the role under the project lock and rejects Codex stages or implementation reviews without current check receipts. It dispatches one reviewer stage with the frozen model, tools, session, packet, and schema, leaving any local finalization ready for sandbox continuation.
 4. Resume `PYTHON HELPER run RUN` in the sandbox. Repeat the guarded host step only if another Claude reviewer stage is reached. Continue through the normal terminal state without asking the user to log in for each stage.
 
 Never run an unrestricted `run` or ordinary `step` with host access as an auth workaround. If host authentication is also absent or expired, the user must complete one interactive host CLI login before a reviewer stage can proceed. Do not copy Keychain contents, OAuth tokens, API keys, or raw auth output into environment files, packets, or run artifacts. A host permission decision remains subject to the invoking tool's policy.
@@ -111,7 +111,7 @@ Plan runs record `plan_protocol_version: 2` and follow the [stage-specific plan 
 
 New diff runs reuse the full canonical response schema, frozen-base evidence, check receipts, stable IDs, and immutable definitions. Their two-role profile routes `review → adjudicate`; adjudication always runs, even after an empty review. `PENDING_USER` uses the existing decision path. Otherwise the run ends at `status: reported`, retaining `stage: adjudicate` for empty, rejected, accepted, and failed-check outcomes. All findings remain `UNVERIFIED` without verification receipts. There is no repair lock, writer, recheck, or finalization stage. The accepted adjudication artifact stores its checks; `final.md` is the readable finding report, and `handoff.md` retains the full ledger and scoped diff. `reported` records review decisions, not a clean bill of health.
 
-Implementation runs record `implementation_evidence_version: 2` and use `review → adjudicate → repair → recheck → finalize` when findings are accepted and verified. The coordinator decides directly from the independent review, scoped source, and checks.
+Implementation runs record state `schema_version: 3` when newly started and `implementation_evidence_version: 2` and use `review → adjudicate → repair → recheck → finalize` when findings are accepted and verified. The coordinator decides directly from the independent review, scoped source, and checks.
 
 Implementation runs also record `implementation_response_version: 2` in state and the original snapshot; status, packet, and handoff expose it. At `repair` only, Sol returns the identity envelope (`implementation_response_version`, `run_id`, `stage`, `handoff_revision`, `target_fingerprint`), a nonblank `summary`, and `assessments`: one `{id, rationale}` for every `ACCEPTED` finding in canonical order. Each rationale must be substantive. The stage schema rejects missing, duplicate, unknown, reordered, or extra fields, including definition, disposition, and verification fields. The helper checks the saved repair lock, validates this compact response, reconstructs full canonical findings from persisted state, and applies only the accepted rationales. Rejected findings remain untouched. The full canonical validator and scoped write guard still run before acceptance. The repair artifact keeps both `submitted_response` and the canonical `response`.
 
@@ -119,9 +119,28 @@ Saved runs missing any current protocol marker or frozen profile stop before pro
 
 Adjudication retains every existing finding in canonical order and cannot change its definition or verification state. The coordinator may append a sequential, evidence-backed finding when the scoped source and review packet establish a missed gap. New findings require an authorized scoped location, start `UNVERIFIED` without verification receipts, and must pass repair and independent recheck. The accepted adjudication entry contains the repair lock: accepted findings in order, authorized scope, exact check command arrays, target fingerprint, and handoff revision. The helper checks it against current state and its saved artifact before Sol receives write access. The same lock is in Sol's packet, and `handoff.md` shows the lock alongside decisions and the current scoped diff against the frozen base.
 
-New implementation runs allow one repair and one recheck. If Opus leaves an accepted finding incomplete or introduces a new finding, the helper ends the run `unresolved` without another repair or coordinator call. A complete recheck enters finalization; failing configured checks keep it unresolved until a passing `rerun-checks` on the unchanged target reopens that finalization. No-findings runs proceed from review to finalization, and all-rejected runs proceed from adjudication to finalization, subject to passing checks.
+New implementation runs allow one repair and one recheck. If Opus leaves an accepted finding incomplete or introduces a new finding, the helper ends the run `unresolved` without another repair or coordinator call. A complete recheck enters local finalization for version 3; failing configured checks keep it unresolved until a passing `rerun-checks` on the unchanged target completes that local finalization. Supported version-2 runs reopen coordinator finalization. No-findings runs proceed from review to finalization, and all-rejected runs proceed from adjudication to finalization, subject to passing checks.
 
 Every response echoes the run, stage, target fingerprint, and handoff revision. The revision changes after an accepted response, reconciliation, or user decision, preventing an old response from answering a new instruction. Plan acceptance checks assess the revised document; passing means the plan is ready to implement, not that its code or future tests already passed. Implementation checks run before initial review and after repair, including when no findings remain. Failing or missing configured checks prevent completion.
+
+## Saved contracts and local finalization
+
+| Mode | State schema | Required markers | Completion |
+| --- | --- | --- | --- |
+| implementation | 2 | evidence 2, response 2 | Frozen coordinator finalization |
+| implementation | 3 | evidence 2, response 2 | Local deterministic finalization |
+| plan | 2 | plan protocol 2 | Existing helper completion |
+| diff | 2 | evidence 2 | Existing adjudication report |
+
+Versions must be actual integers. Missing/unknown markers or stages, schema-3 plan/diff runs, and retired version-1 contracts cannot resume. Existing original snapshots may omit the state schema field; they are never rewritten. State schema is exposed in new originals, packets, status, and handoffs. Canonical response and artifact schemas remain unchanged.
+
+Local finalization reuses canonical acceptance, exact finding preservation, fresh evidence, passing checks, and scope guards under the project lock. It records `local-finalizer` / `deterministic`, without authentication, a session, CLI launch, or external request. `run`, ordinary `step`, accepted external adjudication `submit`, and passing check-only recovery complete the eligible tail. Local finalization cannot accept an external submission. `step --reviewer-only` dispatches one reviewer and leaves the tail ready.
+
+Completion saves its immutable artifact and complete state before rendering. A failure before state save may leave an orphan artifact; ordinary continuation records the orphan and repeats only local completion. A final derived-view failure after durable acceptance leaves the accepted status intact. Ordinary `run`/`step` regenerate completed version-3 views from the accepted artifact and ledger even if the checkout changes or disappears, without a new revision. Complete runs reject `retry`, `rerun-checks`, `reconcile`, `submit`, and `decide`.
+
+This derived-view exception is narrow. A post-repair check execution, receipt write, or freshness failure leaves `recheck/blocked` with the repair accepted. `retry` rechecks freshness and executes the full configured check set before restoring ready; ordinary continuation never dispatches recheck early or replays repair. Completed nonzero receipts permit independent recheck but block completion. Version-2 recovery remains unchanged.
+
+Rollback preserves version-3 evidence: use a compatible helper to resume it, never retag it as version 2. The previous helper rejects version 3.
 
 ## Single-stage handoff
 
@@ -136,12 +155,12 @@ Call `step` only when `status` reports `ready` and the invoking conversation per
 
 For a Claude stage with a sandbox-hidden login, follow [Claude login visibility in a sandbox](#claude-login-visibility-in-a-sandbox). A sandboxed `step` may stop after recording initial checks but before dispatch; a subsequent approved host `step RUN --reviewer-only` is the single dispatched stage. Stop after that one reviewer dispatch. The reviewer-only guard fails before provider execution if the stage changed or initial implementation checks are missing.
 
-Stop after one attempt and report the attempted stage, resulting status, blocker if any, and `handoff.md`. A ready next stage requires another invocation. Non-ready states, including external-coordinator waits, use [Recovery](#recovery) or the existing [external submission procedure](#run-and-interact); the handoff skill performs neither automatically. If output is lost, read `status` without replaying `step`. The existing `run` command and full review skills continue to support complete cycles.
+Stop after one attempt and report the attempted stage, resulting status, blocker if any, and `handoff.md`. A ready next provider stage requires another invocation. An ordinary `step` completes an eligible version-3 local tail; a reviewer-only step leaves it ready for sandbox continuation. A step starting at local finalization dispatches no provider. Non-ready states, including external-coordinator waits, use [Recovery](#recovery) or the existing [external submission procedure](#run-and-interact); the handoff skill performs neither automatically. If output is lost, read `status` without replaying `step`. The existing `run` command and full review skills continue to support complete cycles.
 
 ## Recovery
 
 - `blocked`, or an orphaned read-only `running` stage: inspect the saved process output. `retry RUN` only resets a read-only stage after target freshness checks; then run again. Never change models to clear a blocker.
-- A transient configured-check failure on an unchanged current implementation or pre-report diff target: run `rerun-checks RUN`. The command is allowed only in a read-only recoverable state, retains prior receipt files, writes current receipts, increments the handoff revision, and invalidates stale agent output. It does not change the configured commands, target, findings, stage, or repair count. A check-only unresolved implementation finalization becomes ready only after every configured check passes; other blocked or unresolved states retain their status and still require their normal recovery.
+- A transient configured-check failure on an unchanged current implementation or pre-report diff target: run `rerun-checks RUN`. The command is allowed only in a read-only recoverable state, retains prior receipt files, writes current receipts, increments the handoff revision, and invalidates stale agent output. It does not change the configured commands, target, findings, or repair count. A check-only unresolved implementation finalization becomes ready only after every configured check passes, then completes locally in version 3; other blocked or unresolved states retain their status and still require their normal recovery.
 - A diff check execution interrupted before review: inspect the saved receipts, then use `retry RUN` for the blocked read-only stage. The helper reruns the complete configured check set before reviewer dispatch and preserves prior receipt files. A `reported` run is terminal: `run` and `step` regenerate readable views without provider dispatch; `retry`, `rerun-checks`, `reconcile`, `submit`, and `decide` reject it. Any changed target needs a new review.
 - `interrupted` repair: inspect actual changes, Git state, process output, and scope. Stop any still-running process first. Then `reconcile RUN --note "actual inspected partial changes"`. This advances to independent recheck, counts a repair pass, and never reruns the write automatically.
 - `needs_user`: obtain the user's actual decision, then `decide RUN --instruction "user decision"` and run again. Do not invent approval.

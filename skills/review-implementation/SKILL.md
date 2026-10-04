@@ -5,7 +5,7 @@ description: Independently reviews an implementation, resolves findings, and rep
 
 # Review an implementation
 
-A Claude reviewer independently reviews and rechecks. A Codex coordinator adjudicates, locks accepted repairs, and finalizes successful rechecks. A separate Codex implementer makes the locked repairs. Resolve each model and effort from the configured `review-implementation` profile and explicit start overrides. Freeze that profile into the run and never substitute another configuration.
+A Claude reviewer independently reviews and rechecks. A Codex coordinator adjudicates and locks accepted repairs. The helper finalizes successful version-3 runs locally. A separate Codex implementer makes the locked repairs. Resolve each model and effort from the configured `review-implementation` profile and explicit start overrides. Freeze that profile into the run and never substitute another configuration.
 
 Read [the CLI procedure](references/cli.md) to start or resume. [Authoring principles](references/authoring.md) apply when changing this skill.
 If the sandbox hides an existing host Claude login, follow the procedure's [guarded reviewer dispatch](references/cli.md#claude-login-visibility-in-a-sandbox) and keep checks and Codex stages sandboxed.
@@ -16,7 +16,7 @@ Run implementation mode with explicit scoped files, `--base`, and at least one a
 
 The coordinator must retain canonical finding definitions but may add a sequential, evidence-backed finding within the authorized scope during adjudication. The adjudication entry locks accepted findings, authorized files, checks, fingerprint, and revision before repair. Its decisions, lock, and current scoped diff are visible in `handoff.md`; the same lock reaches the implementer. A failed or incomplete recheck ends unresolved without another repair. When configured checks failed for a transient environment reason and the target is provably unchanged, use the documented `rerun-checks` recovery.
 
-For newly started runs, the repair response assesses accepted finding IDs and rationales only. The helper reconstructs canonical findings from saved state; the writer does not restate definitions, dispositions, or independent verification. Existing runs retain their saved response contract. See the CLI procedure for the exact schema and recovery behavior.
+For newly started runs, the repair response assesses accepted finding IDs and rationales only. The helper reconstructs canonical findings from saved state; the writer does not restate definitions, dispositions, or independent verification. Supported version-2 runs retain their saved coordinator finalization and response contract. See the CLI procedure for the exact schema and recovery behavior.
 
 Follow the shared [review style](references/cli.md#review-style). Source, reproduced failures, and actual checks support decisions; agent agreement is insufficient verification.
 

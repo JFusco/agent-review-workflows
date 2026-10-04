@@ -3,7 +3,7 @@
 Agent Review Workflows provides six installable agent skills for evidence-backed review and evaluation:
 
 - `review-plan`: a Claude reviewer critiques and rechecks; a Codex coordinator adjudicates and refines; the helper completes the plan review.
-- `review-implementation`: a Claude reviewer finds and rechecks defects; a Codex coordinator locks accepted repairs and closes successful reviews; a Codex implementer makes the scoped repair.
+- `review-implementation`: a Claude reviewer finds and rechecks defects; a Codex coordinator locks accepted repairs; the helper finalizes new successful runs locally; a Codex implementer makes the scoped repair.
 - `review-handoff`: dispatches one authorized stage of an existing review run through the helper, then reports its status.
 - `review-diff`: a Claude reviewer and Codex coordinator report findings for a scoped local Git change without repair.
 - `review-delivery`: assesses an explicit GitHub PR against a terminal review run, its issue, and required checks without changing them.
@@ -24,14 +24,16 @@ Implementation reviews follow this sequence:
 1. The helper snapshots an explicitly scoped target and records its fingerprint.
 2. For implementations, it runs the configured checks and gives the reviewer the frozen-base diff, scoped sources, verbatim requirements, and exact check receipts.
 3. The configured Claude reviewer independently reports located, severity-ranked findings. The coordinator decides them, may add an evidenced in-scope gap, and locks the accepted repairs, authorized files, checks, fingerprint, and revision in its adjudication entry.
-4. The implementer alone makes one scoped repair. The reviewer rechecks it once; an incomplete recheck ends unresolved, while a passing recheck proceeds to coordinator finalization.
+4. The implementer alone makes one scoped repair. The reviewer rechecks it once; an incomplete recheck ends unresolved, while a passing recheck proceeds to deterministic local finalization.
 5. The workflow writes a readable handoff with the decisions, repair lock, and scoped Git diff, plus immutable revision artifacts outside the reviewed project.
+
+New implementation runs need one provider stage with no findings, two when all findings are rejected, and four when repaired findings pass independent recheck, excluding retries. Their finalize ledger entry is local; supported version-2 runs retain coordinator finalization. These are deterministic routing counts, not measured latency or billing savings.
 
 Transient configured-check failures on an unchanged implementation target can be recovered with `rerun-checks`. The command retains old receipts, creates revision-bound current receipts, and never replays model or repair work.
 
 Diff reviews require a frozen Git base, scoped files, and a local check. They run `review → adjudicate` and end at `reported`, including when findings remain accepted or checks fail. The final report and handoff retain the decisions and check evidence; diff mode never repairs or independently verifies findings. See the [CLI procedure](references/cli.md) for the exact contract.
 
-PR delivery assessment compares an explicit PR with one terminal run. The read-only `verify-target` command checks local identity and the invoking conversation assesses issue coverage, required hosted checks, and review state. See the [delivery procedure](references/delivery.md).
+PR delivery assessment compares an explicit PR with one terminal run. The read-only `delivery-evidence` command collects local identity, receipts, linked issue content, and hosted gates; the invoking conversation assesses semantic coverage before declaring readiness. See the [delivery procedure](references/delivery.md).
 
 No model is silently substituted, and publication, deployment, or merge actions are outside the workflow.
 
@@ -73,7 +75,7 @@ Add any desired partial overrides to the ignored `runtime.local.json` beside thi
 
 `start` also accepts `--reviewer-model`, `--reviewer-effort`, `--coordinator-model`, `--coordinator-effort`, and implementation-only `--implementer-model` / `--implementer-effort`. Explicit flags override the installation profile, which overrides built-in defaults. The complete result is recorded in the run and used unchanged on resume. Configuration errors fail before run artifacts are created; provider rejection stops the run without fallback.
 
-Existing version-2 runs retain their frozen profiles, including Sol 6. Version-1 runs retain the original Opus 5.5 High, Astra 6 Max, and Sol 6 XHigh pins. Updating the helper does not migrate run artifacts or change resumed sessions. To select Sol 6 for a new implementation run, pass `--implementer-model gpt-6-sol` or set it in the installation profile.
+Existing version-2 runs retain their frozen profiles, including Sol 6. New implementation runs use state version 3 with local finalization. Retired version-1 runs are historical evidence and cannot resume. Updating the helper does not migrate run artifacts or change resumed sessions. To select Sol 6 for a new implementation run, pass `--implementer-model gpt-6-sol` or set it in the installation profile.
 
 ## Install
 
@@ -90,7 +92,7 @@ pnpm install --frozen-lockfile
 
 The installer adds links under `~/.agents/skills` and refuses to replace unrelated existing files. `--skills-dir` overrides that location. The source tree can live anywhere; links should be reinstalled after moving it. No global provider, model, permission, or project settings are changed.
 
-`review-suite-eval` uses only saved run artifacts and does not invoke a provider.
+`review-suite-eval` uses `compare-runs` on saved artifacts, separates attempts from accepted stages, and preserves individual telemetry without inferred token/cost totals. It does not invoke a provider.
 
 `review-delivery` reads the saved run and GitHub PR evidence without invoking a provider or changing either.
 

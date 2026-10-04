@@ -16,6 +16,33 @@ CLI configuration records are observations from the local runtime, not independe
 
 ## Local validation
 
+### Deterministic review mechanics (2026-10-04)
+
+Issue [#62](https://github.com/JFusco/agent-review-workflows/issues/62) adds local
+implementation finalization for state version 3, `delivery-evidence`, and
+`compare-runs`. Twenty-seven new temporary-Git/mocked-boundary tests cover the
+compatibility matrix, one/two/four provider-stage paths, ordinary and guarded
+entry points, external submission, check-only recovery, canonical findings,
+local provenance, orphan and derived-view failures, blocked post-repair checks
+and retry without writer replay, completed target eligibility, historical view
+regeneration, delivery condition mappings and rereads, exact-input comparison,
+accepted provenance, failed launch attempts, individual usage accounting, and
+changing local/hosted observations. Existing version-2 regression fixtures retain
+their coordinator contract explicitly.
+
+`pnpm run verify:ci` passes Python/JavaScript lint, **137 Python tests**, **17
+tooling tests**, and wiki integrity. The Graphify 0.9.36 map was refreshed using
+local AST extraction and deterministic community naming, without model calls.
+The independently reviewed specification is archived with the wiki journal and
+updated implementation, delivery, and evaluation topics.
+
+This is deterministic fixture evidence. No provider-backed performance trial,
+production verification, live hosted readiness assessment, or billed savings
+was measured. The fixtures prove removal of one finalization provider stage,
+not a measured reduction in runtime or cost. No Jev dependency or experiment was
+added. Semantic coverage and quality still require the invoking model's
+assessment against actual requirements and maintainer expectations.
+
 ### Deterministic plan protocol (2026-09-30)
 
 Issue [#33](https://github.com/JFusco/agent-review-workflows/issues/33) adds
