@@ -550,6 +550,15 @@ class CollectionTests(MechanicsFixture, unittest.TestCase):
         receipts = [x for x in r.snapshot_records(snapshot, 'checks/') if '/' not in x['source'][7:]]
         self.assertEqual(r.finding_condition(self.state, artifacts, receipts)['status'], 'PASS')
         self.assertEqual(r.finding_condition(self.state, [], receipts)['status'], 'UNKNOWN')
+        fallback, fallback_artifacts = copy.deepcopy(self.state), copy.deepcopy(artifacts)
+        candidate = fallback['agent_fallbacks']['reviewer'][0]
+        agent = {'model': candidate['model'], 'effort': candidate['effort'], 'observed': {'source': 'fixture'}}
+        recheck = next(entry for entry in fallback['ledger'] if entry['stage'] == 'recheck')
+        recheck['agent'] = agent
+        next(x for x in fallback_artifacts if x['source'] == f'artifacts/{recheck["artifact_id"]}.json')['value']['agent'] = agent
+        self.assertEqual(r.finding_condition(fallback, fallback_artifacts, receipts)['status'], 'PASS')
+        fallback['agent_fallbacks']['reviewer'] = []
+        self.assertEqual(r.finding_condition(fallback, fallback_artifacts, receipts)['status'], 'BLOCKED')
         malformed = copy.deepcopy(self.state)
         malformed['findings'][0].pop('id')
         self.assertEqual(r.finding_condition(malformed, artifacts, receipts)['status'], 'UNKNOWN')

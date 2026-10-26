@@ -2006,6 +2006,12 @@ def finding_condition(state, artifacts, receipts):
     if not isinstance(reviewer, dict) or any(not isinstance(reviewer.get(k), str) or not reviewer[k].strip()
                                             for k in ('model', 'effort')):
         return condition('UNKNOWN', 'Frozen independent reviewer settings are unavailable.')
+    # A recorded read-only fallback may perform recheck; only frozen candidates qualify.
+    saved_fallbacks = state.get('agent_fallbacks')
+    fallbacks = saved_fallbacks.get('reviewer') if isinstance(saved_fallbacks, dict) else None
+    reviewers = [(reviewer['model'], reviewer['effort'])]
+    if isinstance(fallbacks, list):
+        reviewers += [(c.get('model'), c.get('effort')) for c in fallbacks if isinstance(c, dict)]
     if isinstance(terminal, dict) and isinstance(terminal.get('findings'), list) and terminal['findings'] != findings:
         return condition('BLOCKED', 'Current findings contradict the terminal accepted artifact.')
     for finding in findings:
@@ -2039,8 +2045,7 @@ def finding_condition(state, artifacts, receipts):
                         all(item.get(k) == finding.get(k) for k in FINDING_DEFINITION_FIELDS) and
                         record.get('target_after') == fingerprint and entry.get('target_after') == fingerprint and
                         record.get('agent') == entry.get('agent') and
-                        entry.get('agent', {}).get('model') == reviewer.get('model') and
-                        entry.get('agent', {}).get('effort') == reviewer.get('effort') and
+                        (entry['agent'].get('model'), entry['agent'].get('effort')) in reviewers and
                         isinstance(record.get('target'), dict) and digest(record['target']) == fingerprint and
                         record.get('run_id') == state.get('run_id')):
                     supporting = True
