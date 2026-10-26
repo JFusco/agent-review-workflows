@@ -58,6 +58,9 @@ class ReviewTests(unittest.TestCase):
                     requirements=str(ROOT/'tests/fixtures/requirements.md'), plan=None, runs_dir=str(self.root/'runs'),
                     base='HEAD', timeout=60, check=[f'{sys.executable} -m unittest -v'])
         self.run, self.state = r.initialize(self.args)
+        # These regression fixtures retain the saved version-2 coordinator contract.
+        self.state['schema_version'] = 2
+        r.save(self.run, self.state)
 
     def response(self, fs=None):
         findings = copy.deepcopy(self.state['findings'] if fs is None else fs)
@@ -1144,6 +1147,8 @@ class ReviewTests(unittest.TestCase):
         with patch.dict(r.DEFAULT_PROFILES['review-implementation']['implementer'],
                         {'model': 'gpt-6-sol', 'effort': 'xhigh'}):
             run, state = r.initialize(copy.deepcopy(self.args))
+        state['schema_version'] = 2
+        r.save(run, state)
         self.assertEqual(state['schema_version'], 2)
         self.assertEqual(r.DEFAULT_PROFILES['review-implementation']['implementer']['model'], 'gpt-6.1-sol')
         original_bytes = (run/'original.json').read_bytes()

@@ -5,9 +5,11 @@ from __future__ import annotations
 import argparse
 import contextlib
 import copy
+from datetime import datetime, timezone
 import fcntl
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -77,6 +79,10 @@ class ReviewError(Exception):
     pass
 
 
+class DerivedViewError(ReviewError):
+    """Acceptance is durable; only its final derived view failed."""
+
+
 class ProviderCallError(ReviewError):
     """A classified provider capacity failure, eligible only for read-only fallback."""
 
@@ -93,7 +99,7 @@ def digest(value):
     return hashlib.sha256(value if isinstance(value, bytes) else dumps(value).encode()).hexdigest()
 
 
-def read_json(path):
+def parse_json(content):
     def pairs(items):
         result = {}
         for key, value in items:
@@ -101,9 +107,18 @@ def read_json(path):
                 raise ReviewError(f'Duplicate JSON key: {key}')
             result[key] = value
         return result
+    def finite_float(value):
+        number = float(value)
+        if not math.isfinite(number):
+            raise ReviewError(f'Nonfinite JSON number: {value}')
+        return number
+    return json.loads(content, object_pairs_hook=pairs, parse_float=finite_float,
+                      parse_constant=lambda v: (_ for _ in ()).throw(ReviewError(f'Invalid JSON constant: {v}')))
+
+
+def read_json(path):
     try:
-        return json.loads(Path(path).read_text(), object_pairs_hook=pairs,
-                          parse_constant=lambda v: (_ for _ in ()).throw(ReviewError(f'Invalid JSON constant: {v}')))
+        return parse_json(Path(path).read_text())
     except (ValueError, OSError) as exc:
         raise ReviewError(f'Cannot read JSON: {path}: {exc}') from exc
 
@@ -224,12 +239,17 @@ def require_current_protocol(state):
         return type(value) is int and value == 2
 
     mode = state.get('mode')
-    if (not current(state.get('schema_version')) or mode not in STAGES or
+    if (not (type(state.get('schema_version')) is int and
+                 state['schema_version'] in ((2, 3) if mode == 'implementation' else (2,))) or mode not in STAGES or
             state.get('stage') not in STAGES[mode] or not isinstance(state.get('agent_profile'), dict) or
             (mode == 'plan' and not current(state.get('plan_protocol_version'))) or
             (mode in ('implementation', 'diff') and not current(state.get('implementation_evidence_version'))) or
             (mode == 'implementation' and not current(state.get('implementation_response_version')))):
         raise ReviewError('Saved run uses an unsupported review protocol; preserve its artifacts and start a new run.')
+
+
+def local_finalization(state):
+    return state['mode'] == 'implementation' and state['schema_version'] == 3
 
 
 def agent_candidate(state, who):
@@ -632,7 +652,8 @@ def evidence_catalog(state):
 
 
 def packet(state):
-    result = {'run_id': state['run_id'], 'mode': state['mode'], 'stage': state['stage'],
+    result = {'schema_version': state['schema_version'],
+            'run_id': state['run_id'], 'mode': state['mode'], 'stage': state['stage'],
             'handoff_revision': state['handoff_revision'],
             'target_fingerprint': state['target_fingerprint'], 'round': state['round'],
             'requirements': state['requirements'], 'project_instructions': state['instructions'],
@@ -1317,7 +1338,7 @@ def accept(run, state, data, config, session=None):
             entry['repair_lock'] = lock
     artifact = {'schema_version': 1, 'run_id': state['run_id'], **entry, 'response': data,
                 'target': new_target, 'findings': state['findings']}
-    if state['mode'] == 'diff':
+    if state['mode'] == 'diff' or (local_finalization(state) and stage == 'finalize'):
         artifact['checks'] = copy.deepcopy(state['checks'])
     if plan_v2:
         artifact.update(plan_protocol_version=2, submitted_response=submitted_response)
@@ -1367,7 +1388,12 @@ def accept(run, state, data, config, session=None):
     if stage == 'repair':
         perform_checks(run, state)
         save(run, state)
-    render(run, state)
+    try:
+        render(run, state)
+    except (Exception, KeyboardInterrupt) as exc:
+        if local_finalization(state):
+            raise DerivedViewError(str(exc)) from exc
+        raise
 
 
 def rerun_checks(run, state):
@@ -1421,9 +1447,12 @@ def rerun_checks(run, state):
     state['ledger'].append(entry)
     if previous_status == 'unresolved' and state['stage'] == 'finalize' and complete_findings(state) and passed:
         state.update(status='ready', error=None)
+    elif local_finalization(state) and state['stage'] == 'finalize' and not passed:
+        state.update(status='unresolved', error='Configured checks are missing or failing; no successful completion is claimed.')
     else:
         state.update(status=previous_status, error=previous_error)
     save(run, state)
+    finish_local(run, state)
     render(run, state)
 
 
@@ -1460,12 +1489,49 @@ def reconcile(run, state, note):
     save(run, state)
 
 
+def completion_report(state):
+    findings = state['findings']
+    outcome = ('No findings were reported.' if not findings else
+               'All findings were rejected.' if all(f['disposition'] == 'REJECTED' for f in findings) else
+               'Accepted repairs passed independent recheck.')
+    lines = ['# Implementation review result', '', outcome,
+             f'Run: `{state["run_id"]}`', f'Target: `{state["target_fingerprint"]}`',
+             f'Base: `{state["base"]}`', 'Scope: ' + ', '.join(state['scope']), '',
+             '## Recorded decisions and limitations', '']
+    for entry in state['ledger']:
+        lines += [f'- {entry["stage"]} by {entry["agent"]["model"]}: {entry["summary"]}']
+        for item in entry.get('finding_assessments', []):
+            lines += [f'  - {item["id"]}: {item["disposition"]} / {item["verification_status"]}: {item["rationale"]}']
+    lines += ['', '## Checks', '']
+    for check in state['checks']:
+        lines += [f'- {check["id"]}: `{shlex.join(check["argv"])}`: exit {check["exit_code"]}']
+    lines += ['', 'These are saved review and local-check results. They do not establish hosted or production acceptance.',
+              '', '## Scoped diff', '', '```diff', target(state)['diff'].rstrip(), '```', '']
+    return '\n'.join(lines)
+
+
+def finish_local(run, state):
+    if not (local_finalization(state) and state['stage'] == 'finalize' and state['status'] == 'ready'):
+        return
+    effective_profile(state)
+    print('finalize: local-finalizer (deterministic)', flush=True)
+    assert_fresh(state)
+    if not complete_findings(state) or not checks_pass(state):
+        state.update(status='unresolved', error='Resolved findings and passing current checks are required for completion.')
+        save(run, state)
+        return
+    data = {key: state[key] for key in ('run_id', 'target_fingerprint', 'handoff_revision', 'stage')}
+    data.update(summary=completion_report(state), findings=copy.deepcopy(state['findings']), plan_markdown=None)
+    accept(run, state, data, {'model': 'local-finalizer', 'effort': 'deterministic'})
+
+
 def render(run, state):
     plan_v2 = collapsed_plan(state)
     response_v2 = implementation_response_v2(state)
     lines = [f'# {state["mode"].capitalize()} review', '', f'Status: {state["status"]}',
              f'Run: `{state["run_id"]}`', f'Target: `{state["target_fingerprint"]}`', '',
              '## Agent profile', '']
+    lines[6:6] = [f'State schema: {state["schema_version"]}', '']
     if plan_v2:
         lines[6:6] = ['Plan protocol: 2', '']
     if response_v2:
@@ -1507,7 +1573,8 @@ def render(run, state):
                   f'Verification: {f["verification_status"]}', 'Evidence references: ' + ', '.join(f['verification_evidence']), '']
     if collapsed_implementation(state) or state['mode'] == 'diff':
         reviewed = (read_json(run / 'artifacts' / (state['ledger'][-1]['artifact_id'] + '.json'))['target']
-                    if state['mode'] == 'diff' and state['status'] == 'reported' else target(state))
+                    if (state['mode'] == 'diff' and state['status'] == 'reported') or
+                    (local_finalization(state) and state['status'] == 'complete') else target(state))
         scoped_change = reviewed['diff'].rstrip()
         lines += ['## Scoped diff', '', f'Against base `{state["base"]}`.', '']
         lines += ['```diff', scoped_change, '```', ''] if scoped_change else ['No scoped differences from the base.', '']
@@ -1574,6 +1641,9 @@ def advance(run, state, external_coordinator=False, reviewer_only=False):
     assert_fresh(state)
     if state['status'] != 'ready':
         raise ReviewError(f'Run is {state["status"]}; inspect status before resuming.')
+    if local_finalization(state) and state['stage'] == 'finalize':
+        finish_local(run, state)
+        return
     if collapsed_plan(state):
         if state['stage'] not in ('review', 'adjudicate', 'recheck'):
             raise ReviewError('This stage cannot dispatch under plan protocol 2.')
@@ -1635,7 +1705,10 @@ def advance(run, state, external_coordinator=False, reviewer_only=False):
             accept(run, state, data, config, session)
             return
         except (Exception, KeyboardInterrupt) as exc:
-            if (collapsed_plan(state) or state['mode'] == 'diff') and state['handoff_revision'] != revision_before:
+            if (collapsed_plan(state) or state['mode'] == 'diff' or
+                    (local_finalization(state) and isinstance(exc, DerivedViewError))) and state['handoff_revision'] != revision_before:
+                # Acceptance was durably saved. A derived-view failure must not replay
+                # this stage or strand completion at a non-dispatchable finalize stage.
                 raise
             state['status'] = 'interrupted' if state['stage'] == 'repair' else 'blocked'
             if state['stage'] == 'repair' and isinstance(exc, HandoffResponseError):
@@ -1706,7 +1779,8 @@ def external_submission_config(state, model, effort):
 
 
 def status_payload(run, state):
-    result = {'run': str(run), 'status': state['status'], 'stage': state['stage'],
+    result = {'schema_version': state['schema_version'],
+            'run': str(run), 'status': state['status'], 'stage': state['stage'],
             'round': state['round'], 'error': state['error'],
             'handoff': str(run / 'handoff.md'), 'agent_profile': effective_profile(state),
             'agent_fallbacks': copy.deepcopy(state.get('agent_fallbacks', {})),
@@ -1781,7 +1855,7 @@ def initialize(args):
             raise ReviewError('Base must resolve to a local commit.')
         base = result.stdout.strip()
     run_id = str(uuid.uuid4())
-    state = {'schema_version': 2, 'run_id': run_id, 'project': str(project), 'mode': args.mode,
+    state = {'schema_version': 3 if args.mode == 'implementation' else 2, 'run_id': run_id, 'project': str(project), 'mode': args.mode,
              'codex_binary': codex_binary, 'claude_binary': claude_binary,
              'agent_profile': agent_profile, 'agent_fallbacks': agent_fallbacks,
              'agent_selections': {}, 'fallback_history': [],
@@ -1808,7 +1882,7 @@ def initialize(args):
     run.mkdir(mode=0o700)
     (run / 'calls').mkdir()
     (run / 'executor').mkdir()
-    original = {'requirements': requirements, 'target': initial,
+    original = {'schema_version': state['schema_version'], 'requirements': requirements, 'target': initial,
                 'inventory': state['inventory'], 'instructions': state['instructions'],
                 'agent_profile': agent_profile, 'agent_fallbacks': agent_fallbacks, 'timeout': args.timeout}
     if state['mode'] in ('implementation', 'diff'):
@@ -1822,6 +1896,561 @@ def initialize(args):
     save(run, state)
     render(run, state)
     return run, state
+
+
+def observed_at():
+    return datetime.now(timezone.utc).isoformat()
+
+
+def condition(status, explanation, **details):
+    return {'status': status, 'explanation': explanation, **details}
+
+
+def aggregate(conditions):
+    statuses = {item['status'] for item in conditions.values()}
+    return 'BLOCKED' if 'BLOCKED' in statuses else 'UNKNOWN' if 'UNKNOWN' in statuses else 'PASS'
+
+
+def evidence_snapshot(run):
+    """Capture only inputs consumed by collectors, including their path set."""
+    paths = {run / 'original.json', run / 'state.json'}
+    for pattern in ('artifacts/*.json', 'checks/*.json', 'checks/*/process.json',
+                    'calls/*/invocation.json', 'calls/*/process.json', 'calls/*/stdout.log',
+                    'calls/*/last-message.json'):
+        paths.update(run.glob(pattern))
+    result = {str(p.relative_to(run)) + '/': {'bytes': None, 'error': 'call directory'}
+              for p in (run / 'calls').glob('*') if p.is_dir()}
+    for path in sorted(paths):
+        try:
+            result[str(path.relative_to(run))] = {'bytes': path.read_bytes(), 'error': None}
+        except OSError as exc:
+            result[str(path.relative_to(run))] = {'bytes': None, 'error': str(exc)}
+    return result
+
+
+def snapshot_json(snapshot, name):
+    record = snapshot.get(name)
+    if record is None or record['bytes'] is None:
+        raise ReviewError(f'Unavailable {name}: ' + (record['error'] if record else 'not recorded'))
+    try:
+        return parse_json(record['bytes'])
+    except (ReviewError, ValueError, UnicodeError) as exc:
+        raise ReviewError(f'Malformed {name}: {exc}') from exc
+
+
+def snapshot_records(snapshot, prefix):
+    records = []
+    for name in snapshot:
+        if name.startswith(prefix) and name.endswith('.json'):
+            try:
+                records.append({'source': name, 'value': snapshot_json(snapshot, name), 'unavailable_reason': None})
+            except ReviewError as exc:
+                records.append({'source': name, 'value': None, 'unavailable_reason': str(exc)})
+    return records
+
+
+def local_check_condition(state, receipts):
+    configured, current = state.get('check_commands'), state.get('checks')
+    if (not isinstance(configured, list) or not configured or not isinstance(current, list) or
+            not isinstance(state.get('target_fingerprint'), str) or
+            any(not isinstance(argv, list) or not argv or any(not isinstance(arg, str) or not arg for arg in argv)
+                for argv in configured)):
+        return condition('UNKNOWN', 'Configured checks or current receipts are unavailable.')
+    gaps, blockers = [], []
+    for index, argv in enumerate(configured):
+        if index >= len(current) or not isinstance(current[index], dict):
+            gaps.append(f'Missing receipt for check {index + 1}.')
+            continue
+        check = current[index]
+        if check.get('argv') != argv or check.get('target_fingerprint') != state.get('target_fingerprint'):
+            blockers.append(f'Stale or contradictory receipt {check.get("id")}.')
+        if type(check.get('exit_code')) is not int:
+            gaps.append(f'Missing exit result for {check.get("id")}.')
+        elif check['exit_code'] != 0:
+            blockers.append(f'Check {check.get("id")} exited {check["exit_code"]}.')
+        if not isinstance(check.get('id'), str) or not isinstance(check.get('output'), str):
+            gaps.append('Incomplete current receipt.')
+        disk = [r for r in receipts if isinstance(r['value'], dict) and r['value'].get('id') == check.get('id')]
+        if not disk:
+            gaps.append(f'On-disk receipt unavailable for {check.get("id")}.')
+        elif check not in [r['value'] for r in disk]:
+            blockers.append(f'On-disk receipt contradicts {check.get("id")}.')
+    if len(current) > len(configured):
+        blockers.append('Current receipts contain unconfigured checks.')
+    return condition('BLOCKED' if blockers else 'UNKNOWN' if gaps else 'PASS',
+                     'Configured current checks are complete and passed.' if not blockers and not gaps else
+                     ' '.join(blockers + gaps), receipts=receipts, current=current)
+
+
+def finding_condition(state, artifacts, receipts):
+    findings = state.get('findings')
+    if not isinstance(findings, list):
+        return condition('UNKNOWN', 'Saved findings are unavailable.')
+    finding_validator = VALIDATOR.evolve(schema=SCHEMA['properties']['findings']['items'])
+    if any(not finding_validator.is_valid(finding) for finding in findings):
+        return condition('UNKNOWN', 'Saved canonical findings are malformed.')
+    if not findings or all(isinstance(f, dict) and f.get('disposition') == 'REJECTED' for f in findings):
+        return condition('PASS', 'No accepted findings require independent verification.')
+    gaps, blockers = [], []
+    fingerprint = state.get('target_fingerprint')
+    ledger = state.get('ledger', [])
+    if not isinstance(ledger, list) or any(not isinstance(e, dict) for e in ledger):
+        return condition('UNKNOWN', 'Accepted ledger is unavailable or malformed.')
+    by_source = {r['source']: r['value'] for r in artifacts}
+    terminal = by_source.get('artifacts/' + str(ledger[-1].get('artifact_id')) + '.json') if ledger else None
+    saved = terminal.get('target') if isinstance(terminal, dict) else None
+    if not isinstance(saved, dict) or not isinstance(saved.get('files'), dict):
+        saved = None
+    profile = state.get('agent_profile')
+    reviewer = profile.get('reviewer') if isinstance(profile, dict) else None
+    if not isinstance(reviewer, dict) or any(not isinstance(reviewer.get(k), str) or not reviewer[k].strip()
+                                            for k in ('model', 'effort')):
+        return condition('UNKNOWN', 'Frozen independent reviewer settings are unavailable.')
+    # A recorded read-only fallback may perform recheck; only frozen candidates qualify.
+    saved_fallbacks = state.get('agent_fallbacks')
+    fallbacks = saved_fallbacks.get('reviewer') if isinstance(saved_fallbacks, dict) else None
+    reviewers = [(reviewer['model'], reviewer['effort'])]
+    if isinstance(fallbacks, list):
+        reviewers += [(c.get('model'), c.get('effort')) for c in fallbacks if isinstance(c, dict)]
+    if isinstance(terminal, dict) and isinstance(terminal.get('findings'), list) and terminal['findings'] != findings:
+        return condition('BLOCKED', 'Current findings contradict the terminal accepted artifact.')
+    for finding in findings:
+        if not isinstance(finding, dict):
+            gaps.append('Malformed finding.')
+            continue
+        fid = finding.get('id')
+        if finding.get('disposition') == 'REJECTED':
+            continue
+        if finding.get('disposition') != 'ACCEPTED' or finding.get('verification_status') != 'PASSED':
+            blockers.append(f'{fid} is unresolved or lacks PASSED verification.')
+            continue
+        refs = finding.get('verification_evidence')
+        if not isinstance(refs, list) or not refs:
+            blockers.append(f'{fid} lacks verification references.')
+            continue
+        supporting = False
+        missing_record = False
+        for entry in ledger:
+            if not isinstance(entry, dict) or entry.get('stage') != 'recheck':
+                continue
+            record = by_source.get('artifacts/' + str(entry.get('artifact_id')) + '.json')
+            if (not isinstance(record, dict) or not isinstance(record.get('findings'), list) or
+                    not isinstance(entry.get('agent'), dict)):
+                missing_record = True
+                continue
+            for item in record['findings']:
+                if (isinstance(item, dict) and item.get('id') == fid and item.get('disposition') == 'ACCEPTED' and
+                        item.get('verification_status') == 'PASSED' and
+                        item.get('verification_evidence') == refs and
+                        all(item.get(k) == finding.get(k) for k in FINDING_DEFINITION_FIELDS) and
+                        record.get('target_after') == fingerprint and entry.get('target_after') == fingerprint and
+                        record.get('agent') == entry.get('agent') and
+                        (entry['agent'].get('model'), entry['agent'].get('effort')) in reviewers and
+                        isinstance(record.get('target'), dict) and digest(record['target']) == fingerprint and
+                        record.get('run_id') == state.get('run_id')):
+                    supporting = True
+        if not supporting:
+            (gaps if missing_record or not any(e.get('stage') == 'recheck' for e in ledger if isinstance(e, dict))
+             else blockers).append(f'{fid} has no matching accepted independent recheck record.')
+        for ref in refs:
+            if not isinstance(ref, str):
+                blockers.append(f'{fid} has an invalid reference.')
+            elif ref.startswith('SOURCE:'):
+                if saved is None:
+                    gaps.append(f'Accepted source snapshot unavailable for {fid}.')
+                elif saved.get('files', {}).get(ref[7:]) is None:
+                    blockers.append(f'{fid} references unavailable source {ref}.')
+            elif ref.startswith('CHECK-'):
+                known = [r['value'] for r in receipts if isinstance(r['value'], dict) and r['value'].get('id') == ref]
+                retained = state.get('cited_check_receipts', {})
+                checks = state.get('checks', [])
+                if not isinstance(retained, dict) or not isinstance(checks, list):
+                    gaps.append('Saved check reference catalog is malformed.')
+                    continue
+                current = checks + list(retained.values())
+                matched = [c for c in current if isinstance(c, dict) and c.get('id') == ref]
+                if not known:
+                    gaps.append(f'On-disk evidence unavailable for {ref}.')
+                elif not matched or any(c.get('target_fingerprint') != fingerprint for c in matched):
+                    blockers.append(f'{fid} references stale check {ref}.')
+                elif not all(c in known for c in matched):
+                    blockers.append(f'{fid} check reference contradicts saved evidence.')
+            else:
+                blockers.append(f'{fid} references unsupported evidence {ref}.')
+    return condition('BLOCKED' if blockers else 'UNKNOWN' if gaps else 'PASS',
+                     'Accepted findings have current independent verification.' if not blockers and not gaps else
+                     ' '.join(blockers + gaps))
+
+
+PR_FIELDS = 'url,title,body,state,isDraft,headRefOid,baseRefOid,updatedAt,closingIssuesReferences,mergeable,reviewDecision'
+ISSUE_FIELDS = 'url,title,body,state'
+CHECK_FIELDS = 'name,state,bucket,link'
+
+
+def github_observation(argv, expected_type):
+    record = {'argv': argv, 'exit_code': None, 'value': None, 'unavailable_reason': None}
+    try:
+        result = command(argv, ROOT)
+        record.update(exit_code=result.returncode, stdout=result.stdout, stderr=result.stderr)
+        value = parse_json(result.stdout)
+        if not isinstance(value, expected_type):
+            raise ValueError('Unexpected JSON shape.')
+        record['value'] = value
+        if result.returncode:
+            record['unavailable_reason'] = f'Command exited {result.returncode}.'
+    except (ReviewError, ValueError) as exc:
+        record['unavailable_reason'] = str(exc)
+    return record
+
+
+def github_identity(url, kind):
+    if not isinstance(url, str):
+        return None
+    match = re.fullmatch(r'https://([^/]+)/([^/]+)/([^/]+)/' + kind + r'/([1-9][0-9]*)/?', url)
+    return tuple(p.lower() for p in match.groups()) if match else None
+
+
+def canonical_collection(value):
+    if isinstance(value, list):
+        return sorted((canonical_collection(v) for v in value), key=dumps)
+    if isinstance(value, dict):
+        return {k: canonical_collection(v) for k, v in value.items()}
+    return value
+
+
+def required_check_condition(observation):
+    rows = observation['value']
+    if not isinstance(rows, list) or not rows:
+        return condition('UNKNOWN', 'Required check results are missing or empty.', observation=observation)
+    blockers, gaps = [], []
+    for row in rows:
+        if not isinstance(row, dict) or any(k not in row for k in CHECK_FIELDS.split(',')):
+            gaps.append('Incomplete check record.')
+            continue
+        bucket, status = row['bucket'], row['state']
+        status = status.upper() if isinstance(status, str) else status
+        if bucket in ('fail', 'cancel', 'pending') or status in (
+                'FAILURE', 'ERROR', 'CANCELLED', 'CANCELED', 'TIMED_OUT', 'ACTION_REQUIRED',
+                'PENDING', 'QUEUED', 'IN_PROGRESS', 'WAITING', 'REQUESTED', 'EXPECTED', 'STALE'):
+            blockers.append(str(row['name']) + ': ' + str(status))
+        elif (bucket != 'pass' or status != 'SUCCESS' or not isinstance(row['name'], str) or
+              not row['name'].strip() or not isinstance(row['link'], str)):
+            gaps.append(str(row['name']) + ': unsupported, skipped, or contradictory success evidence.')
+    if observation['exit_code'] != 0:
+        gaps.append(observation['unavailable_reason'] or 'Nonzero check command exit.')
+    return condition('BLOCKED' if blockers else 'UNKNOWN' if gaps else 'PASS',
+                     'Required checks explicitly passed.' if not blockers and not gaps else ' '.join(blockers + gaps),
+                     observation=observation)
+
+
+def delivery_evidence(run, pr):
+    if github_identity(pr, 'pull') is None:
+        raise ReviewError('--pr must be an explicit GitHub PR URL.')
+    before = evidence_snapshot(run)
+    report = {'report_version': 1, 'command': 'delivery-evidence', 'observed_at': observed_at(),
+              'run': str(run), 'pr': pr, 'status': 'UNKNOWN', 'conditions': {}, 'evidence': {},
+              'limitations': ['Semantic requirement coverage is not assessed by this command.',
+                              'Readiness describes sampled evidence, not future PR state.']}
+    conditions = report['conditions']
+    try:
+        state, original = snapshot_json(before, 'state.json'), snapshot_json(before, 'original.json')
+        if not isinstance(state, dict) or not isinstance(original, dict):
+            raise ReviewError('State and original snapshot must be JSON objects.')
+    except ReviewError as exc:
+        state, original = {}, {}
+        report['evidence']['local_unavailable_reason'] = str(exc)
+    artifacts = snapshot_records(before, 'artifacts/')
+    receipts = [r for r in snapshot_records(before, 'checks/') if '/' not in r['source'][7:]]
+    report['run_id'] = state.get('run_id')
+    report['evidence'].update(original={'source': str(run / 'original.json'), 'value': original},
+                              state={'source': str(run / 'state.json'), 'value': state}, artifacts=artifacts,
+                              receipts=receipts, semantic_coverage='not_assessed')
+    first_pr = github_observation(['gh', 'pr', 'view', pr, '--json', PR_FIELDS], dict)
+    first = first_pr['value'] if first_pr['exit_code'] == 0 and isinstance(first_pr['value'], dict) else {}
+    links = first.get('closingIssuesReferences')
+    issue_urls = sorted({i['url'] for i in links if isinstance(i, dict) and
+                         github_identity(i.get('url'), 'issues')}) if isinstance(links, list) else []
+    first_issues = [github_observation(['gh', 'issue', 'view', url, '--json', ISSUE_FIELDS], dict) for url in issue_urls]
+    first_checks = github_observation(['gh', 'pr', 'checks', pr, '--required', '--json', CHECK_FIELDS], list)
+    head, base = first.get('headRefOid'), first.get('baseRefOid')
+    if all(isinstance(v, str) and re.fullmatch(r'[0-9a-fA-F]{40,64}', v) for v in (head, base)):
+        identity = verify_target(run, head, base)
+        conditions['identity'] = condition(identity['status'], 'See terminal target identity conditions.', report=identity)
+    else:
+        conditions['identity'] = condition('UNKNOWN', 'Observed PR commit identities are unavailable.')
+    second_issues = [github_observation(['gh', 'issue', 'view', url, '--json', ISSUE_FIELDS], dict) for url in issue_urls]
+    second_checks = github_observation(['gh', 'pr', 'checks', pr, '--required', '--json', CHECK_FIELDS], list)
+    second_pr = github_observation(['gh', 'pr', 'view', pr, '--json', PR_FIELDS], dict)
+    report['evidence']['hosted'] = {'pr': [first_pr, second_pr], 'issues': [first_issues, second_issues],
+                                    'required_checks': [first_checks, second_checks]}
+    conditions['local_checks'] = local_check_condition(state, receipts)
+    conditions['finding_verification'] = finding_condition(state, artifacts, receipts)
+    returned_identity = github_identity(first.get('url'), 'pull')
+    if returned_identity and returned_identity != github_identity(pr, 'pull'):
+        conditions['pr_state'] = condition('BLOCKED', 'Returned PR identity differs from requested PR.')
+    elif first.get('state') in ('CLOSED', 'MERGED') or first.get('isDraft') is True:
+        conditions['pr_state'] = condition('BLOCKED', 'PR is draft or closed.')
+    elif first.get('state') == 'OPEN' and first.get('isDraft') is False and returned_identity:
+        conditions['pr_state'] = condition('PASS', 'PR is open and non-draft.')
+    else:
+        conditions['pr_state'] = condition('UNKNOWN', 'PR state, draft flag, or identity is unavailable.')
+    for name, field, passing, blocking in (
+            ('mergeable', 'mergeable', 'MERGEABLE', ('CONFLICTING',)),
+            ('review_decision', 'reviewDecision', 'APPROVED', ('REVIEW_REQUIRED', 'CHANGES_REQUESTED'))):
+        value = first.get(field)
+        conditions[name] = condition('PASS' if value == passing else 'BLOCKED' if value in blocking else 'UNKNOWN',
+                                     f'{field}: {value!r}.', source=pr)
+    conditions['required_checks'] = required_check_condition(first_checks)
+    linkage_complete = (isinstance(links, list) and bool(links) and
+                        all(isinstance(i, dict) and github_identity(i.get('url'), 'issues') for i in links))
+    for url, observation in zip(issue_urls, first_issues):
+        value = observation['value']
+        linkage_complete = linkage_complete and (observation['exit_code'] == 0 and isinstance(value, dict) and
+            all(isinstance(value.get(k), str) for k in ISSUE_FIELDS.split(',')) and
+            github_identity(value.get('url'), 'issues') == github_identity(url, 'issues'))
+    conditions['linked_issues'] = condition('PASS' if linkage_complete else 'UNKNOWN',
+        'Explicit linked issue content collected; semantic coverage not assessed.' if linkage_complete else
+        'Explicit linked issue identities or content are missing, malformed, or inaccessible.', sources=issue_urls)
+    pairs = [(first_pr, second_pr), (first_checks, second_checks), *zip(first_issues, second_issues)]
+    changed = [a['argv'] for a, b in pairs if a['value'] is not None and b['value'] is not None and
+               canonical_collection(a['value']) != canonical_collection(b['value'])]
+    # A failed required-check command may still yield useful pending/failing rows.
+    reread_missing = [a['argv'] for a, b in pairs if a['value'] is None or b['value'] is None or
+                      (a is not first_checks and (a['exit_code'] != 0 or b['exit_code'] != 0))]
+    if any(required_check_condition(observation)['status'] == 'UNKNOWN'
+           for observation in (first_checks, second_checks)):
+        reread_missing.append(second_checks['argv'])
+    for value in (first, second_pr['value']):
+        if (not isinstance(value, dict) or any(not isinstance(value.get(k), str)
+                for k in PR_FIELDS.split(',') if k not in ('isDraft', 'closingIssuesReferences')) or
+                type(value.get('isDraft')) is not bool or not isinstance(value.get('closingIssuesReferences'), list)):
+            reread_missing.append(['gh', 'pr', 'view', pr])
+    for a, b in zip(first_issues, second_issues):
+        if any(not isinstance(observation['value'], dict) or
+               any(not isinstance(observation['value'].get(k), str) for k in ISSUE_FIELDS.split(','))
+               for observation in (a, b)):
+            reread_missing.append(a['argv'])
+    after = evidence_snapshot(run)
+    local_changed = before != after
+    checkout = conditions['identity'].get('report', {}).get('conditions', {}).get('stable_checkout', {})
+    checkout_changed = checkout.get('status') == 'BLOCKED'
+    unstable = bool(changed or local_changed or checkout_changed)
+    local_unavailable = [name for name, record in after.items() if not name.endswith('/') and record['bytes'] is None]
+    if local_unavailable:
+        reread_missing.append({'local_inputs': local_unavailable})
+    conditions['stable_observation'] = condition('UNKNOWN' if unstable or reread_missing else 'PASS',
+        'Evidence changed during collection.' if unstable else
+        'Required observations could not be reread.' if reread_missing else 'Hosted and local samples remained unchanged.',
+        changed_hosted=changed, changed_local=local_changed, changed_checkout=checkout_changed,
+        unavailable_rereads=reread_missing)
+    report['status'] = 'UNKNOWN' if unstable else aggregate(conditions)
+    return report
+
+
+def requested_settings(argv):
+    model, effort = None, None
+    if not isinstance(argv, list):
+        return {'model': None, 'effort': None, 'unavailable_reason': 'Recorded argv unavailable.'}
+    for index, argument in enumerate(argv):
+        if argument in ('--model', '--effort') and index + 1 < len(argv):
+            if argument == '--model':
+                model = argv[index + 1]
+            else:
+                effort = argv[index + 1]
+        if isinstance(argument, str) and argument.startswith('model_reasoning_effort='):
+            effort = argument.split('=', 1)[1].strip('"')
+    return {'model': model, 'effort': effort,
+            'unavailable_reason': None if model and effort else 'Some requested settings are not recorded.'}
+
+
+def usage_records(snapshot, call, argv):
+    source = call + '/stdout.log'
+    record = snapshot.get(source)
+    if record is None or record['bytes'] is None:
+        return [], 'Provider output unavailable.'
+    try:
+        output = record['bytes'].decode('utf-8')
+    except UnicodeError:
+        return [], 'Provider output is not UTF-8.'
+    resumed = isinstance(argv, list) and ('--resume' in argv or 'resume' in argv)
+    try:
+        envelope = snapshot_json(snapshot, source)
+    except ReviewError:
+        envelope = None
+    records = []
+    if isinstance(envelope, dict) and envelope.get('type') != 'turn.completed' and any(k in envelope for k in ('usage', 'modelUsage', 'total_cost_usd')):
+        usage = envelope.get('usage')
+        fields = ('input_tokens', 'output_tokens', 'cache_read_input_tokens', 'cache_creation_input_tokens')
+        model_fields = ('inputTokens', 'outputTokens', 'cacheReadInputTokens', 'cacheCreationInputTokens', 'costUSD')
+        models = envelope.get('modelUsage')
+        records.append({'source': source, 'producer': 'claude', 'session_id': envelope.get('session_id'),
+                        'usage': {k: usage[k] for k in fields if k in usage} if isinstance(usage, dict) else None,
+                        'total_cost_usd': envelope.get('total_cost_usd'),
+                        'modelUsage': {m: {k: v[k] for k in model_fields if k in v} for m, v in models.items()
+                                       if isinstance(v, dict)} if isinstance(models, dict) else None,
+                        'observed_models': list(models) if isinstance(models, dict) else [],
+                        'observed_effort': None,
+                        'usage_scope': 'reported main-loop result',
+                        'incremental_accounting_scope': 'unknown for resumed session' if resumed else 'fresh invocation',
+                        'cost_scope': 'incremental accounting unknown for resumed session' if resumed else
+                                      'reported invocation totals',
+                        'normalized_per_call': None, 'unavailable_reason':
+                            'No normalized incremental cost or usage is inferred from recorded totals.'})
+    else:
+        thread = None
+        for index, line in enumerate(output.splitlines(), 1):
+            try:
+                event = parse_json(line)
+            except (ReviewError, ValueError):
+                continue
+            if not isinstance(event, dict):
+                continue
+            if event.get('type') == 'thread.started':
+                thread = event.get('thread_id')
+            if event.get('type') == 'turn.completed' and isinstance(event.get('usage'), dict):
+                fields = ('input_tokens', 'cached_input_tokens', 'output_tokens', 'reasoning_output_tokens')
+                records.append({'source': source, 'event_position': index, 'producer': 'codex',
+                                'thread_id': event.get('thread_id', thread), 'session_id': event.get('session_id'),
+                                'usage': {k: event['usage'][k] for k in fields if k in event['usage']},
+                                'total_cost_usd': None, 'cost_unavailable_reason': 'Codex output exposes no USD cost.',
+                                'usage_scope': 'reported turn-completion usage; additivity not established',
+                                'resumed': resumed, 'observed_model': event.get('model'), 'observed_effort': None})
+    return records, None if records else 'No supported usage fields were recorded.'
+
+
+def process_measurement(record):
+    value = record if isinstance(record, dict) else {}
+    elapsed = value.get('elapsed_seconds')
+    valid = type(elapsed) in (int, float) and elapsed >= 0
+    return {'elapsed_seconds': elapsed if valid else None,
+            'elapsed_unavailable_reason': None if valid else 'Process duration not recorded.',
+            'exit_code': value.get('exit_code'), 'interruption': value.get('interruption')}
+
+
+def measurement_summary(records):
+    measured = [r['elapsed_seconds'] for r in records if r['elapsed_seconds'] is not None]
+    return {'recorded_count': len(records), 'measured_count': len(measured),
+            'measured_elapsed_seconds': sum(measured) if measured else None,
+            'unavailable_reason': None if records and len(measured) == len(records) else
+                                  'Some or all process durations are unavailable.'}
+
+
+def run_comparison_evidence(run, snapshot):
+    state, original = snapshot_json(snapshot, 'state.json'), snapshot_json(snapshot, 'original.json')
+    if (not isinstance(state, dict) or not isinstance(original, dict) or
+            not isinstance(original.get('requirements'), str) or not isinstance(original.get('target'), dict)):
+        raise ReviewError('Original requirements/target and state must be readable recorded objects.')
+    if 'ledger' in state and not isinstance(state['ledger'], list):
+        raise ReviewError('Recorded ledger is malformed.')
+    counts = dict.fromkeys(('cli', 'external', 'deterministic', 'operator', 'synthetic', 'unclassified'), 0)
+    accepted = []
+    for entry in state.get('ledger', []):
+        if not isinstance(entry, dict):
+            accepted.append({'classification': 'unclassified', 'record': entry})
+            counts['unclassified'] += 1
+            continue
+        agent = entry.get('agent', {})
+        agent = agent if isinstance(agent, dict) else {}
+        observed = agent.get('observed', {})
+        observed = observed if isinstance(observed, dict) else {}
+        source = observed.get('source')
+        if agent.get('model') in ('local-checks', 'local-finalizer'):
+            kind = 'deterministic'
+        elif agent.get('model') == 'operator':
+            kind = 'operator'
+        elif source in ('Claude modelUsage', 'not exposed by CLI output'):
+            kind = 'cli'
+        elif source in ('caller-attested external coordinator configuration', 'caller attestation; not provider-verified'):
+            kind = 'external'
+        elif source == 'fixture':
+            kind = 'synthetic'
+        else:
+            kind = 'unclassified'
+        counts[kind] += 1
+        accepted.append({'classification': kind, 'record': entry,
+                         'requested': {k: agent.get(k) for k in ('model', 'effort')},
+                         'observed': observed or None,
+                         'observed_unavailable_reason': None if observed.get('model') and observed.get('effort') else
+                                                       'Some or all observed provider settings are unavailable.',
+                         'settings_discrepancy': any(observed.get(k) != agent.get(k) for k in ('model', 'effort')
+                                                     if observed.get(k) is not None) if any(
+                                                         observed.get(k) is not None for k in ('model', 'effort')) else None,
+                         'cli_measurements_unavailable_reason': 'External stage has no CLI launch measurement.' if kind == 'external' else None})
+    attempts, telemetry, incomplete = [], [], []
+    calls = sorted({name.split('/')[1] for name in snapshot if name.startswith('calls/')})
+    for call_name in calls:
+        call = 'calls/' + call_name
+        source = call + '/invocation.json'
+        if source not in snapshot:
+            incomplete.append({'source': call, 'reason': 'No invocation record; not counted as a launch.'})
+            continue
+        try:
+            invocation = snapshot_json(snapshot, source)
+        except ReviewError as exc:
+            invocation = {'unavailable_reason': str(exc)}
+        try:
+            process = snapshot_json(snapshot, call + '/process.json')
+        except ReviewError:
+            process = None
+        argv = invocation.get('argv') if isinstance(invocation, dict) else None
+        usage, reason = usage_records(snapshot, call, argv)
+        telemetry.extend(usage)
+        requested = requested_settings(argv)
+        observed_models = [m for u in usage for m in u.get('observed_models', [])]
+        observed_models += [u['observed_model'] for u in usage if isinstance(u.get('observed_model'), str)]
+        attempts.append({'source': source, 'invocation': invocation, 'process_source': call + '/process.json',
+                         **process_measurement(process), 'requested': requested, 'observed_models': observed_models,
+                         'observed_effort': None, 'settings_discrepancy': any(m != requested['model'] for m in observed_models) if observed_models else None,
+                         'usage_unavailable_reason': reason})
+    check_processes = []
+    for name in snapshot:
+        if name.startswith('checks/') and name.endswith('/process.json'):
+            try:
+                process = snapshot_json(snapshot, name)
+            except ReviewError:
+                process = None
+            check_processes.append({'source': name, **process_measurement(process)})
+    protocol_fields = ('schema_version', 'plan_protocol_version', 'implementation_evidence_version', 'implementation_response_version')
+    return {'path': str(run), 'run_id': state.get('run_id'), 'status': state.get('status'),
+            'original': original, 'protocol': {k: state.get(k) for k in protocol_fields},
+            'agent_profile': state.get('agent_profile'), 'instructions': state.get('instructions'),
+            'check_commands': state.get('check_commands'), 'accepted_events': accepted,
+            'accepted_counts': {'total': len(accepted), **counts} if 'ledger' in state else None,
+            'accepted_unavailable_reason': None if 'ledger' in state else 'Accepted ledger not recorded.',
+            'launch_attempts': attempts,
+            'launch_attempt_count': len(attempts), 'incomplete_calls': incomplete,
+            'provider_cli_time': measurement_summary(attempts), 'check_processes': check_processes,
+            'check_time': measurement_summary(check_processes), 'current_checks': state.get('checks'),
+            'historical_checks': [r for r in snapshot_records(snapshot, 'checks/') if '/' not in r['source'][7:]],
+            'findings': state.get('findings'), 'telemetry': telemetry, 'evidence_paths': sorted(snapshot)}
+
+
+def compare_runs(baseline, candidate):
+    snapshots = [evidence_snapshot(run) for run in (baseline, candidate)]
+    report = {'report_version': 1, 'command': 'compare-runs', 'observed_at': observed_at(), 'status': 'UNKNOWN',
+              'comparability': {}, 'baseline': None, 'candidate': None,
+              'limitations': ['Input equality does not establish equivalent execution or semantic quality.',
+                              'Provider CLI time includes tool work and is not inference or whole-run wall time.',
+                              'Individual reported usage/cost records are not summed or treated as billed savings.',
+                              'Semantic quality requires explicitly supplied maintainer expectations.']}
+    for key, run, snapshot in zip(('baseline', 'candidate'), (baseline, candidate), snapshots):
+        try:
+            report[key] = run_comparison_evidence(run, snapshot)
+        except ReviewError as exc:
+            report[key] = {'path': str(run), 'unavailable_reason': str(exc)}
+    b, c = report['baseline'], report['candidate']
+    if 'original' in b and 'original' in c:
+        equal = {k: b['original'][k] == c['original'][k] for k in ('requirements', 'target')}
+        report['comparability'] = {'original_inputs': equal, 'context_differences': {
+            k: {'baseline': b[k], 'candidate': c[k]} for k in ('agent_profile', 'instructions', 'check_commands', 'protocol') if b[k] != c[k]}}
+        report['status'] = 'COMPARABLE' if all(equal.values()) else 'NOT_COMPARABLE'
+    else:
+        report['comparability']['unavailable_reason'] = 'Required recorded inputs are missing or malformed.'
+    changed = [str(run) for run, snapshot in zip((baseline, candidate), snapshots) if snapshot != evidence_snapshot(run)]
+    if changed:
+        report['status'] = 'UNKNOWN'
+        report['comparability']['changed_evidence'] = changed
+    return report
 
 
 def build_parser():
@@ -1847,6 +2476,12 @@ def build_parser():
     verify.add_argument('run', type=Path)
     verify.add_argument('--head', required=True, help='Observed PR head commit SHA.')
     verify.add_argument('--pr-base', required=True, help='Observed PR base commit SHA.')
+    delivery = sub.add_parser('delivery-evidence', help='Collect read-only mechanical PR/run evidence.')
+    delivery.add_argument('run', type=Path)
+    delivery.add_argument('--pr', required=True)
+    comparison = sub.add_parser('compare-runs', help='Compare recorded run inputs and measurements without execution.')
+    comparison.add_argument('baseline', type=Path)
+    comparison.add_argument('candidate', type=Path)
     for action in ('run', 'step', 'status', 'retry', 'rerun-checks', 'reconcile', 'submit', 'decide'):
         p = sub.add_parser(action)
         p.add_argument('run', type=Path)
@@ -1871,6 +2506,14 @@ def build_parser():
 def main():
     args = build_parser().parse_args()
     try:
+        if args.action == 'delivery-evidence':
+            report = delivery_evidence(args.run.expanduser().resolve(), args.pr)
+            print(dumps(report), end='')
+            sys.exit({'PASS': 0, 'BLOCKED': 1, 'UNKNOWN': 2}[report['status']])
+        if args.action == 'compare-runs':
+            report = compare_runs(args.baseline.expanduser().resolve(), args.candidate.expanduser().resolve())
+            print(dumps(report), end='')
+            sys.exit({'COMPARABLE': 0, 'NOT_COMPARABLE': 1, 'UNKNOWN': 2}[report['status']])
         if args.action == 'verify-target':
             report = verify_target(args.run.expanduser().resolve(), args.head, args.pr_base)
             print(dumps(report), end='')
@@ -1918,12 +2561,14 @@ def main():
                 state.update(stage='adjudicate', status='ready', error=None)
                 save(run, state)
             elif args.action == 'submit':
-                if state['status'] != 'awaiting_coordinator' or role(state) != 'astra':
+                if (state['status'] != 'awaiting_coordinator' or role(state) != 'astra' or
+                        (local_finalization(state) and state['stage'] == 'finalize')):
                     raise ReviewError('No external coordinator stage is waiting.')
                 assert_fresh(state)
                 data = read_json(args.response)
                 config = external_submission_config(state, args.model, args.effort)
                 accept(run, state, data, config)
+                finish_local(run, state)
             else:
                 if args.action == 'step' and args.reviewer_only:
                     if state['status'] != 'ready' or role(state) != 'opus' or agent_provider(state) != 'claude':
@@ -1938,11 +2583,14 @@ def main():
                                 for check, argv in zip(state['checks'], state['check_commands']))):
                         raise ReviewError('Reviewer-only step requires current check receipts before host dispatch.')
                 while state['status'] == 'ready':
-                    model, effort = agent_settings(state, role(state))
-                    print(f'{state["stage"]}: {model} ({effort})', flush=True)
+                    if not (local_finalization(state) and state['stage'] == 'finalize'):
+                        model, effort = agent_settings(state, role(state))
+                        print(f'{state["stage"]}: {model} ({effort})', flush=True)
                     advance(run, state, args.external_coordinator,
                             reviewer_only=args.action == 'step' and args.reviewer_only)
                     if args.action == 'step':
+                        if not args.reviewer_only:
+                            finish_local(run, state)
                         break
             render(run, state)
             print(dumps(status_payload(run, state)), end='')

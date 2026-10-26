@@ -16,6 +16,62 @@ CLI configuration records are observations from the local runtime, not independe
 
 ## Local validation
 
+### Adversarial mechanics repairs (2026-10-04)
+
+Implementation run `c8622599-17f3-4acc-8e56-c079da647e65` accepted FIND-001
+through FIND-004. Four new temporary-repository/mocked-boundary regressions
+reproduced the defects before repair and pass after correction: exact current
+receipt membership among same-ID history; HEAD/status drift versus a stable
+identity mismatch; independent required-check reread exits with usable pending
+output; and invalid saved profiles rejected by ordinary run/step before state or
+artifact mutation. The valid-profile control still completes locally without
+provider or auth calls.
+
+The writer's gate and the runner's fresh CHECK-1-1 passed Python/JavaScript lint,
+**142 Python tests**, and **17 tooling tests**, then exited **2** because the
+wiki graph was stale after maintained documentation edits. The graph was outside
+that repair lock. Opus independently confirmed every code correction and found
+no new defects, but marked all four acceptance checks **BLOCKED** because each
+also requires the full gate to pass. The saved cycle remains **unresolved**;
+its failure receipts and finding statuses are preserved without migration or
+writer replay.
+
+The invoking agent regenerated the wiki graph and Graphify 0.9.36 map after the
+cycle stopped. Fresh review and delivery verification against that corrected
+checkout are recorded separately in [PR #63](https://github.com/JFusco/agent-review-workflows/pull/63).
+The review CLI invocations requested Opus 5.5/high, Astra 6/max, and Sol
+6.1/xhigh. Claude modelUsage identifies Opus 5.5; Codex results do not expose
+independent model/effort observations. These branch review judgments are distinct
+from fixture checks and do not establish provider latency, billed savings,
+hosted readiness, or production behavior.
+
+### Deterministic review mechanics (2026-10-04)
+
+Issue [#62](https://github.com/JFusco/agent-review-workflows/issues/62) adds local
+implementation finalization for state version 3, `delivery-evidence`, and
+`compare-runs`. Twenty-eight new temporary-Git/mocked-boundary tests cover the
+compatibility matrix, one/two/four provider-stage paths, ordinary and guarded
+entry points, external submission, check-only recovery, canonical findings,
+local provenance, orphan and derived-view failures, blocked post-repair checks
+and retry without writer replay, completed target eligibility, historical view
+regeneration, delivery condition mappings and rereads, exact-input comparison,
+accepted provenance, failed launch attempts, individual usage accounting, and
+changing local/hosted observations. Existing version-2 regression fixtures retain
+their coordinator contract explicitly.
+
+`pnpm run verify:ci` passes Python/JavaScript lint, **138 Python tests**, **17
+tooling tests**, and wiki integrity. The Graphify 0.9.36 map was refreshed using
+local AST extraction and deterministic community naming, without model calls.
+The independently reviewed specification is archived with the wiki journal and
+updated implementation, delivery, and evaluation topics.
+
+This is deterministic fixture evidence. No provider-backed performance trial,
+production verification, live hosted readiness assessment, or billed savings
+was measured. The fixtures prove removal of one finalization provider stage,
+not a measured reduction in runtime or cost. No Jev dependency or experiment was
+added. Semantic coverage and quality still require the invoking model's
+assessment against actual requirements and maintainer expectations.
+
 ### Deterministic plan protocol (2026-09-30)
 
 Issue [#33](https://github.com/JFusco/agent-review-workflows/issues/33) adds
