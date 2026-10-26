@@ -52,3 +52,11 @@ bounded cycle stopped. Subsequent review and delivery results are recorded in
 from that stopped cycle. The updated [validation record](../../VALIDATION.md)
 distinguishes fixture behavior, provider review judgments, and the gate failure;
 it makes no latency, billing, hosted readiness, or production claim.
+
+On 2026-10-26 the branch absorbed recorded read-only fallbacks from
+[PR #65](https://github.com/JFusco/agent-review-workflows/pull/65). The
+fallback dispatch loop keeps derived-view recovery, and `step` skips the model
+banner at local finalization. An independent read-only review of the merge
+found that `delivery-evidence` accepted only the primary reviewer for recheck
+provenance. It now accepts any frozen reviewer candidate, and a fixture
+regression covers a fallback recheck and an unfrozen model.
