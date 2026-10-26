@@ -1,5 +1,7 @@
 ---
 topics: [review-agent-profiles]
+issue: 'https://github.com/jfusco/agent-review-workflows/issues/64'
+issues: ['https://github.com/jfusco/agent-review-workflows/issues/64']
 ---
 # Longer review calls and recorded fallback models
 
