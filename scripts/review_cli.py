@@ -2401,6 +2401,11 @@ def measurement_summary(records):
                                   'Some or all process durations are unavailable.'}
 
 
+# Recorded recovery context; older runs lack these fields and report them empty.
+RECOVERY_CONTEXT = {'agent_fallbacks': dict, 'agent_selections': dict, 'fallback_history': list,
+                    'response_corrections': list, 'timeout_history': list, 'timeout': lambda: None}
+
+
 def run_comparison_evidence(run, snapshot):
     state, original = snapshot_json(snapshot, 'state.json'), snapshot_json(snapshot, 'original.json')
     if (not isinstance(state, dict) or not isinstance(original, dict) or
@@ -2480,6 +2485,7 @@ def run_comparison_evidence(run, snapshot):
     return {'path': str(run), 'run_id': state.get('run_id'), 'status': state.get('status'),
             'original': original, 'protocol': {k: state.get(k) for k in protocol_fields},
             'agent_profile': state.get('agent_profile'), 'instructions': state.get('instructions'),
+            **{k: state.get(k, empty()) for k, empty in RECOVERY_CONTEXT.items()},
             'check_commands': state.get('check_commands'), 'accepted_events': accepted,
             'accepted_counts': {'total': len(accepted), **counts} if 'ledger' in state else None,
             'accepted_unavailable_reason': None if 'ledger' in state else 'Accepted ledger not recorded.',
@@ -2508,7 +2514,8 @@ def compare_runs(baseline, candidate):
     if 'original' in b and 'original' in c:
         equal = {k: b['original'][k] == c['original'][k] for k in ('requirements', 'target')}
         report['comparability'] = {'original_inputs': equal, 'context_differences': {
-            k: {'baseline': b[k], 'candidate': c[k]} for k in ('agent_profile', 'instructions', 'check_commands', 'protocol') if b[k] != c[k]}}
+            k: {'baseline': b[k], 'candidate': c[k]} for k in ('agent_profile', *RECOVERY_CONTEXT, 'instructions', 'check_commands', 'protocol')
+            if b[k] != c[k]}}
         report['status'] = 'COMPARABLE' if all(equal.values()) else 'NOT_COMPARABLE'
     else:
         report['comparability']['unavailable_reason'] = 'Required recorded inputs are missing or malformed.'

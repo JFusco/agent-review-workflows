@@ -6,7 +6,7 @@ Require explicit baseline and candidate run directories. Resolve the installed h
 PYTHON HELPER compare-runs BASELINE_RUN CANDIDATE_RUN
 ```
 
-The helper returns one JSON object with `report_version: 1`, UTC `observed_at`, `status`, `comparability`, `baseline`, `candidate`, and `limitations`. It requires readable originals/state and compares original requirements exactly as strings and targets as JSON values, without normalizing plan/source/diff text. COMPARABLE/0 means equal inputs, NOT_COMPARABLE/1 means different inputs, and UNKNOWN/2 means missing/malformed required inputs or changing evidence. Profile, instruction, check-command, and protocol differences are separate context; equality does not establish equivalent execution or quality. Historical unsupported contracts may be inspected without migration or current-default substitution.
+The helper returns one JSON object with `report_version: 1`, UTC `observed_at`, `status`, `comparability`, `baseline`, `candidate`, and `limitations`. It requires readable originals/state and compares original requirements exactly as strings and targets as JSON values, without normalizing plan/source/diff text. COMPARABLE/0 means equal inputs, NOT_COMPARABLE/1 means different inputs, and UNKNOWN/2 means missing/malformed required inputs or changing evidence. Profile, recorded recovery (frozen fallbacks, selections, fallback history, response corrections, timeout and its history; empty when a run predates them), instruction, check-command, and protocol differences are separate context; equality does not establish equivalent execution or quality. Historical unsupported contracts may be inspected without migration or current-default substitution.
 
 Each run reports:
 
