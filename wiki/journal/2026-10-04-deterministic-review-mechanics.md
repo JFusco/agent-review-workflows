@@ -1,7 +1,8 @@
 ---
 topics: [implementation-review-evidence, review-delivery, review-suite-evaluation]
 plans: [2026-10-04-move-review-mechanics-into-deterministic-code-05d32c1a75.md]
-issues: ['https://github.com/JFusco/agent-review-workflows/issues/62']
+issues: ['https://github.com/jfusco/agent-review-workflows/issues/62']
+issue: 'https://github.com/jfusco/agent-review-workflows/issues/62'
 ---
 # Move review mechanics into the existing helper
 
