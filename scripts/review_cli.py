@@ -63,6 +63,7 @@ SCHEMA = json.loads((ROOT / 'schemas/response.json').read_text())
 VALIDATOR = Draft202012Validator(SCHEMA)
 # Provider CLIs accept the common keyword subset but may not register the local dialect URI.
 PROVIDER_SCHEMA = {k: v for k, v in SCHEMA.items() if k != '$schema'}
+MAX_TIMEOUT = 14400  # Per-call seconds; long reasoning stages may need hours, never unbounded.
 MAX_BYTES = 4 * 1024 * 1024  # Bounded packet; fail visibly, never truncate a plan or source.
 EXCLUDED = {'.git', '.venv', 'node_modules', '__pycache__', '.next', 'dist', 'build'}
 STAGES = {
@@ -89,6 +90,10 @@ class ProviderCallError(ReviewError):
 
 class HandoffResponseError(ReviewError):
     """A submitted handoff response failed validation."""
+
+
+class ContractResponseError(HandoffResponseError):
+    """A response violated the stage contract; read-only stages may correct it once."""
 
 
 def dumps(value):
@@ -689,9 +694,13 @@ def prompt(state):
         })
         if state['mode'] == 'implementation':
             stage_text['adjudicate'] = ('Decide each finding from the independent review, scoped source, and checks. '
-                                        'Preserve existing definitions; append only evidence-backed scoped gaps. '
+                                        'Append only evidence-backed scoped gaps; they start UNVERIFIED with empty '
+                                        'verification_evidence. '
                                         'The helper locks accepted repairs after this response. Do not edit files.')
             stage_text['repair'] += ' Follow the current repair_lock exactly.'
+            for stage in ('adjudicate', 'recheck'):
+                stage_text[stage] += (' The helper retains saved definitions of existing findings; '
+                                      'report repaired line moves in rationale.')
         else:
             stage_text['adjudicate'] = ('Assess the full scoped change even if the reviewer found no gaps. '
                                         'Decide each finding from the diff and checks; append only evidenced scoped gaps. '
@@ -782,6 +791,10 @@ def prompt(state):
     result = header + '\nCURRENT HANDOFF\n' + dumps(packet(state))
     if plan_v2 or compact_repair:
         result += '\nRESPONSE SCHEMA\n' + dumps(provider_schema(state))
+    rejection = current_rejection(state)
+    if rejection:
+        result += ('\nPREVIOUS RESPONSE REJECTED\n' + rejection['reason'] +
+                   '\nReturn a corrected complete response for this same handoff.\n')
     if len(result.encode()) > MAX_BYTES:
         raise ReviewError('Full handoff exceeds 4 MiB; narrow the review scope. Nothing was truncated.')
     return result
@@ -793,12 +806,10 @@ def provider_schema(state):
         schema['properties'][key]['enum'] = [state[key]]
     if implementation_response_v2(state) and state['stage'] == 'repair':
         return repair_response_schema(state, schema)
-    evidence = schema['properties']['findings']['items']['properties']['verification_evidence']
-    keys = sorted(evidence_catalog(state))
-    if keys:
-        evidence['items']['enum'] = keys
-    else:
-        evidence['maxItems'] = 0
+    # Catalog-sized enums can exhaust Codex structured output before any token;
+    # validate_response still limits references to the current catalog.
+    if not evidence_catalog(state):
+        schema['properties']['findings']['items']['properties']['verification_evidence']['maxItems'] = 0
     if collapsed_plan(state):
         return plan_response_schema(state, schema)
     return schema
@@ -957,7 +968,8 @@ def capacity_failure(call_dir, message=None):
         r'rate_limit|rate limit|quota.{0,40}(?:exceeded|exhausted)|usage.limit|'
         r'(?:token|credit|budget).{0,40}(?:exhausted|exceeded|used up)|'
         r'hit your.{0,30}limit|out of.{0,15}(?:tokens|credits)|'
-        r'context_length_exceeded|maximum context length|overloaded_error', message))
+        r'context_length_exceeded|maximum context length|overloaded_error|'
+        r'incomplete response returned.{0,40}max_output_tokens', message))
 
 
 def provider_error(call_dir, message):
@@ -1162,7 +1174,24 @@ def normalize_response(state, data):
         return {**{key: data[key] for key in
                    ('run_id', 'stage', 'handoff_revision', 'target_fingerprint', 'summary')},
                 'findings': findings, 'plan_markdown': data.get('plan_markdown')}
+    if helper_owned_definitions(state):
+        data = copy.deepcopy(data)
+        saved = {finding['id']: finding for finding in state['findings']}
+        findings = data.get('findings') if isinstance(data, dict) else None
+        for finding in findings if isinstance(findings, list) else []:
+            if not isinstance(finding, dict) or not isinstance(finding.get('id'), str):
+                continue
+            if finding['id'] in saved:
+                finding.update({field: copy.deepcopy(saved[finding['id']][field])
+                                for field in FINDING_DEFINITION_FIELDS})
+            elif state['stage'] == 'adjudicate':
+                finding.update(verification_status='UNVERIFIED', verification_evidence=[])
     return data
+
+
+def helper_owned_definitions(state):
+    # Echoed implementation definitions are not evidence; repaired line ranges move.
+    return state['mode'] == 'implementation' and state['stage'] in ('adjudicate', 'recheck')
 
 
 def changed(before, after):
@@ -1292,18 +1321,22 @@ def accept(run, state, data, config, session=None):
             raise ReviewError('Diff reviews accept only review and adjudication.')
         if not diff_checks_current(state):
             raise ReviewError('Diff review requires complete current check receipts before accepting a response.')
-    submitted_response = copy.deepcopy(data) if plan_v2 or compact_repair else None
+    submitted_response = (copy.deepcopy(data) if plan_v2 or compact_repair or helper_owned_definitions(state)
+                          else None)
     if collapsed_implementation(state) and state['stage'] == 'repair':
         if state['round'] >= 1:
             raise ReviewError('This implementation run permits one repair pass.')
         validate_repair_lock(run, state)
     if state['mode'] == 'plan' and digest(text_file(Path(state['plan_file']))) != state['original_plan_hash']:
         raise ReviewError('Original draft changed during review; start a new run.')
+    # A state precondition, not a correctable response defect: never re-prompt or fall back.
+    if state['stage'] == 'finalize' and (not complete_findings(state) or not checks_pass(state)):
+        raise ReviewError('Finalization requires resolved findings and all configured checks passing on this target.')
     try:
         data = normalize_response(state, data)
         validate_response(state, data)
     except ReviewError as exc:
-        raise HandoffResponseError(str(exc)) from exc
+        raise ContractResponseError(str(exc)) from exc
     after = inventory(Path(state['project']))
     verify_writes(state, after)
     stage = state['stage']
@@ -1344,6 +1377,8 @@ def accept(run, state, data, config, session=None):
         artifact.update(plan_protocol_version=2, submitted_response=submitted_response)
     if compact_repair:
         artifact.update(implementation_response_version=2, submitted_response=submitted_response)
+    if helper_owned_definitions(state):
+        artifact['submitted_response'] = submitted_response
     write_new(run / 'artifacts' / f'{artifact_id}.json', artifact)
     state['ledger'].append(entry)
     state['handoff_revision'] += 1
@@ -1550,6 +1585,11 @@ def render(run, state):
     for item in state.get('fallback_history', []):
         lines.append(f'- Fallback at {item["stage"]}: {item["from"]["model"]} → {item["to"]["model"]}; '
                      f'{item["reason"]}; evidence: {item["call_dir"]}')
+    for item in state.get('response_corrections', []):
+        lines.append(f'- Correction at {item["stage"]}: {item["agent"]["model"]} re-prompted after '
+                     f'{item["reason"]}; evidence: {item["call_dir"]}')
+    for item in state.get('timeout_history', []):
+        lines.append(f'- Timeout at {item["stage"]}: {item["from"]} → {item["to"]} seconds.')
     lines.append('')
     if state.get('error'):
         lines += ['Current blocker: ' + state['error'], '']
@@ -1718,10 +1758,36 @@ def advance(run, state, external_coordinator=False, reviewer_only=False):
                 state['error'] = str(exc)
             save(run, state)
             render(run, state)
-            if isinstance(exc, ProviderCallError) and state['stage'] != 'repair':
-                if select_fallback(run, state, call_dir, str(exc)):
+            if state['stage'] != 'repair':
+                if isinstance(exc, ContractResponseError) and request_correction(run, state, call_dir, str(exc)):
+                    continue
+                if (isinstance(exc, (ProviderCallError, ContractResponseError)) and
+                        select_fallback(run, state, call_dir, str(exc))):
                     continue
             raise
+
+
+def current_rejection(state):
+    for event in reversed(state.get('response_corrections', [])):
+        if (event['stage'], event['handoff_revision']) == (state['stage'], state['handoff_revision']):
+            return event
+    return None
+
+
+def request_correction(run, state, call_dir, reason):
+    # One corrective attempt per stage, revision, and selected candidate keeps passes bounded.
+    candidate = agent_candidate(state, role(state))
+    key = {'stage': state['stage'], 'handoff_revision': state['handoff_revision'], 'agent': candidate}
+    if any(all(event.get(name) == value for name, value in key.items())
+           for event in state.get('response_corrections', [])):
+        return False
+    assert_fresh(state)
+    state.setdefault('response_corrections', []).append({**key, 'reason': reason, 'call_dir': str(call_dir)})
+    state.update(status='ready', error=None)
+    save(run, state)
+    render(run, state)
+    print(f'Correction {state["stage"]}: re-prompting {candidate["model"]}; evidence: {call_dir}', flush=True)
+    return True
 
 
 def select_fallback(run, state, call_dir, reason):
@@ -2465,7 +2531,7 @@ def build_parser():
     start.add_argument('--base', help='Local Git ref for a branch diff; required for implementation and diff, resolved once to a commit.')
     start.add_argument('--runs-dir')
     start.add_argument('--check', action='append', default=[], help='Authorized local check command; required for implementation and diff, without shell operators.')
-    start.add_argument('--timeout', type=int, default=1800, help='Per-agent/check seconds; default 30 minutes, bounded to 1–3600.')
+    start.add_argument('--timeout', type=int, default=1800, help='Per-agent/check seconds; default 30 minutes, bounded to 1–14400.')
     start.add_argument('--reviewer-model')
     start.add_argument('--reviewer-effort', choices=sorted(PROVIDER_EFFORTS['claude']))
     start.add_argument('--coordinator-model')
@@ -2492,6 +2558,9 @@ def build_parser():
         if action == 'step':
             p.add_argument('--reviewer-only', action='store_true',
                            help='Dispatch exactly one Claude reviewer stage; reject Codex stages and missing checks.')
+        if action == 'retry':
+            p.add_argument('--timeout', type=int,
+                           help='Recorded new per-agent/check seconds for this run, bounded to 1–14400.')
         if action == 'submit':
             p.add_argument('--response', type=Path, required=True)
             p.add_argument('--model', required=True)
@@ -2519,8 +2588,8 @@ def main():
             print(dumps(report), end='')
             sys.exit({'PASS': 0, 'BLOCKED': 1, 'UNKNOWN': 2}[report['status']])
         if args.action == 'start':
-            if not 1 <= args.timeout <= 3600:
-                raise ReviewError('Timeout must be 1–3600 seconds.')
+            if not 1 <= args.timeout <= MAX_TIMEOUT:
+                raise ReviewError(f'Timeout must be 1–{MAX_TIMEOUT} seconds.')
             with project_lock(Path(args.project or Path.cwd()).expanduser().resolve()):
                 run, state = initialize(args)
             print(dumps({'run': str(run), 'status': state['status'],
@@ -2543,6 +2612,13 @@ def main():
                 if state['status'] not in ('blocked', 'running') or state['stage'] == 'repair':
                     raise ReviewError('Only blocked read-only stages may retry; interrupted repairs require reconcile.')
                 assert_fresh(state)
+                if args.timeout is not None:
+                    if not 1 <= args.timeout <= MAX_TIMEOUT:
+                        raise ReviewError(f'Timeout must be 1–{MAX_TIMEOUT} seconds.')
+                    state.setdefault('timeout_history', []).append(
+                        {'stage': state['stage'], 'handoff_revision': state['handoff_revision'],
+                         'from': state['timeout'], 'to': args.timeout})
+                    state['timeout'] = args.timeout
                 if state['stage'] == 'recheck' and state['mode'] == 'implementation':
                     perform_checks(run, state)
                 state.update(status='ready', error=None)
