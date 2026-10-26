@@ -118,8 +118,9 @@ class ReviewTests(unittest.TestCase):
         parser = r.build_parser()
         args = parser.parse_args(['start', 'plan', '--requirements', 'requirements.md'])
         self.assertEqual(args.timeout, 1800)
-        args = parser.parse_args(['start', 'plan', '--requirements', 'requirements.md', '--timeout', '3600'])
-        self.assertEqual(args.timeout, 3600)
+        args = parser.parse_args(['start', 'plan', '--requirements', 'requirements.md', '--timeout', '14400'])
+        self.assertEqual(args.timeout, 14400)
+        self.assertIsNone(parser.parse_args(['retry', 'run']).timeout)
 
     def test_fallback_config_freezes_and_old_runs_do_not_gain_candidates(self):
         config = {'skills': {'review-implementation': {'reviewer': {'fallbacks': [
@@ -153,12 +154,14 @@ class ReviewTests(unittest.TestCase):
     def test_capacity_failure_classification(self):
         for message in ('model_not_found', 'Model x is not available', 'rate limit exceeded',
                         'usage limit reached', 'quota exhausted', 'token budget exceeded',
-                        'out of tokens', 'context_length_exceeded', 'overloaded_error'):
+                        'out of tokens', 'context_length_exceeded', 'overloaded_error',
+                        'Incomplete response returned, reason: max_output_tokens'):
             with self.subTest(message=message):
                 self.assertTrue(r.capacity_failure(self.run, message))
         for message in ('permission denied: rate limit', 'unauthorized model not found',
                         'sandbox error', 'invalid schema', 'network connection refused',
-                        'authentication required', 'unexpected model usage'):
+                        'authentication required', 'unexpected model usage',
+                        'test asserts an incomplete response; see max_output_tokens docs'):
             with self.subTest(message=message):
                 self.assertFalse(r.capacity_failure(self.run, message))
 
@@ -867,6 +870,7 @@ class ReviewTests(unittest.TestCase):
         self.assertEqual((self.state['status'], self.state['stage'], self.state['round']),
                          ('interrupted', 'repair', 0))
         self.assertIn('Repair response rejected after writer exit', self.state['error'])
+        self.assertNotIn('response_corrections', self.state)
         self.assertIn('Inspect scoped changes and use reconcile', self.state['error'])
         self.assertEqual(len(self.state['ledger']), 2)
         self.assertFalse((self.run/'artifacts/revision-003.json').exists())
@@ -1040,8 +1044,6 @@ class ReviewTests(unittest.TestCase):
         self.state = r.read_json(self.run/'state.json')
         self.assertEqual(self.state['findings'], reviewed_findings)
         self.assertIn('CHECK-1-1', r.evidence_catalog(self.state))
-        self.assertIn('CHECK-1-1', r.provider_schema(self.state)['properties']['findings']
-                      ['items']['properties']['verification_evidence']['items']['enum'])
         stale = copy.deepcopy(self.state['cited_check_receipts']['CHECK-1-1'])
         stale.update(id='CHECK-stale', target_fingerprint='0'*64)
         self.state['cited_check_receipts']['CHECK-stale'] = stale
@@ -1827,14 +1829,141 @@ class ReviewTests(unittest.TestCase):
         finally:
             if group is not None: os.killpg(group, signal.SIGTERM)
 
-    def test_provider_schema_limits_references_to_catalog(self):
-        schema = r.provider_schema(self.state)
-        validator = r.Draft202012Validator(schema)
-        data = self.response([finding()])
+    def test_provider_schema_omits_catalog_enum_and_validation_limits_references(self):
+        # Issue #67 shape: 30 scoped sources sharing a long prefix plus 4 checks.
+        catalog = {**{f'SOURCE:frontend/components/reports/file-{i}.tsx': {} for i in range(30)},
+                   **{f'CHECK-0-{i}': {} for i in range(4)}}
+        with patch.object(r, 'evidence_catalog', return_value=catalog):
+            evidence = (r.provider_schema(self.state)['properties']['findings']['items']
+                        ['properties']['verification_evidence'])
+        self.assertNotIn('enum', evidence['items'])
+        self.assertNotIn('maxItems', evidence)
+        with patch.object(r, 'evidence_catalog', return_value={}):
+            evidence = (r.provider_schema(self.state)['properties']['findings']['items']
+                        ['properties']['verification_evidence'])
+        self.assertEqual(evidence['maxItems'], 0)
+        self.state.update(stage='recheck', findings=[finding()])
+        data = self.response()
         data['findings'][0]['verification_evidence'] = ['SOURCE:calculator.py']
-        self.assertTrue(validator.is_valid(data))
+        r.validate_response(self.state, data)
         data['findings'][0]['verification_evidence'] = ['SOURCE:calculator.py:5: explanatory prose']
-        self.assertFalse(validator.is_valid(data))
+        with self.assertRaisesRegex(r.ReviewError, 'unavailable or stale'):
+            r.validate_response(self.state, data)
+
+    def test_adjudication_ignores_echoed_definitions_and_new_finding_evidence(self):
+        self.accept(self.response([finding()]))
+        data = self.response()
+        data['findings'][0].update(disposition='ACCEPTED', rationale='Supported by scoped source.',
+                                   location='calculator.py:5-6', evidence='Echoed paraphrase.')
+        added = finding()
+        added.update(id='FIND-002', location='test_calculator.py:4', disposition='ACCEPTED',
+                     rationale='Missed scoped gap.', verification_status='FAILED',
+                     verification_evidence=['SOURCE:test_calculator.py'])
+        data['findings'].append(added)
+        self.assertIn('retains saved definitions', r.prompt(self.state))
+        self.accept(data)
+        self.assertEqual(self.state['stage'], 'repair')
+        saved, new = self.state['findings']
+        self.assertEqual((saved['location'], saved['evidence']), (finding()['location'], finding()['evidence']))
+        self.assertEqual((new['verification_status'], new['verification_evidence']), ('UNVERIFIED', []))
+        artifact = r.read_json(self.run/'artifacts/revision-002.json')
+        self.assertEqual(artifact['submitted_response']['findings'][0]['location'], 'calculator.py:5-6')
+
+    def test_recheck_keeps_saved_location_after_repair_moves_lines(self):
+        self.to_repair()
+        p = self.project/'calculator.py'
+        p.write_text(p.read_text().replace('(len(values) + 1)', 'len(values)'))
+        self.accept(self.repair_response())
+        data = self.response()
+        data['findings'][0].update(location='calculator.py:5-9', verification_status='PASSED',
+                                   verification_evidence=['SOURCE:calculator.py', 'CHECK-1-1'],
+                                   rationale='Current source and fixture check agree.')
+        invented = copy.deepcopy(data)
+        invented['findings'][0]['verification_evidence'] = ['SOURCE:missing.py']
+        with self.assertRaisesRegex(r.ContractResponseError, 'unavailable or stale'):
+            self.accept(invented)
+        self.accept(data)
+        self.assertEqual(self.state['stage'], 'finalize')
+        self.assertEqual(self.state['findings'][0]['location'], finding()['location'])
+        self.assertEqual(self.state['findings'][0]['verification_status'], 'PASSED')
+
+    def test_contract_rejection_reprompts_once_then_falls_back(self):
+        for dispositions, calls in ((['OPEN', 'ACCEPTED'], 2), (['OPEN'] * 4, 4)):
+            with self.subTest(dispositions=dispositions):
+                self.run, self.state = r.initialize(copy.deepcopy(self.args))
+                self.state.update(stage='adjudicate', findings=[finding()])
+                r.save(self.run, self.state)
+                prompts, pending = [], list(dispositions)
+
+                def execute(argv, cwd, content, call_dir, timeout):
+                    prompts.append((argv, content))
+
+                def extract(state, call_dir):
+                    data = self.response()
+                    data['findings'][0].update(disposition=pending.pop(0), rationale='Fixture disposition.')
+                    return data, None, {**r.agent_candidate(state, 'astra'), 'observed': {'source': 'fixture'}}
+                with patch.object(r, 'execute_process', side_effect=execute), \
+                        patch.object(r, 'extract_response', side_effect=extract):
+                    if calls == 2:
+                        r.advance(self.run, self.state)
+                    else:
+                        with self.assertRaises(r.ContractResponseError):
+                            r.advance(self.run, self.state)
+                self.assertEqual(len(prompts), calls)
+                self.assertNotIn('PREVIOUS RESPONSE REJECTED', prompts[0][1])
+                self.assertIn('PREVIOUS RESPONSE REJECTED', prompts[1][1])
+                self.assertIn('Adjudication must decide', prompts[1][1])
+                self.assertIn('Correction at adjudicate', (self.run/'handoff.md').read_text())
+                if calls == 2:
+                    self.assertEqual(self.state['stage'], 'repair')
+                    self.assertEqual(len(self.state['response_corrections']), 1)
+                    self.assertEqual(self.state.get('fallback_history', []), [])
+                else:
+                    self.assertEqual(self.state['status'], 'blocked')
+                    self.assertEqual(len(self.state['response_corrections']), 2)
+                    self.assertEqual(len(self.state['fallback_history']), 1)
+                    self.assertIn('gpt-6.1-sol', prompts[2][0])
+                    self.assertIn('PREVIOUS RESPONSE REJECTED', prompts[2][1])
+        with patch.object(r, 'execute_process') as execute, \
+                patch.object(r, 'extract_response', side_effect=r.ReviewError('Unexpected model in Claude usage')):
+            self.state.update(status='ready', handoff_revision=self.state['handoff_revision'] + 1)
+            with self.assertRaises(r.HandoffResponseError):
+                r.advance(self.run, self.state)
+        self.assertEqual(execute.call_count, 1)
+        self.assertEqual(len(self.state['response_corrections']), 2)
+
+    def test_failing_finalize_precondition_blocks_without_correction_or_fallback(self):
+        self.state.update(stage='finalize', findings=[])
+        r.perform_checks(self.run, self.state)
+        self.assertFalse(r.checks_pass(self.state))
+        config = {**r.agent_candidate(self.state, 'astra'), 'observed': {'source': 'fixture'}}
+        with patch.object(r, 'execute_process') as execute, \
+                patch.object(r, 'extract_response', return_value=(self.response(), None, config)):
+            with self.assertRaisesRegex(r.ReviewError, 'all configured checks passing') as raised:
+                r.advance(self.run, self.state)
+        self.assertNotIsInstance(raised.exception, r.HandoffResponseError)
+        self.assertEqual(execute.call_count, 1)
+        self.assertEqual(self.state['status'], 'blocked')
+        self.assertNotIn('response_corrections', self.state)
+        self.assertEqual(self.state.get('fallback_history', []), [])
+
+    def test_retry_records_bounded_timeout_change(self):
+        self.state.update(stage='adjudicate', status='blocked', findings=[finding()])
+        r.save(self.run, self.state)
+        for value in ('0', '14401'):
+            with patch.object(sys, 'argv', ['review_cli.py', 'retry', str(self.run), '--timeout', value]), \
+                    patch('sys.stderr', io.StringIO()), self.assertRaises(SystemExit):
+                r.main()
+        self.assertEqual(r.read_json(self.run/'state.json')['status'], 'blocked')
+        with patch.object(sys, 'argv', ['review_cli.py', 'retry', str(self.run), '--timeout', '7200']), \
+                patch('sys.stdout', io.StringIO()):
+            r.main()
+        saved = r.read_json(self.run/'state.json')
+        self.assertEqual((saved['status'], saved['timeout']), ('ready', 7200))
+        self.assertEqual(saved['timeout_history'], [{'stage': 'adjudicate', 'handoff_revision': saved['handoff_revision'],
+                                                     'from': 60, 'to': 7200}])
+        self.assertIn('Timeout at adjudicate: 60 → 7200 seconds.', (self.run/'handoff.md').read_text())
+        self.assertEqual(r.packet(saved)['timeout'], 7200)
 
 
 if __name__=='__main__': unittest.main()

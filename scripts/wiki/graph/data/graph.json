@@ -2,11 +2,11 @@
   "version": 1,
   "wikiRoot": "wiki",
   "counts": {
-    "nodes": 54,
-    "edges": 107,
+    "nodes": 55,
+    "edges": 111,
     "byType": {
       "index": 3,
-      "journal": 23,
+      "journal": 24,
       "plan": 20,
       "topic": 8
     }
@@ -39,8 +39,8 @@
       ],
       "bytes": 2186,
       "degree": 2,
-      "x": 0.973045,
-      "y": 0.230616,
+      "x": 0.974012,
+      "y": 0.226497,
       "size": 8
     },
     {
@@ -70,8 +70,8 @@
       ],
       "bytes": 2152,
       "degree": 2,
-      "x": 0.939693,
-      "y": 0.34202,
+      "x": 0.941844,
+      "y": 0.336049,
       "size": 8
     },
     {
@@ -89,8 +89,8 @@
       ],
       "bytes": 2103,
       "degree": 3,
-      "x": 0.893633,
-      "y": 0.448799,
+      "x": 0.897398,
+      "y": 0.441221,
       "size": 8
     },
     {
@@ -108,8 +108,8 @@
       ],
       "bytes": 1551,
       "degree": 3,
-      "x": 0.835488,
-      "y": 0.549509,
+      "x": 0.841254,
+      "y": 0.540641,
       "size": 8
     },
     {
@@ -127,8 +127,8 @@
       ],
       "bytes": 4200,
       "degree": 3,
-      "x": 0.766044,
-      "y": 0.642788,
+      "x": 0.774142,
+      "y": 0.633012,
       "size": 8
     },
     {
@@ -146,8 +146,8 @@
       ],
       "bytes": 2180,
       "degree": 2,
-      "x": 0.686242,
-      "y": 0.727374,
+      "x": 0.696938,
+      "y": 0.717132,
       "size": 8
     },
     {
@@ -165,8 +165,8 @@
       ],
       "bytes": 2766,
       "degree": 2,
-      "x": 0.597159,
-      "y": 0.802123,
+      "x": 0.610648,
+      "y": 0.791902,
       "size": 8
     },
     {
@@ -196,8 +196,8 @@
       ],
       "bytes": 1479,
       "degree": 3,
-      "x": 0.5,
-      "y": 0.866025,
+      "x": 0.516397,
+      "y": 0.856349,
       "size": 8
     },
     {
@@ -215,8 +215,8 @@
       ],
       "bytes": 898,
       "degree": 4,
-      "x": 0.39608,
-      "y": 0.918216,
+      "x": 0.415415,
+      "y": 0.909632,
       "size": 8
     },
     {
@@ -234,8 +234,8 @@
       ],
       "bytes": 1525,
       "degree": 2,
-      "x": 0.286803,
-      "y": 0.95799,
+      "x": 0.309017,
+      "y": 0.951057,
       "size": 8
     },
     {
@@ -253,8 +253,8 @@
       ],
       "bytes": 2188,
       "degree": 2,
-      "x": 0.173648,
-      "y": 0.984808,
+      "x": 0.19859,
+      "y": 0.980083,
       "size": 8
     },
     {
@@ -272,8 +272,8 @@
       ],
       "bytes": 1830,
       "degree": 4,
-      "x": 0.058145,
-      "y": 0.998308,
+      "x": 0.085575,
+      "y": 0.996332,
       "size": 8
     },
     {
@@ -291,8 +291,8 @@
       ],
       "bytes": 1388,
       "degree": 2,
-      "x": -0.058145,
-      "y": 0.998308,
+      "x": -0.028556,
+      "y": 0.999592,
       "size": 8
     },
     {
@@ -310,8 +310,8 @@
       ],
       "bytes": 956,
       "degree": 3,
-      "x": -0.173648,
-      "y": 0.984808,
+      "x": -0.142315,
+      "y": 0.989821,
       "size": 8
     },
     {
@@ -329,8 +329,8 @@
       ],
       "bytes": 883,
       "degree": 1,
-      "x": -0.286803,
-      "y": 0.95799,
+      "x": -0.254218,
+      "y": 0.967147,
       "size": 8
     },
     {
@@ -348,8 +348,8 @@
       ],
       "bytes": 838,
       "degree": 2,
-      "x": -0.39608,
-      "y": 0.918216,
+      "x": -0.362808,
+      "y": 0.931864,
       "size": 8
     },
     {
@@ -367,8 +367,8 @@
       ],
       "bytes": 1910,
       "degree": 3,
-      "x": -0.5,
-      "y": 0.866025,
+      "x": -0.466667,
+      "y": 0.884433,
       "size": 8
     },
     {
@@ -386,8 +386,8 @@
       ],
       "bytes": 915,
       "degree": 2,
-      "x": -0.597159,
-      "y": 0.802123,
+      "x": -0.564443,
+      "y": 0.825472,
       "size": 8
     },
     {
@@ -405,8 +405,8 @@
       ],
       "bytes": 710,
       "degree": 2,
-      "x": -0.686242,
-      "y": 0.727374,
+      "x": -0.654861,
+      "y": 0.75575,
       "size": 8
     },
     {
@@ -430,8 +430,8 @@
       ],
       "bytes": 861,
       "degree": 1,
-      "x": -0.766044,
-      "y": 0.642788,
+      "x": -0.736741,
+      "y": 0.676175,
       "size": 8
     },
     {
@@ -449,8 +449,8 @@
       ],
       "bytes": 1008,
       "degree": 2,
-      "x": -0.835488,
-      "y": 0.549509,
+      "x": -0.809017,
+      "y": 0.587785,
       "size": 8
     },
     {
@@ -480,8 +480,8 @@
       ],
       "bytes": 3942,
       "degree": 4,
-      "x": -0.893633,
-      "y": 0.448799,
+      "x": -0.870746,
+      "y": 0.491733,
       "size": 8
     },
     {
@@ -499,8 +499,39 @@
       ],
       "bytes": 1725,
       "degree": 2,
-      "x": -0.939693,
-      "y": 0.34202,
+      "x": -0.921124,
+      "y": 0.38927,
+      "size": 8
+    },
+    {
+      "id": "wiki/journal/2026-10-26-review-contract-recovery.md",
+      "label": "Review contract recovery without rigid blocks",
+      "type": "journal",
+      "aliases": [],
+      "githubRefs": [
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 67,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/67"
+        },
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 68,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/68"
+        },
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 69,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/69"
+        }
+      ],
+      "bytes": 2138,
+      "degree": 4,
+      "x": -0.959493,
+      "y": 0.281733,
       "size": 8
     },
     {
@@ -511,8 +542,8 @@
       "githubRefs": [],
       "bytes": 2904,
       "degree": 2,
-      "x": 0.993238,
-      "y": 0.116093,
+      "x": 0.993482,
+      "y": 0.113991,
       "size": 12
     },
     {
@@ -530,8 +561,8 @@
       ],
       "bytes": 1235,
       "degree": 4,
-      "x": -0.973045,
-      "y": 0.230616,
+      "x": -0.985354,
+      "y": 0.170522,
       "size": 8
     },
     {
@@ -555,8 +586,8 @@
       ],
       "bytes": 3057,
       "degree": 3,
-      "x": -0.993238,
-      "y": 0.116093,
+      "x": -0.998369,
+      "y": 0.057089,
       "size": 8
     },
     {
@@ -567,8 +598,8 @@
       "githubRefs": [],
       "bytes": 4084,
       "degree": 3,
-      "x": -1,
-      "y": 0,
+      "x": -0.998369,
+      "y": -0.057089,
       "size": 8
     },
     {
@@ -586,8 +617,8 @@
       ],
       "bytes": 4673,
       "degree": 3,
-      "x": -0.993238,
-      "y": -0.116093,
+      "x": -0.985354,
+      "y": -0.170522,
       "size": 8
     },
     {
@@ -605,8 +636,8 @@
       ],
       "bytes": 1396,
       "degree": 3,
-      "x": -0.973045,
-      "y": -0.230616,
+      "x": -0.959493,
+      "y": -0.281733,
       "size": 8
     },
     {
@@ -624,8 +655,8 @@
       ],
       "bytes": 1060,
       "degree": 3,
-      "x": -0.939693,
-      "y": -0.34202,
+      "x": -0.921124,
+      "y": -0.38927,
       "size": 8
     },
     {
@@ -636,8 +667,8 @@
       "githubRefs": [],
       "bytes": 4946,
       "degree": 3,
-      "x": -0.893633,
-      "y": -0.448799,
+      "x": -0.870746,
+      "y": -0.491733,
       "size": 8
     },
     {
@@ -655,8 +686,8 @@
       ],
       "bytes": 1365,
       "degree": 3,
-      "x": -0.835488,
-      "y": -0.549509,
+      "x": -0.809017,
+      "y": -0.587785,
       "size": 8
     },
     {
@@ -674,8 +705,8 @@
       ],
       "bytes": 1341,
       "degree": 3,
-      "x": -0.766044,
-      "y": -0.642788,
+      "x": -0.736741,
+      "y": -0.676175,
       "size": 8
     },
     {
@@ -693,8 +724,8 @@
       ],
       "bytes": 4387,
       "degree": 3,
-      "x": -0.686242,
-      "y": -0.727374,
+      "x": -0.654861,
+      "y": -0.75575,
       "size": 8
     },
     {
@@ -705,8 +736,8 @@
       "githubRefs": [],
       "bytes": 2229,
       "degree": 4,
-      "x": -0.597159,
-      "y": -0.802123,
+      "x": -0.564443,
+      "y": -0.825472,
       "size": 8
     },
     {
@@ -717,8 +748,8 @@
       "githubRefs": [],
       "bytes": 4144,
       "degree": 3,
-      "x": -0.5,
-      "y": -0.866025,
+      "x": -0.466667,
+      "y": -0.884433,
       "size": 8
     },
     {
@@ -729,8 +760,8 @@
       "githubRefs": [],
       "bytes": 9238,
       "degree": 4,
-      "x": -0.39608,
-      "y": -0.918216,
+      "x": -0.362808,
+      "y": -0.931864,
       "size": 8
     },
     {
@@ -748,8 +779,8 @@
       ],
       "bytes": 960,
       "degree": 4,
-      "x": -0.286803,
-      "y": -0.95799,
+      "x": -0.254218,
+      "y": -0.967147,
       "size": 8
     },
     {
@@ -767,8 +798,8 @@
       ],
       "bytes": 21176,
       "degree": 3,
-      "x": -0.173648,
-      "y": -0.984808,
+      "x": -0.142315,
+      "y": -0.989821,
       "size": 8
     },
     {
@@ -779,8 +810,8 @@
       "githubRefs": [],
       "bytes": 3866,
       "degree": 4,
-      "x": -0.058145,
-      "y": -0.998308,
+      "x": -0.028556,
+      "y": -0.999592,
       "size": 8
     },
     {
@@ -791,8 +822,8 @@
       "githubRefs": [],
       "bytes": 1988,
       "degree": 3,
-      "x": 0.058145,
-      "y": -0.998308,
+      "x": 0.085575,
+      "y": -0.996332,
       "size": 8
     },
     {
@@ -810,8 +841,8 @@
       ],
       "bytes": 1001,
       "degree": 3,
-      "x": 0.173648,
-      "y": -0.984808,
+      "x": 0.19859,
+      "y": -0.980083,
       "size": 8
     },
     {
@@ -829,8 +860,8 @@
       ],
       "bytes": 1092,
       "degree": 3,
-      "x": 0.286803,
-      "y": -0.95799,
+      "x": 0.309017,
+      "y": -0.951057,
       "size": 8
     },
     {
@@ -848,8 +879,8 @@
       ],
       "bytes": 26978,
       "degree": 5,
-      "x": 0.39608,
-      "y": -0.918216,
+      "x": 0.415415,
+      "y": -0.909632,
       "size": 8
     },
     {
@@ -927,8 +958,8 @@
       ],
       "bytes": 24499,
       "degree": 22,
-      "x": 0.5,
-      "y": -0.866025,
+      "x": 0.516397,
+      "y": -0.856349,
       "size": 12
     },
     {
@@ -958,8 +989,8 @@
       ],
       "bytes": 4483,
       "degree": 5,
-      "x": 0.597159,
-      "y": -0.802123,
+      "x": 0.610648,
+      "y": -0.791902,
       "size": 8
     },
     {
@@ -977,8 +1008,8 @@
       ],
       "bytes": 840,
       "degree": 3,
-      "x": 0.686242,
-      "y": -0.727374,
+      "x": 0.696938,
+      "y": -0.717132,
       "size": 8
     },
     {
@@ -1025,9 +1056,9 @@
         }
       ],
       "bytes": 7577,
-      "degree": 22,
-      "x": 0.766044,
-      "y": -0.642788,
+      "degree": 23,
+      "x": 0.774142,
+      "y": -0.633012,
       "size": 8
     },
     {
@@ -1045,8 +1076,8 @@
       ],
       "bytes": 1245,
       "degree": 4,
-      "x": 0.835488,
-      "y": -0.549509,
+      "x": 0.841254,
+      "y": -0.540641,
       "size": 8
     },
     {
@@ -1070,8 +1101,8 @@
       ],
       "bytes": 2172,
       "degree": 7,
-      "x": 0.893633,
-      "y": -0.448799,
+      "x": 0.897398,
+      "y": -0.441221,
       "size": 8
     },
     {
@@ -1103,12 +1134,18 @@
           "kind": "issue",
           "number": 64,
           "url": "https://github.com/jfusco/agent-review-workflows/issues/64"
+        },
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 69,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/69"
         }
       ],
-      "bytes": 4325,
-      "degree": 9,
-      "x": 0.939693,
-      "y": -0.34202,
+      "bytes": 4759,
+      "degree": 12,
+      "x": 0.941844,
+      "y": -0.336049,
       "size": 8
     },
     {
@@ -1132,8 +1169,8 @@
       ],
       "bytes": 2055,
       "degree": 5,
-      "x": 0.973045,
-      "y": -0.230616,
+      "x": 0.974012,
+      "y": -0.226497,
       "size": 8
     },
     {
@@ -1157,8 +1194,8 @@
       ],
       "bytes": 1488,
       "degree": 5,
-      "x": 0.993238,
-      "y": -0.116093,
+      "x": 0.993482,
+      "y": -0.113991,
       "size": 8
     }
   ],
@@ -1309,6 +1346,13 @@
       "target": "wiki/topics/review-agent-profiles.md",
       "type": "topic",
       "relation": "topic"
+    },
+    {
+      "id": "288302fbc182bb56",
+      "source": "wiki/topics/review-agent-profiles.md",
+      "target": "wiki/journal/2026-10-26-review-contract-recovery.md",
+      "type": "link",
+      "relation": "link"
     },
     {
       "id": "28b4f48e0f9586ea",
@@ -1542,6 +1586,13 @@
       "relation": "topic"
     },
     {
+      "id": "7a5bea6087707dbd",
+      "source": "wiki/journal/2026-10-26-review-contract-recovery.md",
+      "target": "wiki/topics/review-agent-profiles.md",
+      "type": "link",
+      "relation": "link"
+    },
+    {
       "id": "7e4920a0567ee41b",
       "source": "wiki/journal/2026-09-28-collapse-implementation-review.md",
       "target": "wiki/topics/implementation-review-evidence.md",
@@ -1710,6 +1761,13 @@
       "relation": "topic"
     },
     {
+      "id": "bee216eb104d9fbc",
+      "source": "wiki/journal/2026-10-26-review-contract-recovery.md",
+      "target": "wiki/topics/review-agent-profiles.md",
+      "type": "topic",
+      "relation": "topic"
+    },
+    {
       "id": "c329c2c005d64472",
       "source": "wiki/INDEX.md",
       "target": "wiki/topics/review-delivery.md",
@@ -1776,6 +1834,13 @@
       "id": "d9d8fcd892d6d20b",
       "source": "wiki/journal/2026-10-04-deterministic-review-mechanics.md",
       "target": "wiki/topics/review-delivery.md",
+      "type": "topic",
+      "relation": "topic"
+    },
+    {
+      "id": "ddf7434807faae04",
+      "source": "wiki/journal/2026-10-26-review-contract-recovery.md",
+      "target": "wiki/topics/implementation-review-evidence.md",
       "type": "topic",
       "relation": "topic"
     },

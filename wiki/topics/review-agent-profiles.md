@@ -48,6 +48,13 @@ The CLI procedure owns configuration, eligibility, evidence, and recovery.
 Writers never replay automatically, and a host reviewer-only dispatch yields
 before any Codex fallback so execution can resume in the sandbox.
 
+[Issue #69](https://github.com/JFusco/agent-review-workflows/issues/69) removes
+rigid read-only blocks: a contract rejection gets one recorded corrective
+re-prompt per selected candidate before fallback, incomplete `max_output_tokens`
+responses are fallback-eligible, and `retry --timeout` records a raised per-call
+timeout up to 14400 seconds. See the
+[contract recovery journal](../journal/2026-10-26-review-contract-recovery.md).
+
 ## Evidence policy
 
 Deterministic fixtures cover configuration precedence, freezing, malformed

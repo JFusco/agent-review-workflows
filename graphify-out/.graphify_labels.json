@@ -1,9 +1,9 @@
 {
   "0": "review_cli.py",
-  "1": "common.cjs",
+  "1": "archive-plan.cjs",
   "2": "audit-plan-candidates.cjs",
   "3": "routing.cjs",
-  "4": "archive-plan.cjs",
+  "4": "plans.cjs",
   "5": "on-merge-sync.cjs",
   "6": "viewer.js",
   "7": "ReviewError",
@@ -13,10 +13,10 @@
   "11": "routing.js",
   "12": "create_trial.py",
   "13": "install_skills.py",
-  "14": "accept",
+  "14": "collapsed_plan",
   "15": "advance",
-  "16": "rerun_checks",
-  "17": "serve-graph.cjs",
-  "18": "execute_process",
+  "16": "accept",
+  "17": "DerivedViewError",
+  "18": "select_fallback",
   "19": "HandoffResponseError"
 }
