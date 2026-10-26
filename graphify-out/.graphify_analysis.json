@@ -5,18 +5,23 @@
       "scripts_review_cli",
       "scripts_review_cli_accept",
       "scripts_review_cli_advance",
-      "scripts_review_cli_advisory_stage",
+      "scripts_review_cli_agent_candidate",
+      "scripts_review_cli_agent_provider",
       "scripts_review_cli_agent_settings",
+      "scripts_review_cli_assert_claude_auth",
       "scripts_review_cli_assert_fresh",
       "scripts_review_cli_assert_idle_group",
       "scripts_review_cli_build_parser",
       "scripts_review_cli_build_repair_lock",
+      "scripts_review_cli_capacity_failure",
       "scripts_review_cli_changed",
       "scripts_review_cli_checks_pass",
       "scripts_review_cli_cli_argv",
       "scripts_review_cli_collapsed_implementation",
+      "scripts_review_cli_collapsed_plan",
       "scripts_review_cli_command",
       "scripts_review_cli_complete_findings",
+      "scripts_review_cli_diff_checks_current",
       "scripts_review_cli_digest",
       "scripts_review_cli_dumps",
       "scripts_review_cli_effective_profile",
@@ -26,6 +31,8 @@
       "scripts_review_cli_extract_response",
       "scripts_review_cli_finding_assessments",
       "scripts_review_cli_group_alive",
+      "scripts_review_cli_handoffresponseerror",
+      "scripts_review_cli_implementation_response_v2",
       "scripts_review_cli_initialize",
       "scripts_review_cli_interrupted",
       "scripts_review_cli_inventory",
@@ -35,31 +42,42 @@
       "scripts_review_cli_normalize_response",
       "scripts_review_cli_packet",
       "scripts_review_cli_perform_checks",
+      "scripts_review_cli_plan_response_schema",
       "scripts_review_cli_project_files",
       "scripts_review_cli_project_lock",
       "scripts_review_cli_prompt",
+      "scripts_review_cli_provider_error",
       "scripts_review_cli_provider_schema",
+      "scripts_review_cli_providercallerror",
+      "scripts_review_cli_rationale_81",
+      "scripts_review_cli_rationale_85",
       "scripts_review_cli_read_json",
       "scripts_review_cli_reconcile",
       "scripts_review_cli_render",
+      "scripts_review_cli_repair_response_schema",
+      "scripts_review_cli_require_current_protocol",
       "scripts_review_cli_rerun_checks",
       "scripts_review_cli_resolve_agent_profile",
       "scripts_review_cli_resolve_cli",
+      "scripts_review_cli_response_error_detail",
       "scripts_review_cli_reviewerror",
       "scripts_review_cli_role",
       "scripts_review_cli_runs_root",
       "scripts_review_cli_save",
       "scripts_review_cli_save_text",
       "scripts_review_cli_scoped_diff",
+      "scripts_review_cli_select_fallback",
       "scripts_review_cli_status_payload",
       "scripts_review_cli_target",
       "scripts_review_cli_text_file",
       "scripts_review_cli_valid_scoped_location",
       "scripts_review_cli_validate_complete_profile",
+      "scripts_review_cli_validate_fallbacks",
       "scripts_review_cli_validate_repair_lock",
       "scripts_review_cli_validate_response",
       "scripts_review_cli_validate_runtime_config",
       "scripts_review_cli_validate_setting",
+      "scripts_review_cli_verify_target",
       "scripts_review_cli_verify_writes",
       "scripts_review_cli_write_new"
     ],
@@ -90,69 +108,57 @@
       "scripts_wiki_archive_plan_titlefrombody_render",
       "scripts_wiki_archive_plan_validatearchiveinput",
       "scripts_wiki_archive_plan_validdate",
+      "scripts_wiki_build_graph",
+      "scripts_wiki_build_graph_collect_resolvewikilink_kind",
+      "scripts_wiki_build_graph_connections",
+      "scripts_wiki_build_graph_fs",
+      "scripts_wiki_build_graph_main",
+      "scripts_wiki_build_graph_path",
+      "scripts_wiki_build_graph_reporoot_slash_hassymlinkcomponent_atomicwrite",
+      "scripts_wiki_lib_common",
+      "scripts_wiki_lib_common_crypto",
       "scripts_wiki_lib_common_digest",
-      "scripts_wiki_lib_common_today",
-      "scripts_wiki_lib_dates",
-      "scripts_wiki_lib_dates_datefromplanbasename",
-      "scripts_wiki_lib_dates_datefromsessionpath",
-      "scripts_wiki_lib_dates_evidencedates",
-      "scripts_wiki_lib_dates_filemtimedate",
-      "scripts_wiki_lib_dates_fs",
-      "scripts_wiki_lib_dates_git_today",
-      "scripts_wiki_lib_dates_gitcommitdate",
-      "scripts_wiki_lib_dates_inferplandate",
-      "scripts_wiki_lib_dates_isodatefromms",
-      "scripts_wiki_lib_dates_path",
-      "scripts_wiki_lib_dates_sourcepathdates",
-      "scripts_wiki_lib_dates_validdate",
-      "scripts_wiki_lib_frontmatter_quote",
-      "scripts_wiki_lib_frontmatter_render"
+      "scripts_wiki_lib_common_ensureinside",
+      "scripts_wiki_lib_common_execfilesync",
+      "scripts_wiki_lib_common_fs",
+      "scripts_wiki_lib_common_hassymlinkcomponent",
+      "scripts_wiki_lib_common_path",
+      "scripts_wiki_lib_common_reporoot",
+      "scripts_wiki_lib_common_slash",
+      "scripts_wiki_lib_common_slugify",
+      "scripts_wiki_lib_common_wikipath",
+      "scripts_wiki_lib_frontmatter_titlefrombody",
+      "scripts_wiki_lib_wiki_graph",
+      "scripts_wiki_lib_wiki_graph_collect",
+      "scripts_wiki_lib_wiki_graph_frontmattertarget",
+      "scripts_wiki_lib_wiki_graph_fs",
+      "scripts_wiki_lib_wiki_graph_githubrefs_withoutfencedcode",
+      "scripts_wiki_lib_wiki_graph_kind",
+      "scripts_wiki_lib_wiki_graph_normalizewikiroot",
+      "scripts_wiki_lib_wiki_graph_path",
+      "scripts_wiki_lib_wiki_graph_resolvewikilink",
+      "scripts_wiki_lib_wiki_graph_scanforsymlinks",
+      "scripts_wiki_lib_wiki_graph_splitfrontmatter_list_titlefrombody",
+      "scripts_wiki_lib_wiki_graph_walk_slash_digest_ensureinside_remoteslug",
+      "scripts_wiki_navigate",
+      "scripts_wiki_navigate_collect_normalizewikiroot",
+      "scripts_wiki_navigate_main",
+      "scripts_wiki_navigate_parseargs",
+      "scripts_wiki_navigate_reporoot",
+      "scripts_wiki_navigate_route_formatroute",
+      "scripts_wiki_navigate_usage",
+      "scripts_wiki_serve_graph",
+      "scripts_wiki_serve_graph_createserver",
+      "scripts_wiki_serve_graph_fs",
+      "scripts_wiki_serve_graph_http",
+      "scripts_wiki_serve_graph_listen",
+      "scripts_wiki_serve_graph_main",
+      "scripts_wiki_serve_graph_path",
+      "scripts_wiki_serve_graph_reporoot_ensureinside",
+      "scripts_wiki_serve_graph_resolverequest",
+      "scripts_wiki_serve_graph_types"
     ],
     "2": [
-      "scripts_wiki_check",
-      "scripts_wiki_check_fs",
-      "scripts_wiki_check_key_githubrefkey",
-      "scripts_wiki_check_loadpolicy_policyproblems",
-      "scripts_wiki_check_main",
-      "scripts_wiki_check_path",
-      "scripts_wiki_check_reporoot_walk_slash_digest_hassymlinkcomponent",
-      "scripts_wiki_check_spawnsync",
-      "scripts_wiki_check_splitfrontmatter_scalar_list_frontmatterproblems",
-      "scripts_wiki_lib_common_ensureinside",
-      "scripts_wiki_lib_common_hassymlinkcomponent",
-      "scripts_wiki_lib_common_remoteslug",
-      "scripts_wiki_lib_common_slugify",
-      "scripts_wiki_lib_common_substantive",
-      "scripts_wiki_lib_frontmatter",
-      "scripts_wiki_lib_frontmatter_fieldspan",
-      "scripts_wiki_lib_frontmatter_frontmatterproblems",
-      "scripts_wiki_lib_frontmatter_keypattern",
-      "scripts_wiki_lib_frontmatter_list",
-      "scripts_wiki_lib_frontmatter_parselistliteral",
-      "scripts_wiki_lib_frontmatter_scalar",
-      "scripts_wiki_lib_frontmatter_splitfrontmatter",
-      "scripts_wiki_lib_plans_cleancursor",
-      "scripts_wiki_on_merge_sync",
-      "scripts_wiki_on_merge_sync_closingissues_normalizegithubquery_normalizerepository_parsegithubquery_ref",
-      "scripts_wiki_on_merge_sync_file_statuses",
-      "scripts_wiki_on_merge_sync_fs",
-      "scripts_wiki_on_merge_sync_main",
-      "scripts_wiki_on_merge_sync_markdowncode",
-      "scripts_wiki_on_merge_sync_mergeissueevidence",
-      "scripts_wiki_on_merge_sync_normalizechangedfiles",
-      "scripts_wiki_on_merge_sync_normalizechangedpaths",
-      "scripts_wiki_on_merge_sync_normalizecommits",
-      "scripts_wiki_on_merge_sync_path",
-      "scripts_wiki_on_merge_sync_quoteyaml",
-      "scripts_wiki_on_merge_sync_reconcile",
-      "scripts_wiki_on_merge_sync_renderflowlist",
-      "scripts_wiki_on_merge_sync_renderfrontmatterfield",
-      "scripts_wiki_on_merge_sync_reporoot_remoteslug_slugify_substantive_ensureinside_hassymlinkcomponent_atomicwrite",
-      "scripts_wiki_on_merge_sync_setfrontmatterfield",
-      "scripts_wiki_on_merge_sync_splitfrontmatter_scalar_list_fieldspan",
-      "scripts_wiki_routing_loadpolicy"
-    ],
-    "3": [
       "scripts_wiki_audit_plan_candidates",
       "scripts_wiki_audit_plan_candidates_audit",
       "scripts_wiki_audit_plan_candidates_branchissuenumbers",
@@ -187,51 +193,63 @@
       "scripts_wiki_audit_plan_candidates_titleoverlap",
       "scripts_wiki_audit_plan_candidates_words",
       "scripts_wiki_lib_common_git",
-      "scripts_wiki_lib_common_reporoot",
-      "scripts_wiki_pre_commit",
-      "scripts_wiki_pre_commit_discover",
-      "scripts_wiki_pre_commit_main",
-      "scripts_wiki_pre_commit_path",
-      "scripts_wiki_pre_commit_reporoot_git_substantive",
-      "scripts_wiki_pre_commit_spawnsync"
+      "scripts_wiki_lib_common_today",
+      "scripts_wiki_lib_dates",
+      "scripts_wiki_lib_dates_datefromplanbasename",
+      "scripts_wiki_lib_dates_datefromsessionpath",
+      "scripts_wiki_lib_dates_evidencedates",
+      "scripts_wiki_lib_dates_filemtimedate",
+      "scripts_wiki_lib_dates_fs",
+      "scripts_wiki_lib_dates_git_today",
+      "scripts_wiki_lib_dates_gitcommitdate",
+      "scripts_wiki_lib_dates_inferplandate",
+      "scripts_wiki_lib_dates_isodatefromms",
+      "scripts_wiki_lib_dates_path",
+      "scripts_wiki_lib_dates_sourcepathdates",
+      "scripts_wiki_lib_dates_validdate"
+    ],
+    "3": [
+      "scripts_wiki_check",
+      "scripts_wiki_check_fs",
+      "scripts_wiki_check_key_githubrefkey",
+      "scripts_wiki_check_loadpolicy_policyproblems",
+      "scripts_wiki_check_main",
+      "scripts_wiki_check_path",
+      "scripts_wiki_check_reporoot_walk_slash_digest_hassymlinkcomponent",
+      "scripts_wiki_check_spawnsync",
+      "scripts_wiki_check_splitfrontmatter_scalar_list_frontmatterproblems",
+      "scripts_wiki_lib_frontmatter_frontmatterproblems",
+      "scripts_wiki_lib_github_refs_normalizegithubquery",
+      "scripts_wiki_lib_github_refs_parsegithubquery",
+      "scripts_wiki_routing",
+      "scripts_wiki_routing_adjacency",
+      "scripts_wiki_routing_edgecost",
+      "scripts_wiki_routing_edgekey",
+      "scripts_wiki_routing_edgetype",
+      "scripts_wiki_routing_evidence_type_priority",
+      "scripts_wiki_routing_formatbytes",
+      "scripts_wiki_routing_formatgithubref",
+      "scripts_wiki_routing_formatroute",
+      "scripts_wiki_routing_fs",
+      "scripts_wiki_routing_githubreftext",
+      "scripts_wiki_routing_loadpolicy",
+      "scripts_wiki_routing_nodehaystack",
+      "scripts_wiki_routing_normalizegithubquery_parsegithubquery",
+      "scripts_wiki_routing_path",
+      "scripts_wiki_routing_policy_path",
+      "scripts_wiki_routing_policyproblems",
+      "scripts_wiki_routing_reconstructroute",
+      "scripts_wiki_routing_required_intents",
+      "scripts_wiki_routing_resolveevidencenode",
+      "scripts_wiki_routing_resolvenode",
+      "scripts_wiki_routing_route",
+      "scripts_wiki_routing_scorenode",
+      "scripts_wiki_routing_shortestpaths",
+      "scripts_wiki_routing_stop_words",
+      "scripts_wiki_routing_targetforintent",
+      "scripts_wiki_routing_tokenize"
     ],
     "4": [
-      "scripts_wiki_build_graph",
-      "scripts_wiki_build_graph_collect_resolvewikilink_kind",
-      "scripts_wiki_build_graph_connections",
-      "scripts_wiki_build_graph_fs",
-      "scripts_wiki_build_graph_main",
-      "scripts_wiki_build_graph_path",
-      "scripts_wiki_build_graph_reporoot_slash_hassymlinkcomponent_atomicwrite",
-      "scripts_wiki_lib_common",
-      "scripts_wiki_lib_common_crypto",
-      "scripts_wiki_lib_common_execfilesync",
-      "scripts_wiki_lib_common_fs",
-      "scripts_wiki_lib_common_path",
-      "scripts_wiki_lib_common_slash",
-      "scripts_wiki_lib_common_wikipath",
-      "scripts_wiki_lib_wiki_graph",
-      "scripts_wiki_lib_wiki_graph_collect",
-      "scripts_wiki_lib_wiki_graph_frontmattertarget",
-      "scripts_wiki_lib_wiki_graph_fs",
-      "scripts_wiki_lib_wiki_graph_githubrefs_withoutfencedcode",
-      "scripts_wiki_lib_wiki_graph_kind",
-      "scripts_wiki_lib_wiki_graph_normalizewikiroot",
-      "scripts_wiki_lib_wiki_graph_path",
-      "scripts_wiki_lib_wiki_graph_resolvewikilink",
-      "scripts_wiki_lib_wiki_graph_scanforsymlinks",
-      "scripts_wiki_lib_wiki_graph_splitfrontmatter_list_titlefrombody",
-      "scripts_wiki_lib_wiki_graph_walk_slash_digest_ensureinside_remoteslug",
-      "scripts_wiki_navigate",
-      "scripts_wiki_navigate_collect_normalizewikiroot",
-      "scripts_wiki_navigate_main",
-      "scripts_wiki_navigate_parseargs",
-      "scripts_wiki_navigate_reporoot",
-      "scripts_wiki_navigate_route_formatroute",
-      "scripts_wiki_navigate_usage",
-      "scripts_wiki_routing_formatroute"
-    ],
-    "5": [
       "scripts_wiki_discover_plans",
       "scripts_wiki_discover_plans_discover",
       "scripts_wiki_discover_plans_fs",
@@ -239,13 +257,14 @@
       "scripts_wiki_discover_plans_parse",
       "scripts_wiki_discover_plans_path",
       "scripts_wiki_discover_plans_reporoot_atomicwrite",
-      "scripts_wiki_lib_common_atomicwrite",
+      "scripts_wiki_lib_common_remoteslug",
+      "scripts_wiki_lib_common_substantive",
       "scripts_wiki_lib_common_walk",
-      "scripts_wiki_lib_frontmatter_titlefrombody",
       "scripts_wiki_lib_plans",
       "scripts_wiki_lib_plans_association",
       "scripts_wiki_lib_plans_auditeddigests",
       "scripts_wiki_lib_plans_candidate",
+      "scripts_wiki_lib_plans_cleancursor",
       "scripts_wiki_lib_plans_collapsebytitle",
       "scripts_wiki_lib_plans_digest_git_remoteslug_walk_slash",
       "scripts_wiki_lib_plans_discover",
@@ -259,7 +278,42 @@
       "scripts_wiki_lib_plans_plantitle",
       "scripts_wiki_lib_plans_proposedplans",
       "scripts_wiki_lib_plans_sourcetimestamp",
-      "scripts_wiki_lib_plans_splitfrontmatter_scalar_titlefrombody"
+      "scripts_wiki_lib_plans_splitfrontmatter_scalar_titlefrombody",
+      "scripts_wiki_pre_commit",
+      "scripts_wiki_pre_commit_discover",
+      "scripts_wiki_pre_commit_main",
+      "scripts_wiki_pre_commit_path",
+      "scripts_wiki_pre_commit_reporoot_git_substantive",
+      "scripts_wiki_pre_commit_spawnsync"
+    ],
+    "5": [
+      "scripts_wiki_lib_frontmatter",
+      "scripts_wiki_lib_frontmatter_fieldspan",
+      "scripts_wiki_lib_frontmatter_keypattern",
+      "scripts_wiki_lib_frontmatter_list",
+      "scripts_wiki_lib_frontmatter_parselistliteral",
+      "scripts_wiki_lib_frontmatter_quote",
+      "scripts_wiki_lib_frontmatter_render",
+      "scripts_wiki_lib_frontmatter_scalar",
+      "scripts_wiki_lib_frontmatter_splitfrontmatter",
+      "scripts_wiki_on_merge_sync",
+      "scripts_wiki_on_merge_sync_closingissues_normalizegithubquery_normalizerepository_parsegithubquery_ref",
+      "scripts_wiki_on_merge_sync_file_statuses",
+      "scripts_wiki_on_merge_sync_fs",
+      "scripts_wiki_on_merge_sync_main",
+      "scripts_wiki_on_merge_sync_markdowncode",
+      "scripts_wiki_on_merge_sync_mergeissueevidence",
+      "scripts_wiki_on_merge_sync_normalizechangedfiles",
+      "scripts_wiki_on_merge_sync_normalizechangedpaths",
+      "scripts_wiki_on_merge_sync_normalizecommits",
+      "scripts_wiki_on_merge_sync_path",
+      "scripts_wiki_on_merge_sync_quoteyaml",
+      "scripts_wiki_on_merge_sync_reconcile",
+      "scripts_wiki_on_merge_sync_renderflowlist",
+      "scripts_wiki_on_merge_sync_renderfrontmatterfield",
+      "scripts_wiki_on_merge_sync_reporoot_remoteslug_slugify_substantive_ensureinside_hassymlinkcomponent_atomicwrite",
+      "scripts_wiki_on_merge_sync_setfrontmatterfield",
+      "scripts_wiki_on_merge_sync_splitfrontmatter_scalar_list_fieldspan"
     ],
     "6": [
       "scripts_wiki_graph_viewer_viewer",
@@ -290,41 +344,13 @@
       "scripts_wiki_graph_viewer_viewer_wirecontrols"
     ],
     "7": [
-      "scripts_wiki_routing",
-      "scripts_wiki_routing_adjacency",
-      "scripts_wiki_routing_edgecost",
-      "scripts_wiki_routing_edgekey",
-      "scripts_wiki_routing_edgetype",
-      "scripts_wiki_routing_evidence_type_priority",
-      "scripts_wiki_routing_formatbytes",
-      "scripts_wiki_routing_formatgithubref",
-      "scripts_wiki_routing_fs",
-      "scripts_wiki_routing_githubreftext",
-      "scripts_wiki_routing_nodehaystack",
-      "scripts_wiki_routing_normalizegithubquery_parsegithubquery",
-      "scripts_wiki_routing_path",
-      "scripts_wiki_routing_policy_path",
-      "scripts_wiki_routing_policyproblems",
-      "scripts_wiki_routing_reconstructroute",
-      "scripts_wiki_routing_required_intents",
-      "scripts_wiki_routing_resolveevidencenode",
-      "scripts_wiki_routing_resolvenode",
-      "scripts_wiki_routing_route",
-      "scripts_wiki_routing_scorenode",
-      "scripts_wiki_routing_shortestpaths",
-      "scripts_wiki_routing_stop_words",
-      "scripts_wiki_routing_targetforintent",
-      "scripts_wiki_routing_tokenize"
-    ],
-    "8": [
+      "scripts_wiki_lib_common_atomicwrite",
       "scripts_wiki_lib_github_refs",
       "scripts_wiki_lib_github_refs_advancefence",
       "scripts_wiki_lib_github_refs_closingissues",
       "scripts_wiki_lib_github_refs_githubrefs",
       "scripts_wiki_lib_github_refs_key",
-      "scripts_wiki_lib_github_refs_normalizegithubquery",
       "scripts_wiki_lib_github_refs_normalizerepository",
-      "scripts_wiki_lib_github_refs_parsegithubquery",
       "scripts_wiki_lib_github_refs_ref",
       "scripts_wiki_lib_github_refs_withoutfencedcode",
       "scripts_wiki_refresh_issue_state",
@@ -342,7 +368,7 @@
       "scripts_wiki_refresh_issue_state_reporoot_walk_atomicwrite_ensureinside_hassymlinkcomponent",
       "scripts_wiki_refresh_issue_state_setissuestate"
     ],
-    "9": [
+    "8": [
       "scripts_wiki_reconcile_merges",
       "scripts_wiki_reconcile_merges_collectpulls",
       "scripts_wiki_reconcile_merges_copywikifordryrun",
@@ -361,19 +387,7 @@
       "scripts_wiki_reconcile_merges_reporoot_remoteslug",
       "scripts_wiki_reconcile_merges_selectmergedpulls"
     ],
-    "10": [
-      "scripts_wiki_serve_graph",
-      "scripts_wiki_serve_graph_createserver",
-      "scripts_wiki_serve_graph_fs",
-      "scripts_wiki_serve_graph_http",
-      "scripts_wiki_serve_graph_listen",
-      "scripts_wiki_serve_graph_main",
-      "scripts_wiki_serve_graph_path",
-      "scripts_wiki_serve_graph_reporoot_ensureinside",
-      "scripts_wiki_serve_graph_resolverequest",
-      "scripts_wiki_serve_graph_types"
-    ],
-    "11": [
+    "9": [
       "scripts_validate_pr_body",
       "scripts_validate_pr_body_fs",
       "scripts_validate_pr_body_main",
@@ -384,7 +398,7 @@
       "scripts_validate_pr_body_validatepullrequestbody",
       "scripts_validate_pr_body_withoutcomments"
     ],
-    "12": [
+    "10": [
       "scripts_python",
       "scripts_python_fs",
       "scripts_python_local",
@@ -393,42 +407,50 @@
       "scripts_python_root",
       "scripts_python_spawnsync"
     ],
-    "13": [
+    "11": [
       "scripts_wiki_graph_viewer_routing",
       "scripts_wiki_graph_viewer_routing_normalizegithubquery",
       "scripts_wiki_graph_viewer_routing_shortestpath",
       "scripts_wiki_graph_viewer_routing_validpolicy"
     ],
-    "14": [
+    "12": [
       "scripts_create_trial"
     ],
-    "15": [
+    "13": [
       "scripts_install_skills"
     ]
   },
   "cohesion": {
-    "0": 0.13825136612021857,
-    "1": 0.08748615725359911,
-    "2": 0.10220673635307782,
-    "3": 0.1,
-    "4": 0.10873440285204991,
-    "5": 0.12698412698412698,
+    "0": 0.11327491074326518,
+    "1": 0.055855855855855854,
+    "2": 0.08865248226950355,
+    "3": 0.0931174089068826,
+    "4": 0.09747899159663866,
+    "5": 0.1623931623931624,
     "6": 0.18769230769230769,
-    "7": 0.15333333333333332,
-    "8": 0.17753623188405798,
-    "9": 0.18382352941176472,
-    "10": 0.24444444444444444,
-    "11": 0.3888888888888889,
-    "12": 0.2857142857142857,
-    "13": 0.6666666666666666,
-    "14": 1.0,
-    "15": 1.0
+    "7": 0.17786561264822134,
+    "8": 0.18382352941176472,
+    "9": 0.3888888888888889,
+    "10": 0.2857142857142857,
+    "11": 0.6666666666666666,
+    "12": 1.0,
+    "13": 1.0
   },
   "gods": [
     {
       "id": "scripts_review_cli_reviewerror",
       "label": "ReviewError",
-      "degree": 32
+      "degree": 38
+    },
+    {
+      "id": "scripts_review_cli_accept",
+      "label": "accept()",
+      "degree": 29
+    },
+    {
+      "id": "scripts_review_cli_advance",
+      "label": "advance()",
+      "degree": 29
     },
     {
       "id": "scripts_wiki_lib_common_reporoot",
@@ -436,9 +458,9 @@
       "degree": 26
     },
     {
-      "id": "scripts_review_cli_accept",
-      "label": "accept()",
-      "degree": 23
+      "id": "scripts_review_cli_main",
+      "label": "main()",
+      "degree": 25
     },
     {
       "id": "scripts_wiki_on_merge_sync_reconcile",
@@ -446,14 +468,9 @@
       "degree": 23
     },
     {
-      "id": "scripts_review_cli_advance",
-      "label": "advance()",
-      "degree": 21
-    },
-    {
-      "id": "scripts_review_cli_main",
-      "label": "main()",
-      "degree": 21
+      "id": "scripts_review_cli_initialize",
+      "label": "initialize()",
+      "degree": 18
     },
     {
       "id": "scripts_wiki_lib_wiki_graph_collect",
@@ -469,11 +486,6 @@
       "id": "scripts_wiki_lib_common_git",
       "label": "git()",
       "degree": 17
-    },
-    {
-      "id": "scripts_review_cli_target",
-      "label": "target()",
-      "degree": 15
     }
   ],
   "surprises": [
@@ -490,32 +502,10 @@
     },
     {
       "source": "main()",
-      "target": "repoRoot()",
+      "target": "inferPlanDate()",
       "source_files": [
         "scripts/wiki/apply-plan-audit.cjs",
-        "scripts/wiki/lib/common.cjs"
-      ],
-      "confidence": "EXTRACTED",
-      "relation": "calls",
-      "why": "bridges separate communities"
-    },
-    {
-      "source": "fromArgs()",
-      "target": "slash()",
-      "source_files": [
-        "scripts/wiki/archive-plan.cjs",
-        "scripts/wiki/lib/common.cjs"
-      ],
-      "confidence": "EXTRACTED",
-      "relation": "calls",
-      "why": "bridges separate communities"
-    },
-    {
-      "source": "fromArgs()",
-      "target": "titleFromBody()",
-      "source_files": [
-        "scripts/wiki/archive-plan.cjs",
-        "scripts/wiki/lib/frontmatter.cjs"
+        "scripts/wiki/lib/dates.cjs"
       ],
       "confidence": "EXTRACTED",
       "relation": "calls",
@@ -531,43 +521,32 @@
       "confidence": "EXTRACTED",
       "relation": "calls",
       "why": "bridges separate communities"
+    },
+    {
+      "source": "validateArchiveInput()",
+      "target": "render()",
+      "source_files": [
+        "scripts/wiki/archive-plan.cjs",
+        "scripts/wiki/lib/frontmatter.cjs"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "bridges separate communities"
+    },
+    {
+      "source": "archive()",
+      "target": "atomicWrite()",
+      "source_files": [
+        "scripts/wiki/archive-plan.cjs",
+        "scripts/wiki/lib/common.cjs"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "bridges separate communities"
     }
   ],
-  "questions": [
-    {
-      "type": "bridge_node",
-      "question": "Why does `repoRoot()` connect `audit-plan-candidates.cjs` to `archive-plan.cjs`, `on-merge-sync.cjs`, `common.cjs`, `plans.cjs`, `refresh-issue-state.cjs`, `reconcile-merges.cjs`, `serve-graph.cjs`?",
-      "why": "High betweenness centrality (0.099) - this node is a cross-community bridge."
-    },
-    {
-      "type": "bridge_node",
-      "question": "Why does `git()` connect `audit-plan-candidates.cjs` to `archive-plan.cjs`, `on-merge-sync.cjs`, `common.cjs`, `plans.cjs`?",
-      "why": "High betweenness centrality (0.021) - this node is a cross-community bridge."
-    },
-    {
-      "type": "bridge_node",
-      "question": "Why does `atomicWrite()` connect `plans.cjs` to `archive-plan.cjs`, `on-merge-sync.cjs`, `audit-plan-candidates.cjs`, `common.cjs`, `refresh-issue-state.cjs`?",
-      "why": "High betweenness centrality (0.021) - this node is a cross-community bridge."
-    },
-    {
-      "type": "isolated_nodes",
-      "question": "What connects `fs`, `path`, `{ spawnSync }` to the rest of the system?",
-      "why": "89 weakly-connected nodes found - possible documentation gaps or missing edges."
-    },
-    {
-      "type": "low_cohesion",
-      "question": "Should `review_cli.py` be split into smaller, more focused modules?",
-      "why": "Cohesion score 0.13825136612021857 - nodes in this community are weakly interconnected."
-    },
-    {
-      "type": "low_cohesion",
-      "question": "Should `archive-plan.cjs` be split into smaller, more focused modules?",
-      "why": "Cohesion score 0.08748615725359911 - nodes in this community are weakly interconnected."
-    },
-    {
-      "type": "low_cohesion",
-      "question": "Should `on-merge-sync.cjs` be split into smaller, more focused modules?",
-      "why": "Cohesion score 0.10220673635307782 - nodes in this community are weakly interconnected."
-    }
-  ]
+  "tokens": {
+    "input": 0,
+    "output": 0
+  }
 }

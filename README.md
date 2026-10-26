@@ -71,9 +71,9 @@ Add any desired partial overrides to the ignored `runtime.local.json` beside thi
 }
 ```
 
-`start` also accepts `--reviewer-model`, `--reviewer-effort`, `--coordinator-model`, `--coordinator-effort`, and implementation-only `--implementer-model` / `--implementer-effort`. Explicit flags override the installation profile, which overrides built-in defaults. The complete result is recorded in the run and used unchanged on resume. Configuration errors fail before run artifacts are created; provider rejection stops the run without fallback.
+`start` also accepts `--reviewer-model`, `--reviewer-effort`, `--coordinator-model`, `--coordinator-effort`, and implementation-only `--implementer-model` / `--implementer-effort`. Explicit flags override the installation profile, which overrides built-in defaults. The complete result is recorded in the run and used unchanged on resume. Configuration errors fail before run artifacts are created; new runs use a 30-minute per-call timeout and bounded, recorded read-only model fallbacks for explicit capacity failures. See [fallback configuration and recovery](references/cli.md#recorded-model-fallback). Existing runs retain their saved timeout and policy.
 
-Existing version-2 runs retain their frozen profiles, including Sol 6. Version-1 runs retain the original Opus 5.5 High, Astra 6 Max, and Sol 6 XHigh pins. Updating the helper does not migrate run artifacts or change resumed sessions. To select Sol 6 for a new implementation run, pass `--implementer-model gpt-6-sol` or set it in the installation profile.
+Existing current-protocol runs retain their frozen profiles, including Sol 6. Obsolete runs without current protocol markers stop before dispatch; preserve their artifacts and start a new run. Updating the helper does not migrate run artifacts or change resumed sessions. To select Sol 6 for a new implementation run, pass `--implementer-model gpt-6-sol` or set it in the installation profile.
 
 ## Install
 

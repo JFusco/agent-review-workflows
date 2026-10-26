@@ -5,7 +5,7 @@ description: Independently reviews and refines a draft plan before implementatio
 
 # Review a plan
 
-Use a Claude reviewer and Codex coordinator to independently review a draft, resolve supported objections, and return a complete refined plan. Resolve their model and effort from the configured `review-plan` profile and explicit start overrides. Freeze that profile into the run and never substitute another configuration.
+Use a Claude reviewer and Codex coordinator to independently review a draft, resolve supported objections, and return a complete refined plan. Resolve their model and effort from the configured `review-plan` profile and explicit start overrides. Freeze the primary profile and ordered fallback candidates into the run. Only the helper may select a recorded read-only fallback under the [shared policy](references/cli.md#recorded-model-fallback); never substitute an unrecorded configuration.
 
 Read [the CLI procedure](references/cli.md) when starting or resuming a cycle. [Authoring principles](references/authoring.md) apply when changing this skill.
 If the sandbox hides an existing host Claude login, follow the procedure's [guarded reviewer dispatch](references/cli.md#claude-login-visibility-in-a-sandbox) and keep coordinator stages sandboxed.
