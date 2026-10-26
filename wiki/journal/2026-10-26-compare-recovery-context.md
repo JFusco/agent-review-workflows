@@ -1,6 +1,7 @@
 ---
 topics: [review-suite-evaluation, review-agent-profiles]
-issues: ['https://github.com/JFusco/agent-review-workflows/issues/73']
+issues: ['https://github.com/jfusco/agent-review-workflows/issues/73']
+issue: 'https://github.com/jfusco/agent-review-workflows/issues/73'
 ---
 # Recovery context in run comparisons
 
