@@ -1,12 +1,12 @@
 ---
-issues: ['https://github.com/JFusco/agent-review-workflows/issues/47', 'https://github.com/JFusco/agent-review-workflows/issues/62']
+issues: ['https://github.com/JFusco/agent-review-workflows/issues/47', 'https://github.com/JFusco/agent-review-workflows/issues/62', 'https://github.com/JFusco/agent-review-workflows/issues/73']
 ---
 # Review-suite evaluation
 
 The opt-in `review-suite-eval` skill compares two saved runs in the invoking
 conversation. Identical original requirements and targets are the prerequisite
-for a comparative conclusion. Profile, instructions, and check-command
-differences provide context. Existing call, ledger, finding, and check
+for a comparative conclusion. Profile, recorded recovery, instructions, and
+check-command differences provide context. Existing call, ledger, finding, and check
 artifacts provide observable outcomes and costs; missing measurements remain
 unavailable. Quality judgments require explicit maintainer expectations.
 
@@ -23,3 +23,9 @@ Historical unsupported protocols can be inspected without migration. Any changed
 input path set or bytes forces UNKNOWN; optional telemetry gaps alone do not
 invalidate exact original-input comparability. Semantic quality still requires
 explicit maintainer expectations.
+
+[Issue #73](https://github.com/JFusco/agent-review-workflows/issues/73) adds
+recorded recovery context: frozen fallbacks, selections, fallback history,
+response corrections, and timeout changes appear as context differences, empty
+for older runs, without changing input comparability. See the
+[journal entry](../journal/2026-10-26-compare-recovery-context.md).

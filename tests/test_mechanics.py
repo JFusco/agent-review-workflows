@@ -619,6 +619,31 @@ class CollectionTests(MechanicsFixture, unittest.TestCase):
         (candidate/'original.json').unlink()
         self.assertEqual(r.compare_runs(self.run, candidate)['status'], 'UNKNOWN')
 
+    def test_comparison_reports_recovery_context_without_changing_comparability(self):
+        candidate = self.comparison()
+        state = r.read_json(candidate/'state.json')
+        state['agent_selections'] = {'opus': 1}
+        state['fallback_history'] = [{'stage': 'review', 'reason': 'fixture capacity failure'}]
+        state['timeout_history'] = [{'stage': 'review', 'from': 60, 'to': 7200}]
+        state['timeout'] = 7200
+        r.save(candidate, state)
+        report = r.compare_runs(self.run, candidate)
+        self.assertEqual(report['status'], 'COMPARABLE')
+        self.assertEqual(sorted(report['comparability']['context_differences']),
+                         ['agent_selections', 'fallback_history', 'timeout', 'timeout_history'])
+        self.assertEqual(report['comparability']['context_differences']['agent_selections'],
+                         {'baseline': self.state.get('agent_selections', {}), 'candidate': {'opus': 1}})
+        historical = self.root/'historical'
+        shutil.copytree(self.run, historical)
+        old = r.read_json(historical/'state.json')
+        for key in r.RECOVERY_CONTEXT:
+            old.pop(key, None)
+        r.save(historical, old)
+        evidence = r.compare_runs(historical, historical)['baseline']
+        self.assertEqual({k: evidence[k] for k in r.RECOVERY_CONTEXT},
+                         {'agent_fallbacks': {}, 'agent_selections': {}, 'fallback_history': [],
+                          'response_corrections': [], 'timeout_history': [], 'timeout': None})
+
     def test_attempts_acceptance_provenance_and_individual_usage(self):
         agents = [{'model': 'claude-opus-5-5', 'effort': 'high', 'observed': {'source': 'Claude modelUsage', 'model': 'different'}},
                   {'model': 'gpt-6-astra', 'effort': 'max', 'observed': {'source': 'not exposed by CLI output', 'model': None}},
