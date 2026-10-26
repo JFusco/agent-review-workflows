@@ -1,6 +1,12 @@
 ---
 topics: [review-agent-profiles, implementation-review-evidence]
-issues: ['https://github.com/JFusco/agent-review-workflows/issues/67', 'https://github.com/JFusco/agent-review-workflows/issues/68', 'https://github.com/JFusco/agent-review-workflows/issues/69']
+issues:
+  [
+    'https://github.com/jfusco/agent-review-workflows/issues/67',
+    'https://github.com/jfusco/agent-review-workflows/issues/68',
+    'https://github.com/jfusco/agent-review-workflows/issues/69',
+  ]
+issue: 'https://github.com/jfusco/agent-review-workflows/issues/67'
 ---
 # Review contract recovery without rigid blocks
 
