@@ -1,1 +1,22 @@
-{"0": "review_cli.py", "1": "archive-plan.cjs", "2": "on-merge-sync.cjs", "3": "common.cjs", "4": "audit-plan-candidates.cjs", "5": "viewer.js", "6": "routing.cjs", "7": "reconcile-merges.cjs", "8": "validate_pr_body.cjs", "9": "python.cjs", "10": "routing.js", "11": "create_trial.py", "12": "install_skills.py"}
+{
+  "0": "review_cli.py",
+  "1": "common.cjs",
+  "2": "audit-plan-candidates.cjs",
+  "3": "routing.cjs",
+  "4": "archive-plan.cjs",
+  "5": "on-merge-sync.cjs",
+  "6": "viewer.js",
+  "7": "ReviewError",
+  "8": "reconcile-merges.cjs",
+  "9": "validate_pr_body.cjs",
+  "10": "python.cjs",
+  "11": "routing.js",
+  "12": "create_trial.py",
+  "13": "install_skills.py",
+  "14": "accept",
+  "15": "advance",
+  "16": "rerun_checks",
+  "17": "serve-graph.cjs",
+  "18": "execute_process",
+  "19": "HandoffResponseError"
+}

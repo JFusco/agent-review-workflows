@@ -10,10 +10,10 @@ fields inherit the built-in Opus 5.5 High, Astra 6 Max, and Sol 6.1 Extra High
 
 Profiles use functional roles rather than model names. Both skills have a
 Claude `reviewer` and Codex `coordinator`; only implementation review has a
-Codex `implementer`. Provider routing, read/write permissions, target
+Codex `implementer`. Primary provider routing, read/write permissions, target
 fingerprints, handoff revisions, bounded passes, and the single-writer rule are
-not configurable. Unsupported model or effort combinations stop at the
-provider boundary without substitution.
+not configurable. Read-only fallback routing follows the bounded frozen policy in
+the [CLI procedure](../../references/cli.md#recorded-model-fallback).
 
 ## Resolution and persistence
 
@@ -26,19 +26,27 @@ run or its resumed sessions. Updating the helper also preserves these stored
 profiles: existing Sol 6 runs continue to use Sol 6. An explicit installation or
 per-run `gpt-6-sol` selection still takes precedence over the new default.
 
-Version-1 runs have no stored profile. They deterministically resolve to their
-original Opus 5.5 / `high`, Astra 6 / `max`, and Sol 6 / `xhigh` settings rather
-than current defaults or local configuration. The historical profile table
-remains separate from the new defaults; no run artifact migration or resumed
-session model switch is performed.
+Saved runs missing current protocol markers stop before dispatch. Existing current
+runs retain their saved primary profile and timeout, and have no fallback when
+no candidate snapshot exists. New runs freeze default reviewer Claude → Codex
+and coordinator Astra → Sol candidates. Selections and failed attempts remain
+visible through recovery; sessions are never resumed across model switches.
 
 ## External coordinator boundary
 
-`--external-coordinator` yields coordinator stages to a matching conversation;
-`--external-astra` remains a compatibility alias. The external request records
-the frozen model and effort, and submission succeeds only when the caller
-attests that exact pair. This attestation is recorded as caller-supplied rather
-than provider-verified.
+`--external-coordinator` yields coordinator stages to a matching conversation.
+The request and submission must match the currently selected frozen candidate.
+Caller attestation remains separate from observed provider configuration.
+
+## Timeout and capacity recovery
+
+[Issue #64](https://github.com/JFusco/agent-review-workflows/issues/64) extends the
+new-run default from 900 to 1800 seconds per model call/check, with the existing
+1–3600-second override. Explicit capacity failures can advance an ordered,
+validated fallback list, retaining the canonical findings and revision.
+The CLI procedure owns configuration, eligibility, evidence, and recovery.
+Writers never replay automatically, and a host reviewer-only dispatch yields
+before any Codex fallback so execution can resume in the sandbox.
 
 ## Evidence policy
 

@@ -8,7 +8,7 @@ Review packets ask each role to act as a pragmatic, minimalist senior software a
 
 ## Agent profiles
 
-The ignored installation-local `runtime.local.json` may contain partial profiles under `skills.review-plan`, `skills.review-implementation`, and `skills.review-diff`. Plan and diff support `reviewer` (Claude) and `coordinator` (Codex); implementation also supports `implementer` (Codex). Each role accepts `model` and `effort` only. Providers and permissions are fixed and cannot be configured.
+The ignored installation-local `runtime.local.json` may contain partial profiles under `skills.review-plan`, `skills.review-implementation`, and `skills.review-diff`. Plan and diff support `reviewer` (Claude) and `coordinator` (Codex); implementation also supports `implementer` (Codex). Each role accepts `model`, `effort`, and an optional ordered `fallbacks` list. Primary providers and permissions remain fixed. Reviewer fallbacks may use Claude or Codex; coordinator fallbacks use Codex. Implementation writers do not fall back.
 
 ```json
 {
@@ -30,11 +30,43 @@ The ignored installation-local `runtime.local.json` may contain partial profiles
 }
 ```
 
-Those values are also the built-in defaults. Claude effort accepts `low`, `medium`, `high`, `xhigh`, or `max`. Codex effort accepts `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`, or `ultra`; the selected model may support only a subset. Model identifiers must be nonblank and contain no whitespace. The provider CLI remains authoritative for model availability and model/effort compatibility; rejection stops the workflow without fallback.
+Those values are also the built-in defaults. Claude effort accepts `low`, `medium`, `high`, `xhigh`, or `max`. Codex effort accepts `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`, or `ultra`; the selected model may support only a subset. Model identifiers must be nonblank and contain no whitespace. The provider CLI remains authoritative for model availability and model/effort compatibility; unclassified rejection stops the workflow. See [Recorded model fallback](#recorded-model-fallback) for eligible capacity failures.
 
-At `start`, explicit `--reviewer-model` / `--reviewer-effort`, `--coordinator-model` / `--coordinator-effort`, and implementation-only `--implementer-model` / `--implementer-effort` override the selected skill profile. Resolution is per field: start flag, then installation profile, then built-in default. The helper validates the entire local configuration before creating a run and stores the complete resolved profile in its state, original snapshot, status, packet, and handoff. Later edits or deletion of `runtime.local.json` never change that run or its resumed sessions.
+At `start`, explicit `--reviewer-model` / `--reviewer-effort`, `--coordinator-model` / `--coordinator-effort`, and implementation-only `--implementer-model` / `--implementer-effort` override the selected skill profile. Resolution is per field: start flag, then installation profile, then built-in default. The helper validates the entire local configuration before creating a run and stores the complete resolved profile in its state, original snapshot, status, packet, and handoff. Later edits or deletion of `runtime.local.json` never change that run or its resumed sessions. The separate `agent_fallbacks` snapshot freezes the fallback policy alongside the primary profile.
 
 The Sol 6.1 / `xhigh` default applies to implementation runs. Current saved runs use their frozen profile. An installation-local `implementer.model` of `gpt-6-sol` or explicit `--implementer-model gpt-6-sol` selects Sol 6 for a new run; effort follows the same per-field precedence.
+
+## Recorded model fallback
+
+New runs default to a 1800-second (30-minute) timeout for each model call and configured check. `start --timeout SECONDS` overrides it from 1 to 3600 seconds. Each fallback call gets the same timeout; the finite candidate list bounds total attempts. Existing runs keep their saved timeout and candidates; runs predating this feature have no fallback candidates. Start a new run to use the new defaults; never edit saved state to retrofit them.
+
+New reviewer runs default to Claude Opus 5.5 / `high`, then Codex Astra 6 / `max`. Coordinators default to Codex Astra 6 / `max`, then Codex Sol 6.1 / `xhigh`. Fallback selections persist for the role through later stages and recovery. The writer retains its frozen primary configuration and never automatically retries. Review and coordination always use independent sessions, including when they select the same model.
+
+Override a role's ordered fallback list in `runtime.local.json`, for example:
+
+```json
+{
+  "skills": {
+    "review-plan": {
+      "reviewer": {
+        "fallbacks": [
+          { "provider": "codex", "model": "gpt-6-astra", "effort": "max" },
+          { "provider": "codex", "model": "gpt-6.1-sol", "effort": "xhigh" }
+        ]
+      },
+      "coordinator": { "fallbacks": [] }
+    }
+  }
+}
+```
+
+Each list permits at most two distinct candidates with exactly `provider`, `model`, and `effort`. Effort is validated against the candidate provider. An empty list disables fallback; an exact duplicate of the primary is omitted at start. Nonempty writer fallback lists are rejected. Start model/effort overrides affect the primary only.
+
+Only a model-call timeout or explicit provider errors identifying unavailable models, rate/usage/quota/token/credit exhaustion, context exhaustion, or overload can advance the list. Check failures never select models. Unknown errors, login/permission failures, invalid responses or identity, stale targets, and manual interruption stop normally. Exhaustion blocks visibly. A repair timeout remains `interrupted`: inspect partial writes and reconcile rather than launching another writer.
+
+Before switching, the helper verifies the target and that the previous process group has stopped. Each attempt retains its invocation, process output, and requested `agent.json`. The fallback event records the failed call, reason, old/new provider-model-effort, revision, and retired session. The new model starts a fresh session with the canonical packet, findings, ledger, and current checks. No finding, revision, or target identity changes merely because a fallback was selected. CLI output, status, packets, and `handoff.md` expose selections and history; accepted artifacts retain actual requested settings and separately observed provider evidence. Fixtures do not prove model availability or provider execution.
+
+A guarded host `step --reviewer-only` never launches a Codex fallback on the host: it saves the selection, leaves the stage ready, and asks the caller to resume in the sandbox. External coordinator submissions must match the selected frozen candidate exactly; the helper does not switch the invoking conversation's model.
 
 ## Start
 
@@ -81,7 +113,7 @@ PYTHON HELPER status /path/to/run
 PYTHON HELPER rerun-checks /path/to/run
 ```
 
-The helper serializes the protocol and launches the selected roles through the CLIs. Inspect `handoff.md`, `final.md`, `artifacts/`, and `calls/` within the run. `step` runs at most one provider stage plus an eligible version-3 local completion tail. Stop at `complete`, `reported`, `unresolved`, `needs_user`, or a reported blocker. No automatic model fallback, recursive agent delegation, or publication occurs.
+The helper serializes the protocol and launches the selected roles through the CLIs. Inspect `handoff.md`, `final.md`, `artifacts/`, and `calls/` within the run. `step` runs at most one provider stage plus an eligible version-3 local completion tail. Stop at `complete`, `reported`, `unresolved`, `needs_user`, or a reported blocker. Only the frozen, recorded read-only fallback policy can select another model within the same stage. No recursive agent delegation or publication occurs.
 
 ### Claude login visibility in a sandbox
 
@@ -155,12 +187,12 @@ Call `step` only when `status` reports `ready` and the invoking conversation per
 
 For a Claude stage with a sandbox-hidden login, follow [Claude login visibility in a sandbox](#claude-login-visibility-in-a-sandbox). A sandboxed `step` may stop after recording initial checks but before dispatch; a subsequent approved host `step RUN --reviewer-only` is the single dispatched stage. Stop after that one reviewer dispatch. The reviewer-only guard fails before provider execution if the stage changed or initial implementation checks are missing.
 
-Stop after one attempt and report the attempted stage, resulting status, blocker if any, and `handoff.md`. A ready next provider stage requires another invocation. An ordinary `step` completes an eligible version-3 local tail; a reviewer-only step leaves it ready for sandbox continuation. A step starting at local finalization dispatches no provider. Non-ready states, including external-coordinator waits, use [Recovery](#recovery) or the existing [external submission procedure](#run-and-interact); the handoff skill performs neither automatically. If output is lost, read `status` without replaying `step`. The existing `run` command and full review skills continue to support complete cycles.
+One step may exhaust its frozen fallback candidates for that same read-only stage. Stop after the step and report the attempted stage, resulting status, blocker if any, and `handoff.md`. A ready next provider stage requires another invocation. An ordinary `step` completes an eligible version-3 local tail; a reviewer-only step leaves it ready for sandbox continuation. A step starting at local finalization dispatches no provider. Non-ready states, including external-coordinator waits, use [Recovery](#recovery) or the existing [external submission procedure](#run-and-interact); the handoff skill performs neither automatically. If output is lost, read `status` without replaying `step`. The existing `run` command and full review skills continue to support complete cycles.
 
 ## Recovery
 
-- `blocked`, or an orphaned read-only `running` stage: inspect the saved process output. `retry RUN` only resets a read-only stage after target freshness checks; then run again. Never change models to clear a blocker.
-- A transient configured-check failure on an unchanged current implementation or pre-report diff target: run `rerun-checks RUN`. The command is allowed only in a read-only recoverable state, retains prior receipt files, writes current receipts, increments the handoff revision, and invalidates stale agent output. It does not change the configured commands, target, findings, or repair count. A check-only unresolved implementation finalization becomes ready only after every configured check passes, then completes locally in version 3; other blocked or unresolved states retain their status and still require their normal recovery.
+- `blocked`, or an orphaned read-only `running` stage: inspect the saved process output. `retry RUN` only resets a read-only stage after target freshness checks; then run again. Never edit model settings to clear a blocker; retry retains the saved selected candidate and remaining frozen list.
+- A transient configured-check failure on an unchanged current implementation or pre-report diff target: run `rerun-checks RUN`. The command is allowed only in a read-only recoverable state, retains prior receipt files, writes current receipts, increments the handoff revision, and invalidates stale agent output. It does not change the configured commands, target, findings, stage, or repair count. A check-only unresolved implementation finalization becomes ready only after every configured check passes, then completes locally in version 3; other blocked or unresolved states retain their status and still require their normal recovery.
 - A diff check execution interrupted before review: inspect the saved receipts, then use `retry RUN` for the blocked read-only stage. The helper reruns the complete configured check set before reviewer dispatch and preserves prior receipt files. A `reported` run is terminal: `run` and `step` regenerate readable views without provider dispatch; `retry`, `rerun-checks`, `reconcile`, `submit`, and `decide` reject it. Any changed target needs a new review.
 - `interrupted` repair: inspect actual changes, Git state, process output, and scope. Stop any still-running process first. Then `reconcile RUN --note "actual inspected partial changes"`. This advances to independent recheck, counts a repair pass, and never reruns the write automatically.
 - `needs_user`: obtain the user's actual decision, then `decide RUN --instruction "user decision"` and run again. Do not invent approval.
@@ -171,7 +203,7 @@ Stop after one attempt and report the attempted stage, resulting status, blocker
 
 ## Prerequisites and boundaries
 
-Python 3.11+, Git for implementation reviews, the pinned requirements installed in the installation virtual environment, Codex CLI and Claude Code on PATH, and working CLI login. Current tested CLI baselines are recorded in the validation report; the helper uses supported flags and fails on incompatible versions. Per-agent/check timeout defaults to 900 seconds and may be explicitly set to 1–3600 seconds.
+Python 3.11+, Git for implementation reviews, the pinned requirements installed in the installation virtual environment, Codex CLI and Claude Code on PATH, and working CLI login. Current tested CLI baselines are recorded in the validation report; the helper uses supported flags and fails on incompatible versions. See [Recorded model fallback](#recorded-model-fallback) for timeout defaults, bounds, and saved-run compatibility.
 
 The configured Claude reviewer runs with read/search tools, safe/restricted mode, no MCP tools, and hooks disabled; subscription authentication remains available. Codex roles run from an isolated runtime directory with user configuration ignored, explicit sandbox/approval settings, no nested agents, and no network access for execution tools. The implementer receives project write access only at repair stages; all other stages use read-only execution. Project instructions are supplied as context rather than enabling hooks or integrations. Managed host policies still apply; do not bypass them.
 

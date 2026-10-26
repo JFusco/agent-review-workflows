@@ -230,3 +230,12 @@ No paid or provider-backed Sol 6.1 trial was run. The historical Sol 6 trial
 records above are preserved and do not establish Sol 6.1 provider execution or
 repair quality. Unsupported selections still stop at the provider boundary
 without fallback; existing runs retain their profiles and artifacts.
+
+## Recorded fallback and longer timeout fixtures (2026-10-26)
+
+Issue #64 adds deterministic coverage for the 1800-second default, frozen
+provider/model/effort candidates, finite exhaustion, fresh sessions, recorded
+selection, host reviewer-only routing, malformed configuration, capacity error
+classification, stale targets, invalid responses, and interrupted writers.
+These tests do not invoke a paid provider or establish fallback model
+availability, live-provider quality, or production acceptance.

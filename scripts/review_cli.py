@@ -33,6 +33,11 @@ MODE_TO_SKILL = {'plan': 'review-plan', 'implementation': 'review-implementation
 PROFILE_ROLE_TO_AGENT = {'reviewer': 'opus', 'coordinator': 'astra', 'implementer': 'sol'}
 AGENT_TO_PROFILE_ROLE = {agent: profile for profile, agent in PROFILE_ROLE_TO_AGENT.items()}
 ROLE_PROVIDERS = {'reviewer': 'claude', 'coordinator': 'codex', 'implementer': 'codex'}
+DEFAULT_FALLBACKS = {
+    'reviewer': [{'provider': 'codex', 'model': 'gpt-6-astra', 'effort': 'max'}],
+    'coordinator': [{'provider': 'codex', 'model': 'gpt-6.1-sol', 'effort': 'xhigh'}],
+    'implementer': [],
+}
 ROLE_LABELS = {
     'opus': 'independent reviewer',
     'astra': 'coordinator',
@@ -76,6 +81,10 @@ class ReviewError(Exception):
 
 class DerivedViewError(ReviewError):
     """Acceptance is durable; only its final derived view failed."""
+
+
+class ProviderCallError(ReviewError):
+    """A classified provider capacity failure, eligible only for read-only fallback."""
 
 
 class HandoffResponseError(ReviewError):
@@ -126,6 +135,28 @@ def validate_setting(role_name, field, value, source):
             raise ReviewError(f'{source}.{role_name}.effort must be one of: {choices}.')
 
 
+def validate_fallbacks(role_name, candidates):
+    if not isinstance(candidates, list) or len(candidates) > 2:
+        raise ReviewError('fallbacks must be a list of at most two candidates.')
+    if role_name == 'implementer' and candidates:
+        raise ReviewError('Implementation writers cannot automatically fall back; reconcile interrupted repairs.')
+    seen = set()
+    for candidate in candidates:
+        if not isinstance(candidate, dict) or set(candidate) != {'provider', 'model', 'effort'}:
+            raise ReviewError('Each fallback must define exactly provider, model, and effort.')
+        provider = candidate['provider']
+        if provider not in ('claude', 'codex') or (role_name == 'coordinator' and provider != 'codex'):
+            raise ReviewError('Fallback provider must preserve the role provider boundary.')
+        provider_role = 'reviewer' if provider == 'claude' else 'coordinator'
+        for field in ('model', 'effort'):
+            validate_setting(provider_role, field, candidate[field], 'fallback')
+        identity = tuple(candidate[k] for k in ('provider', 'model', 'effort'))
+        if identity in seen:
+            raise ReviewError('Duplicate fallback candidate.')
+        seen.add(identity)
+    return copy.deepcopy(candidates)
+
+
 def validate_runtime_config(config):
     if not isinstance(config, dict):
         raise ReviewError('runtime.local.json must contain a JSON object.')
@@ -153,11 +184,14 @@ def validate_runtime_config(config):
             source = f'runtime.local.json.skills.{skill_name}'
             if not isinstance(settings, dict):
                 raise ReviewError(f'{source}.{role_name} must be a JSON object.')
-            unknown_settings = set(settings) - {'model', 'effort'}
+            unknown_settings = set(settings) - {'model', 'effort', 'fallbacks'}
             if unknown_settings:
                 raise ReviewError(f'Unknown {source}.{role_name} keys: ' + ', '.join(sorted(unknown_settings)))
             for field, value in settings.items():
-                validate_setting(role_name, field, value, source)
+                if field == 'fallbacks':
+                    validate_fallbacks(role_name, value)
+                else:
+                    validate_setting(role_name, field, value, source)
     return config
 
 
@@ -181,7 +215,7 @@ def resolve_agent_profile(args, config):
     skill_name = MODE_TO_SKILL[args.mode]
     profile = copy.deepcopy(DEFAULT_PROFILES[skill_name])
     for role_name, settings in config.get('skills', {}).get(skill_name, {}).items():
-        profile[role_name].update(settings)
+        profile[role_name].update({k: v for k, v in settings.items() if k != 'fallbacks'})
     if 'implementer' not in profile and any(
             getattr(args, f'implementer_{field}', None) is not None for field in ('model', 'effort')):
         raise ReviewError(f'{"Plan" if args.mode == "plan" else "Diff"} reviews do not have an implementer role.')
@@ -218,13 +252,27 @@ def local_finalization(state):
     return state['mode'] == 'implementation' and state['schema_version'] == 3
 
 
-def agent_settings(state, who):
+def agent_candidate(state, who):
     role_name = AGENT_TO_PROFILE_ROLE[who]
     profile = effective_profile(state)
     if role_name not in profile:
         raise ReviewError(f'{MODE_TO_SKILL[state["mode"]]} has no {role_name} role.')
-    settings = profile[role_name]
-    return settings['model'], settings['effort']
+    primary = {'provider': ROLE_PROVIDERS[role_name], **profile[role_name]}
+    # Missing lists mean no fallback for pre-feature saved runs.
+    candidates = [primary, *validate_fallbacks(role_name, state.get('agent_fallbacks', {}).get(role_name, []))]
+    index = state.get('agent_selections', {}).get(who, 0)
+    if type(index) is not int or not 0 <= index < len(candidates):
+        raise ReviewError('Invalid saved fallback selection.')
+    return candidates[index]
+
+
+def agent_settings(state, who):
+    candidate = agent_candidate(state, who)
+    return candidate['model'], candidate['effort']
+
+
+def agent_provider(state, who=None):
+    return agent_candidate(state, who or role(state))['provider']
 
 
 def write_new(path, value):
@@ -611,7 +659,11 @@ def packet(state):
             'requirements': state['requirements'], 'project_instructions': state['instructions'],
             'target': target(state), 'scope': state['scope'], 'findings': state['findings'],
             'decision_ledger': state['ledger'], 'evidence_catalog': evidence_catalog(state),
-            'checks': state.get('checks', []), 'agent_profile': effective_profile(state)}
+            'checks': state.get('checks', []), 'agent_profile': effective_profile(state),
+            'agent_fallbacks': copy.deepcopy(state.get('agent_fallbacks', {})),
+            'agent_selections': copy.deepcopy(state.get('agent_selections', {})),
+            'fallback_history': copy.deepcopy(state.get('fallback_history', [])),
+            'timeout': state['timeout']}
     if collapsed_plan(state):
         result['plan_protocol_version'] = 2
     if implementation_response_v2(state):
@@ -809,7 +861,7 @@ def cli_argv(state, call_dir):
     who = role(state)
     model, effort = agent_settings(state, who)
     session = state['sessions'].get(who)
-    if who == 'opus':
+    if agent_provider(state, who) == 'claude':
         args = [state.get('claude_binary') or resolve_cli('claude'), '-p', '--model', model, '--effort', effort, '--output-format', 'json',
                 '--json-schema', json.dumps(provider_schema(state)), '--safe-mode', '--restricted',
                 '--tools', 'Read,Glob,Grep', '--allowedTools', 'Read,Glob,Grep',
@@ -879,25 +931,48 @@ def execute_process(argv, cwd, input_text, call_dir, timeout, require_success=Tr
                 with contextlib.suppress(ProcessLookupError):
                     os.killpg(proc.pid, signal.SIGKILL)
                 proc.wait()
-            raise ReviewError('Agent interrupted or timed out; inspect the recorded output before resuming.') from exc
+            error = ProviderCallError if isinstance(exc, subprocess.TimeoutExpired) else ReviewError
+            raise error('Agent interrupted or timed out; inspect the recorded output before resuming.') from exc
         finally:
             write_new(call_dir / 'process.json', {'exit_code': proc.returncode, 'interruption': interruption,
                                                  'elapsed_seconds': round(time.monotonic() - started, 3)})
     if group_alive(proc.pid):
         raise ReviewError(f'Process group {proc.pid} still has active children; inspect started.json before recovery.')
     if proc.returncode and require_success:
+        if capacity_failure(call_dir):
+            raise ProviderCallError(f'Provider capacity failure; see {call_dir}.')
         raise ReviewError(f'Agent exited {proc.returncode}; see {call_dir / "stderr.log"} and stdout.log.')
     return proc.returncode
+
+
+def capacity_failure(call_dir, message=None):
+    if message is None:
+        message = '\n'.join((call_dir / name).read_text() for name in ('stderr.log', 'stdout.log')
+                            if (call_dir / name).exists())
+    message = message.lower()
+    if re.search(r'permission|unauthori[sz]ed|forbidden|authenticat|not logged in|invalid.api.key|sandbox', message):
+        return False
+    return bool(re.search(
+        r'model_not_found|model.{0,80}(?:not available|unavailable|does not exist|not found)|'
+        r'rate_limit|rate limit|quota.{0,40}(?:exceeded|exhausted)|usage.limit|'
+        r'(?:token|credit|budget).{0,40}(?:exhausted|exceeded|used up)|'
+        r'hit your.{0,30}limit|out of.{0,15}(?:tokens|credits)|'
+        r'context_length_exceeded|maximum context length|overloaded_error', message))
+
+
+def provider_error(call_dir, message):
+    error = ProviderCallError if capacity_failure(call_dir, message) else ReviewError
+    raise error('Provider returned an error result; no handoff accepted. See ' + str(call_dir))
 
 
 def extract_response(state, call_dir):
     who = role(state)
     model, effort = agent_settings(state, who)
     observed = {'model': None, 'effort': None, 'source': 'not exposed by CLI output'}
-    if who == 'opus':
+    if agent_provider(state, who) == 'claude':
         envelope = read_json(call_dir / 'stdout.log')
         if envelope.get('is_error') or envelope.get('subtype', '').startswith('error'):
-            raise ReviewError('Claude returned an error result; no handoff accepted.')
+            provider_error(call_dir, json.dumps(envelope))
         data = envelope.get('structured_output')
         session = envelope.get('session_id')
         used = list(envelope.get('modelUsage', {}).keys())
@@ -915,7 +990,7 @@ def extract_response(state, call_dir):
             if event.get('type') == 'thread.started':
                 session = event.get('thread_id')
             if event.get('type') in ('error', 'turn.failed'):
-                raise ReviewError('Codex reported a failed turn; no handoff accepted.')
+                provider_error(call_dir, json.dumps(event))
         data = read_json(call_dir / 'last-message.json')
     if not session:
         session = state['sessions'].get(who)
@@ -928,7 +1003,7 @@ def extract_response(state, call_dir):
     existing = state['sessions'].get(who)
     if existing and session != existing:
         raise ReviewError('CLI resumed a different session.')
-    return data, session, {'model': model, 'effort': effort, 'observed': observed}
+    return data, session, {'provider': agent_provider(state, who), 'model': model, 'effort': effort, 'observed': observed}
 
 
 def valid_scoped_location(state, location):
@@ -1464,6 +1539,17 @@ def render(run, state):
     for role_name, settings in effective_profile(state).items():
         provider = ROLE_PROVIDERS[role_name].capitalize()
         lines.append(f'- {role_name.capitalize()} ({provider}): {settings["model"]} ({settings["effort"]})')
+    lines += ['', f'Per-call timeout: {state["timeout"]} seconds.', '']
+    for who in PROFILE_ROLE_TO_AGENT.values():
+        if AGENT_TO_PROFILE_ROLE[who] in effective_profile(state):
+            candidate = agent_candidate(state, who)
+            lines.append(f'- Active {AGENT_TO_PROFILE_ROLE[who]}: {candidate["provider"]} / '
+                         f'{candidate["model"]} ({candidate["effort"]})')
+    for role_name, candidates in state.get('agent_fallbacks', {}).items():
+        lines.append(f'- Frozen {role_name} fallbacks: {json.dumps(candidates)}')
+    for item in state.get('fallback_history', []):
+        lines.append(f'- Fallback at {item["stage"]}: {item["from"]["model"]} → {item["to"]["model"]}; '
+                     f'{item["reason"]}; evidence: {item["call_dir"]}')
     lines.append('')
     if state.get('error'):
         lines += ['Current blocker: ' + state['error'], '']
@@ -1550,7 +1636,7 @@ def project_lock(project):
             # Closing our descriptor leaves the inherited child lock intact after a crash.
 
 
-def advance(run, state, external_coordinator=False):
+def advance(run, state, external_coordinator=False, reviewer_only=False):
     require_current_protocol(state)
     assert_fresh(state)
     if state['status'] != 'ready':
@@ -1589,41 +1675,83 @@ def advance(run, state, external_coordinator=False):
         save(run, state)
         render(run, state)
         return
-    if role(state) == 'opus':
-        assert_claude_auth(state)
-    call_dir = run / 'calls' / f'{len(list((run / "calls").glob("*"))) + 1:03d}-{state["stage"]}'
-    call_dir.mkdir(parents=True)
-    state['status'] = 'running'
-    state['last_call'] = str(call_dir)
-    save(run, state)
-    revision_before = state['handoff_revision']
-    try:
-        write_new(call_dir / 'provider-schema.json', provider_schema(state))
-        argv = cli_argv(state, call_dir)
-        # Codex gets explicit project context, not project-local runtime config/hooks/MCP.
-        cwd = Path(state['project']) if role(state) == 'opus' else run / 'executor'
-        content = prompt(state) + '\nProject source is at: ' + state['project'] + '\n'
-        execute_process(argv, cwd, content, call_dir, state['timeout'])
-        try:
-            data, session, config = extract_response(state, call_dir)
-        except ReviewError as exc:
-            raise HandoffResponseError(str(exc)) from exc
-        accept(run, state, data, config, session)
-    except (Exception, KeyboardInterrupt) as exc:
-        if (collapsed_plan(state) or state['mode'] == 'diff' or
-                (local_finalization(state) and isinstance(exc, DerivedViewError))) and state['handoff_revision'] != revision_before:
-            # Acceptance was durably saved. A derived-view failure must not replay
-            # this stage or strand completion at a non-dispatchable finalize stage.
-            raise
-        state['status'] = 'interrupted' if state['stage'] == 'repair' else 'blocked'
-        if state['stage'] == 'repair' and isinstance(exc, HandoffResponseError):
-            state['error'] = ('Repair response rejected after writer exit: ' + str(exc) +
-                              ' Inspect scoped changes and use reconcile; do not retry the writer.')
-        else:
-            state['error'] = str(exc)
+    while True:
+        if reviewer_only and agent_provider(state) != 'claude':
+            state.update(status='ready', error=None)
+            save(run, state)
+            render(run, state)
+            raise ReviewError('Fallback selected a Codex reviewer; resume in the sandbox, not the host context.')
+        if agent_provider(state) == 'claude':
+            assert_claude_auth(state)
+        call_dir = run / 'calls' / f'{len(list((run / "calls").glob("*"))) + 1:03d}-{state["stage"]}'
+        call_dir.mkdir(parents=True)
+        state['status'] = 'running'
+        state['last_call'] = str(call_dir)
         save(run, state)
-        render(run, state)
-        raise
+        revision_before = state['handoff_revision']
+        try:
+            write_new(call_dir / 'provider-schema.json', provider_schema(state))
+            write_new(call_dir / 'agent.json', agent_candidate(state, role(state)))
+            argv = cli_argv(state, call_dir)
+            cwd = Path(state['project']) if agent_provider(state) == 'claude' else run / 'executor'
+            content = prompt(state) + '\nProject source is at: ' + state['project'] + '\n'
+            execute_process(argv, cwd, content, call_dir, state['timeout'])
+            try:
+                data, session, config = extract_response(state, call_dir)
+            except ProviderCallError:
+                raise
+            except ReviewError as exc:
+                raise HandoffResponseError(str(exc)) from exc
+            accept(run, state, data, config, session)
+            return
+        except (Exception, KeyboardInterrupt) as exc:
+            if (collapsed_plan(state) or state['mode'] == 'diff' or
+                    (local_finalization(state) and isinstance(exc, DerivedViewError))) and state['handoff_revision'] != revision_before:
+                # Acceptance was durably saved. A derived-view failure must not replay
+                # this stage or strand completion at a non-dispatchable finalize stage.
+                raise
+            state['status'] = 'interrupted' if state['stage'] == 'repair' else 'blocked'
+            if state['stage'] == 'repair' and isinstance(exc, HandoffResponseError):
+                state['error'] = ('Repair response rejected after writer exit: ' + str(exc) +
+                                  ' Inspect scoped changes and use reconcile; do not retry the writer.')
+            else:
+                state['error'] = str(exc)
+            save(run, state)
+            render(run, state)
+            if isinstance(exc, ProviderCallError) and state['stage'] != 'repair':
+                if select_fallback(run, state, call_dir, str(exc)):
+                    continue
+            raise
+
+
+def select_fallback(run, state, call_dir, reason):
+    if state['stage'] == 'repair':
+        raise ReviewError('Interrupted writers require reconciliation, never fallback.')
+    started = call_dir / 'started.json'
+    if started.exists() and group_alive(read_json(started)['process_group']):
+        raise ReviewError('Previous agent process group is still active; inspect before fallback.')
+    # A classified timeout can leave descendants alive. Never overlap attempts.
+    if ACTIVE_LOCK:
+        assert_idle_group(ACTIVE_LOCK)
+    assert_fresh(state)
+    who = role(state)
+    old = agent_candidate(state, who)
+    role_name = AGENT_TO_PROFILE_ROLE[who]
+    index = state.get('agent_selections', {}).get(who, 0)
+    candidates = state.get('agent_fallbacks', {}).get(role_name, [])
+    if index >= len(candidates):
+        return False
+    state.setdefault('agent_selections', {})[who] = index + 1
+    selected = agent_candidate(state, who)
+    event = {'stage': state['stage'], 'handoff_revision': state['handoff_revision'],
+             'from': old, 'to': selected, 'reason': reason, 'call_dir': str(call_dir),
+             'previous_session': state['sessions'].pop(who, None)}
+    state.setdefault('fallback_history', []).append(event)
+    state.update(status='ready', error=None)
+    save(run, state)
+    render(run, state)
+    print(f'Fallback {role_name}: {old["model"]} → {selected["model"]}; evidence: {call_dir}', flush=True)
+    return True
 
 
 def runs_root(value=None):
@@ -1654,7 +1782,11 @@ def status_payload(run, state):
     result = {'schema_version': state['schema_version'],
             'run': str(run), 'status': state['status'], 'stage': state['stage'],
             'round': state['round'], 'error': state['error'],
-            'handoff': str(run / 'handoff.md'), 'agent_profile': effective_profile(state)}
+            'handoff': str(run / 'handoff.md'), 'agent_profile': effective_profile(state),
+            'agent_fallbacks': copy.deepcopy(state.get('agent_fallbacks', {})),
+            'agent_selections': copy.deepcopy(state.get('agent_selections', {})),
+            'fallback_history': copy.deepcopy(state.get('fallback_history', [])),
+            'timeout': state['timeout']}
     if collapsed_plan(state):
         result['plan_protocol_version'] = 2
     if implementation_response_v2(state):
@@ -1683,6 +1815,12 @@ def initialize(args):
         raise ReviewError('Requirements must be nonempty.')
     runtime_config = load_runtime_config()
     agent_profile = resolve_agent_profile(args, runtime_config)
+    configured = runtime_config.get('skills', {}).get(MODE_TO_SKILL[args.mode], {})
+    agent_fallbacks = {name: validate_fallbacks(name, configured.get(name, {}).get('fallbacks', DEFAULT_FALLBACKS[name]))
+                       for name in agent_profile}
+    for name, candidates in agent_fallbacks.items():
+        primary = {'provider': ROLE_PROVIDERS[name], **agent_profile[name]}
+        agent_fallbacks[name] = [candidate for candidate in candidates if candidate != primary]
     codex_binary = resolve_cli('codex', runtime_config)
     claude_binary = resolve_cli('claude', runtime_config)
     root = runs_root(args.runs_dir)
@@ -1719,7 +1857,8 @@ def initialize(args):
     run_id = str(uuid.uuid4())
     state = {'schema_version': 3 if args.mode == 'implementation' else 2, 'run_id': run_id, 'project': str(project), 'mode': args.mode,
              'codex_binary': codex_binary, 'claude_binary': claude_binary,
-             'agent_profile': agent_profile,
+             'agent_profile': agent_profile, 'agent_fallbacks': agent_fallbacks,
+             'agent_selections': {}, 'fallback_history': [],
              'scope': sorted(set(scope)), 'requirements': requirements, 'plan_file': str(Path(args.plan).expanduser().resolve()) if args.plan else None,
              'current_plan': None, 'original_plan_hash': digest(text_file(Path(args.plan).expanduser().resolve())) if args.plan else None,
              'base': base, 'timeout': args.timeout, 'stage': 'review', 'status': 'ready', 'round': 0,
@@ -1745,7 +1884,7 @@ def initialize(args):
     (run / 'executor').mkdir()
     original = {'schema_version': state['schema_version'], 'requirements': requirements, 'target': initial,
                 'inventory': state['inventory'], 'instructions': state['instructions'],
-                'agent_profile': agent_profile}
+                'agent_profile': agent_profile, 'agent_fallbacks': agent_fallbacks, 'timeout': args.timeout}
     if state['mode'] in ('implementation', 'diff'):
         original.update(check_commands=check_commands,
                         implementation_evidence_version=state['implementation_evidence_version'])
@@ -2321,7 +2460,7 @@ def build_parser():
     start.add_argument('--base', help='Local Git ref for a branch diff; required for implementation and diff, resolved once to a commit.')
     start.add_argument('--runs-dir')
     start.add_argument('--check', action='append', default=[], help='Authorized local check command; required for implementation and diff, without shell operators.')
-    start.add_argument('--timeout', type=int, default=900, help='Per-agent/check seconds; default 15 minutes, bounded to 1–3600.')
+    start.add_argument('--timeout', type=int, default=1800, help='Per-agent/check seconds; default 30 minutes, bounded to 1–3600.')
     start.add_argument('--reviewer-model')
     start.add_argument('--reviewer-effort', choices=sorted(PROVIDER_EFFORTS['claude']))
     start.add_argument('--coordinator-model')
@@ -2380,7 +2519,11 @@ def main():
             with project_lock(Path(args.project or Path.cwd()).expanduser().resolve()):
                 run, state = initialize(args)
             print(dumps({'run': str(run), 'status': state['status'],
-                         'agent_profile': effective_profile(state)}), end='')
+                         'agent_profile': effective_profile(state),
+            'agent_fallbacks': copy.deepcopy(state.get('agent_fallbacks', {})),
+            'agent_selections': copy.deepcopy(state.get('agent_selections', {})),
+            'fallback_history': copy.deepcopy(state.get('fallback_history', [])),
+            'timeout': state['timeout']}), end='')
             return
         run = args.run.expanduser().resolve()
         state = read_json(run / 'state.json')
@@ -2423,7 +2566,7 @@ def main():
                 finish_local(run, state)
             else:
                 if args.action == 'step' and args.reviewer_only:
-                    if state['status'] != 'ready' or role(state) != 'opus':
+                    if state['status'] != 'ready' or role(state) != 'opus' or agent_provider(state) != 'claude':
                         raise ReviewError('Reviewer-only step requires a ready Claude reviewer stage.')
                     if state['mode'] == 'diff' and not diff_checks_current(state):
                         raise ReviewError('Reviewer-only step requires current check receipts before host dispatch.')
@@ -2438,7 +2581,8 @@ def main():
                     if not (local_finalization(state) and state['stage'] == 'finalize'):
                         model, effort = agent_settings(state, role(state))
                         print(f'{state["stage"]}: {model} ({effort})', flush=True)
-                    advance(run, state, args.external_coordinator)
+                    advance(run, state, args.external_coordinator,
+                            reviewer_only=args.action == 'step' and args.reviewer_only)
                     if args.action == 'step':
                         if not args.reviewer_only:
                             finish_local(run, state)

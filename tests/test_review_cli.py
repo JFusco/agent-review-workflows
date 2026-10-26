@@ -114,6 +114,181 @@ class ReviewTests(unittest.TestCase):
         self.accept(data)
         self.assertEqual(self.state['stage'], 'repair')
 
+    def test_timeout_default_and_explicit_override(self):
+        parser = r.build_parser()
+        args = parser.parse_args(['start', 'plan', '--requirements', 'requirements.md'])
+        self.assertEqual(args.timeout, 1800)
+        args = parser.parse_args(['start', 'plan', '--requirements', 'requirements.md', '--timeout', '3600'])
+        self.assertEqual(args.timeout, 3600)
+
+    def test_fallback_config_freezes_and_old_runs_do_not_gain_candidates(self):
+        config = {'skills': {'review-implementation': {'reviewer': {'fallbacks': [
+            {'provider': 'codex', 'model': 'gpt-explicit', 'effort': 'high'}]},
+            'coordinator': {'fallbacks': []}}}}
+        r.RUNTIME_CONFIG.write_text(json.dumps(config))
+        run, state = r.initialize(copy.deepcopy(self.args))
+        r.RUNTIME_CONFIG.unlink()
+        self.assertEqual(state['agent_fallbacks']['reviewer'][0]['model'], 'gpt-explicit')
+        self.assertEqual(state['agent_fallbacks']['coordinator'], [])
+        self.assertEqual(r.read_json(run/'original.json')['agent_fallbacks'], state['agent_fallbacks'])
+        self.assertEqual(r.packet(state)['agent_fallbacks'], state['agent_fallbacks'])
+        state.pop('agent_fallbacks')
+        self.assertFalse(r.select_fallback(run, state, run, 'fixture capacity failure'))
+
+    def test_malformed_fallback_config(self):
+        for role_name, candidates in (
+            ('reviewer', {}), ('reviewer', [None]), ('reviewer', [{'model': 'gpt-test'}]),
+            ('reviewer', [{'provider': 'unknown', 'model': 'x', 'effort': 'high'}]),
+            ('reviewer', [{'provider': 'claude', 'model': 'x', 'effort': 'ultra'}]),
+            ('reviewer', [{'provider': 'codex', 'model': ' ', 'effort': 'high'}]),
+            ('reviewer', [r.DEFAULT_FALLBACKS['reviewer'][0]] * 2),
+            ('reviewer', [r.DEFAULT_FALLBACKS['reviewer'][0]] * 3),
+            ('coordinator', [{'provider': 'claude', 'model': 'x', 'effort': 'high'}]),
+            ('implementer', r.DEFAULT_FALLBACKS['reviewer']),
+        ):
+            with self.subTest(role=role_name, candidates=candidates), self.assertRaises(r.ReviewError):
+                r.validate_runtime_config({'skills': {'review-implementation': {
+                    role_name: {'fallbacks': candidates}}}})
+
+    def test_capacity_failure_classification(self):
+        for message in ('model_not_found', 'Model x is not available', 'rate limit exceeded',
+                        'usage limit reached', 'quota exhausted', 'token budget exceeded',
+                        'out of tokens', 'context_length_exceeded', 'overloaded_error'):
+            with self.subTest(message=message):
+                self.assertTrue(r.capacity_failure(self.run, message))
+        for message in ('permission denied: rate limit', 'unauthorized model not found',
+                        'sandbox error', 'invalid schema', 'network connection refused',
+                        'authentication required', 'unexpected model usage'):
+            with self.subTest(message=message):
+                self.assertFalse(r.capacity_failure(self.run, message))
+
+    def test_readonly_fallback_preserves_packet_and_uses_fresh_session(self):
+        self.state['stage'] = 'adjudicate'
+        self.state['findings'] = [finding()]
+        self.state['sessions']['astra'] = '11111111-1111-4111-8111-111111111111'
+        before = r.packet(self.state)
+        calls = []
+        def execute(argv, cwd, content, call_dir, timeout):
+            calls.append((argv, content))
+            if len(calls) == 1:
+                raise r.ProviderCallError('fixture timeout')
+        def extract(state, call_dir):
+            return self.response(), '22222222-2222-4222-8222-222222222222', {
+                **r.agent_candidate(state, 'astra'), 'observed': {'source': 'fixture'}}
+        with patch.object(r, 'execute_process', side_effect=execute), \
+                patch.object(r, 'extract_response', side_effect=extract), patch.object(r, 'accept') as accept:
+            r.advance(self.run, self.state)
+        self.assertEqual(len(calls), 2)
+        self.assertIn('resume', calls[0][0])
+        self.assertNotIn('resume', calls[1][0])
+        self.assertIn('gpt-6.1-sol', calls[1][0])
+        self.assertIn('sandbox_mode="read-only"', calls[1][0])
+        self.assertEqual(self.state['findings'], before['findings'])
+        self.assertEqual(self.state['handoff_revision'], before['handoff_revision'])
+        self.assertEqual(self.state['target_fingerprint'], before['target_fingerprint'])
+        self.assertEqual(self.state['fallback_history'][0]['previous_session'],
+                         '11111111-1111-4111-8111-111111111111')
+        accept.assert_called_once()
+        self.assertIn('Fallback at adjudicate', (self.run/'handoff.md').read_text())
+        saved = r.read_json(self.run/'state.json')
+        self.assertEqual(r.agent_settings(saved, 'astra'), ('gpt-6.1-sol', 'xhigh'))
+
+    def test_fallback_exhaustion_blocks_and_retry_does_not_restart_chain(self):
+        self.state['stage'] = 'adjudicate'
+        with patch.object(r, 'execute_process', side_effect=r.ProviderCallError('fixture capacity')) as execute:
+            with self.assertRaises(r.ProviderCallError):
+                r.advance(self.run, self.state)
+            self.assertEqual(execute.call_count, 2)
+            self.assertEqual(self.state['status'], 'blocked')
+            self.assertEqual(len(self.state['fallback_history']), 1)
+            self.state['status'] = 'ready'
+            with self.assertRaises(r.ProviderCallError):
+                r.advance(self.run, self.state)
+            self.assertEqual(execute.call_count, 3)
+            self.assertEqual(len(self.state['fallback_history']), 1)
+
+    def test_host_reviewer_stops_before_codex_fallback_dispatch(self):
+        self.use_passing_check()
+        with patch.object(r, 'assert_claude_auth'), \
+                patch.object(r, 'execute_process', side_effect=r.ProviderCallError('fixture limit')) as execute:
+            with self.assertRaisesRegex(r.ReviewError, 'resume in the sandbox'):
+                r.advance(self.run, self.state, reviewer_only=True)
+        self.assertEqual(execute.call_count, 1)
+        self.assertEqual(self.state['status'], 'ready')
+        self.assertEqual(r.agent_provider(self.state), 'codex')
+        argv = r.cli_argv(self.state, self.run)
+        self.assertIn('sandbox_mode="read-only"', argv)
+        self.assertNotIn('resume', argv)
+
+    def test_fallback_does_not_replay_writer_or_invalid_response(self):
+        self.state['stage'] = 'adjudicate'
+        with patch.object(r, 'execute_process'), \
+                patch.object(r, 'extract_response', side_effect=r.ReviewError('invalid handoff')):
+            with self.assertRaises(r.HandoffResponseError):
+                r.advance(self.run, self.state)
+        self.assertEqual(self.state['fallback_history'], [])
+        self.state.update(stage='review', status='ready')
+        self.to_repair()
+        with patch.object(r, 'execute_process', side_effect=r.ProviderCallError('fixture timeout')) as execute:
+            with self.assertRaises(r.ProviderCallError):
+                r.advance(self.run, self.state)
+        self.assertEqual(execute.call_count, 1)
+        self.assertEqual(self.state['status'], 'interrupted')
+        self.assertEqual(self.state['fallback_history'], [])
+
+    def test_fallback_rejects_changed_target(self):
+        self.state['stage'] = 'adjudicate'
+        def changed(*args):
+            (self.project/'calculator.py').write_text('unexpected change')
+            raise r.ProviderCallError('fixture timeout')
+        with patch.object(r, 'execute_process', side_effect=changed) as execute:
+            with self.assertRaisesRegex(r.ReviewError, 'changed'):
+                r.advance(self.run, self.state)
+        self.assertEqual(execute.call_count, 1)
+        self.assertEqual(self.state['fallback_history'], [])
+
+    def test_live_process_and_interruption_do_not_fall_back(self):
+        call = self.root/'live-call'
+        call.mkdir()
+        r.write_new(call/'started.json', {'process_group': 12345})
+        with patch.object(r, 'group_alive', return_value=True), self.assertRaisesRegex(r.ReviewError, 'still active'):
+            r.select_fallback(self.run, self.state, call, 'fixture timeout')
+        self.state['stage'] = 'adjudicate'
+        with patch.object(r, 'execute_process', side_effect=KeyboardInterrupt()) as execute:
+            with self.assertRaises(KeyboardInterrupt):
+                r.advance(self.run, self.state)
+        self.assertEqual(execute.call_count, 1)
+        self.assertEqual(self.state['status'], 'blocked')
+        self.assertEqual(self.state['fallback_history'], [])
+
+    def test_actual_timeout_is_classified_and_receipt_is_retained(self):
+        call = self.root/'timeout-call'
+        call.mkdir()
+        with self.assertRaises(r.ProviderCallError):
+            r.execute_process([sys.executable, '-c', 'import time; time.sleep(30)'],
+                              self.root, '', call, 0.05)
+        self.assertEqual(r.read_json(call/'process.json')['interruption'], 'TimeoutExpired')
+        self.assertFalse(r.group_alive(r.read_json(call/'started.json')['process_group']))
+        next_call = self.root/'failed-call'
+        next_call.mkdir()
+        with self.assertRaises(r.ProviderCallError):
+            r.execute_process([sys.executable, '-c',
+                               'import sys; print("rate limit exceeded", file=sys.stderr); sys.exit(1)'],
+                              self.root, '', next_call, 10)
+
+    def test_provider_error_envelopes_allow_capacity_only(self):
+        call = self.root/'error-call'
+        call.mkdir()
+        for message, error in [('rate limit exceeded', r.ProviderCallError),
+                               ('permission denied', r.ReviewError)]:
+            (call/'stdout.log').write_text(json.dumps({'is_error': True, 'result': message}))
+            with self.subTest(message=message), self.assertRaises(error):
+                r.extract_response(self.state, call)
+        self.state['agent_selections']['opus'] = 1
+        (call/'stdout.log').write_text(json.dumps({'type': 'turn.failed', 'error': {'message': 'usage limit reached'}}))
+        with self.assertRaises(r.ProviderCallError):
+            r.extract_response(self.state, call)
+
     def test_schema_valid(self):
         r.Draft202012Validator.check_schema(r.SCHEMA)
         r.validate_response(self.state, self.response([finding()]))
