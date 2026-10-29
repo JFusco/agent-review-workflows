@@ -2,12 +2,12 @@
   "version": 1,
   "wikiRoot": "wiki",
   "counts": {
-    "nodes": 56,
-    "edges": 114,
+    "nodes": 58,
+    "edges": 118,
     "byType": {
       "index": 3,
-      "journal": 25,
-      "plan": 20,
+      "journal": 26,
+      "plan": 21,
       "topic": 8
     }
   },
@@ -39,8 +39,8 @@
       ],
       "bytes": 2186,
       "degree": 2,
-      "x": 0.974928,
-      "y": 0.222521,
+      "x": 0.976621,
+      "y": 0.21497,
       "size": 8
     },
     {
@@ -70,8 +70,8 @@
       ],
       "bytes": 2152,
       "degree": 2,
-      "x": 0.943883,
-      "y": 0.330279,
+      "x": 0.947653,
+      "y": 0.319302,
       "size": 8
     },
     {
@@ -89,8 +89,8 @@
       ],
       "bytes": 2103,
       "degree": 3,
-      "x": 0.900969,
-      "y": 0.433884,
+      "x": 0.907575,
+      "y": 0.419889,
       "size": 8
     },
     {
@@ -108,8 +108,8 @@
       ],
       "bytes": 1551,
       "degree": 3,
-      "x": 0.846724,
-      "y": 0.532032,
+      "x": 0.856857,
+      "y": 0.515554,
       "size": 8
     },
     {
@@ -127,8 +127,8 @@
       ],
       "bytes": 4200,
       "degree": 3,
-      "x": 0.781831,
-      "y": 0.62349,
+      "x": 0.796093,
+      "y": 0.605174,
       "size": 8
     },
     {
@@ -146,8 +146,8 @@
       ],
       "bytes": 2180,
       "degree": 2,
-      "x": 0.707107,
-      "y": 0.707107,
+      "x": 0.725995,
+      "y": 0.687699,
       "size": 8
     },
     {
@@ -165,8 +165,8 @@
       ],
       "bytes": 2766,
       "degree": 2,
-      "x": 0.62349,
-      "y": 0.781831,
+      "x": 0.647386,
+      "y": 0.762162,
       "size": 8
     },
     {
@@ -196,8 +196,8 @@
       ],
       "bytes": 1479,
       "degree": 3,
-      "x": 0.532032,
-      "y": 0.846724,
+      "x": 0.561187,
+      "y": 0.827689,
       "size": 8
     },
     {
@@ -215,8 +215,8 @@
       ],
       "bytes": 898,
       "degree": 4,
-      "x": 0.433884,
-      "y": 0.900969,
+      "x": 0.468408,
+      "y": 0.883512,
       "size": 8
     },
     {
@@ -234,8 +234,8 @@
       ],
       "bytes": 1525,
       "degree": 2,
-      "x": 0.330279,
-      "y": 0.943883,
+      "x": 0.370138,
+      "y": 0.928977,
       "size": 8
     },
     {
@@ -253,8 +253,8 @@
       ],
       "bytes": 2188,
       "degree": 2,
-      "x": 0.222521,
-      "y": 0.974928,
+      "x": 0.267528,
+      "y": 0.96355,
       "size": 8
     },
     {
@@ -272,8 +272,8 @@
       ],
       "bytes": 1830,
       "degree": 4,
-      "x": 0.111964,
-      "y": 0.993712,
+      "x": 0.161782,
+      "y": 0.986827,
       "size": 8
     },
     {
@@ -291,8 +291,8 @@
       ],
       "bytes": 1388,
       "degree": 2,
-      "x": 0,
-      "y": 1,
+      "x": 0.054139,
+      "y": 0.998533,
       "size": 8
     },
     {
@@ -310,8 +310,8 @@
       ],
       "bytes": 956,
       "degree": 3,
-      "x": -0.111964,
-      "y": 0.993712,
+      "x": -0.054139,
+      "y": 0.998533,
       "size": 8
     },
     {
@@ -329,8 +329,8 @@
       ],
       "bytes": 883,
       "degree": 1,
-      "x": -0.222521,
-      "y": 0.974928,
+      "x": -0.161782,
+      "y": 0.986827,
       "size": 8
     },
     {
@@ -348,8 +348,8 @@
       ],
       "bytes": 838,
       "degree": 2,
-      "x": -0.330279,
-      "y": 0.943883,
+      "x": -0.267528,
+      "y": 0.96355,
       "size": 8
     },
     {
@@ -367,8 +367,8 @@
       ],
       "bytes": 1910,
       "degree": 3,
-      "x": -0.433884,
-      "y": 0.900969,
+      "x": -0.370138,
+      "y": 0.928977,
       "size": 8
     },
     {
@@ -386,8 +386,8 @@
       ],
       "bytes": 915,
       "degree": 2,
-      "x": -0.532032,
-      "y": 0.846724,
+      "x": -0.468408,
+      "y": 0.883512,
       "size": 8
     },
     {
@@ -405,8 +405,8 @@
       ],
       "bytes": 710,
       "degree": 2,
-      "x": -0.62349,
-      "y": 0.781831,
+      "x": -0.561187,
+      "y": 0.827689,
       "size": 8
     },
     {
@@ -430,8 +430,8 @@
       ],
       "bytes": 861,
       "degree": 1,
-      "x": -0.707107,
-      "y": 0.707107,
+      "x": -0.647386,
+      "y": 0.762162,
       "size": 8
     },
     {
@@ -449,8 +449,8 @@
       ],
       "bytes": 1008,
       "degree": 2,
-      "x": -0.781831,
-      "y": 0.62349,
+      "x": -0.725995,
+      "y": 0.687699,
       "size": 8
     },
     {
@@ -480,8 +480,8 @@
       ],
       "bytes": 4010,
       "degree": 4,
-      "x": -0.846724,
-      "y": 0.532032,
+      "x": -0.796093,
+      "y": 0.605174,
       "size": 8
     },
     {
@@ -499,8 +499,8 @@
       ],
       "bytes": 1236,
       "degree": 3,
-      "x": -0.900969,
-      "y": 0.433884,
+      "x": -0.856857,
+      "y": 0.515554,
       "size": 8
     },
     {
@@ -518,8 +518,8 @@
       ],
       "bytes": 1725,
       "degree": 2,
-      "x": -0.943883,
-      "y": 0.330279,
+      "x": -0.907575,
+      "y": 0.419889,
       "size": 8
     },
     {
@@ -549,8 +549,27 @@
       ],
       "bytes": 2225,
       "degree": 4,
-      "x": -0.974928,
-      "y": 0.222521,
+      "x": -0.947653,
+      "y": 0.319302,
+      "size": 8
+    },
+    {
+      "id": "wiki/journal/2026-10-29-review-packet-context.md",
+      "label": "Reliable packet delivery and fresh read-only review stages",
+      "type": "journal",
+      "aliases": [],
+      "githubRefs": [
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 76,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/76"
+        }
+      ],
+      "bytes": 2418,
+      "degree": 2,
+      "x": -0.976621,
+      "y": 0.21497,
       "size": 8
     },
     {
@@ -561,8 +580,8 @@
       "githubRefs": [],
       "bytes": 2904,
       "degree": 2,
-      "x": 0.993712,
-      "y": 0.111964,
+      "x": 0.994138,
+      "y": 0.108119,
       "size": 12
     },
     {
@@ -580,8 +599,8 @@
       ],
       "bytes": 1235,
       "degree": 4,
-      "x": -0.993712,
-      "y": 0.111964,
+      "x": -0.994138,
+      "y": 0.108119,
       "size": 8
     },
     {
@@ -617,8 +636,8 @@
       "githubRefs": [],
       "bytes": 4084,
       "degree": 3,
-      "x": -0.993712,
-      "y": -0.111964,
+      "x": -0.994138,
+      "y": -0.108119,
       "size": 8
     },
     {
@@ -636,8 +655,8 @@
       ],
       "bytes": 4673,
       "degree": 3,
-      "x": -0.974928,
-      "y": -0.222521,
+      "x": -0.976621,
+      "y": -0.21497,
       "size": 8
     },
     {
@@ -655,8 +674,8 @@
       ],
       "bytes": 1396,
       "degree": 3,
-      "x": -0.943883,
-      "y": -0.330279,
+      "x": -0.947653,
+      "y": -0.319302,
       "size": 8
     },
     {
@@ -674,8 +693,8 @@
       ],
       "bytes": 1060,
       "degree": 3,
-      "x": -0.900969,
-      "y": -0.433884,
+      "x": -0.907575,
+      "y": -0.419889,
       "size": 8
     },
     {
@@ -686,8 +705,8 @@
       "githubRefs": [],
       "bytes": 4946,
       "degree": 3,
-      "x": -0.846724,
-      "y": -0.532032,
+      "x": -0.856857,
+      "y": -0.515554,
       "size": 8
     },
     {
@@ -705,8 +724,8 @@
       ],
       "bytes": 1365,
       "degree": 3,
-      "x": -0.781831,
-      "y": -0.62349,
+      "x": -0.796093,
+      "y": -0.605174,
       "size": 8
     },
     {
@@ -724,8 +743,8 @@
       ],
       "bytes": 1341,
       "degree": 3,
-      "x": -0.707107,
-      "y": -0.707107,
+      "x": -0.725995,
+      "y": -0.687699,
       "size": 8
     },
     {
@@ -743,8 +762,8 @@
       ],
       "bytes": 4387,
       "degree": 3,
-      "x": -0.62349,
-      "y": -0.781831,
+      "x": -0.647386,
+      "y": -0.762162,
       "size": 8
     },
     {
@@ -755,8 +774,8 @@
       "githubRefs": [],
       "bytes": 2229,
       "degree": 4,
-      "x": -0.532032,
-      "y": -0.846724,
+      "x": -0.561187,
+      "y": -0.827689,
       "size": 8
     },
     {
@@ -767,8 +786,8 @@
       "githubRefs": [],
       "bytes": 4144,
       "degree": 3,
-      "x": -0.433884,
-      "y": -0.900969,
+      "x": -0.468408,
+      "y": -0.883512,
       "size": 8
     },
     {
@@ -779,8 +798,8 @@
       "githubRefs": [],
       "bytes": 9238,
       "degree": 4,
-      "x": -0.330279,
-      "y": -0.943883,
+      "x": -0.370138,
+      "y": -0.928977,
       "size": 8
     },
     {
@@ -798,8 +817,8 @@
       ],
       "bytes": 960,
       "degree": 4,
-      "x": -0.222521,
-      "y": -0.974928,
+      "x": -0.267528,
+      "y": -0.96355,
       "size": 8
     },
     {
@@ -817,8 +836,8 @@
       ],
       "bytes": 21176,
       "degree": 3,
-      "x": -0.111964,
-      "y": -0.993712,
+      "x": -0.161782,
+      "y": -0.986827,
       "size": 8
     },
     {
@@ -829,8 +848,8 @@
       "githubRefs": [],
       "bytes": 3866,
       "degree": 4,
-      "x": 0,
-      "y": -1,
+      "x": -0.054139,
+      "y": -0.998533,
       "size": 8
     },
     {
@@ -841,8 +860,8 @@
       "githubRefs": [],
       "bytes": 1988,
       "degree": 3,
-      "x": 0.111964,
-      "y": -0.993712,
+      "x": 0.054139,
+      "y": -0.998533,
       "size": 8
     },
     {
@@ -860,8 +879,8 @@
       ],
       "bytes": 1001,
       "degree": 3,
-      "x": 0.222521,
-      "y": -0.974928,
+      "x": 0.161782,
+      "y": -0.986827,
       "size": 8
     },
     {
@@ -879,8 +898,8 @@
       ],
       "bytes": 1092,
       "degree": 3,
-      "x": 0.330279,
-      "y": -0.943883,
+      "x": 0.267528,
+      "y": -0.96355,
       "size": 8
     },
     {
@@ -898,8 +917,27 @@
       ],
       "bytes": 26978,
       "degree": 5,
-      "x": 0.433884,
-      "y": -0.900969,
+      "x": 0.370138,
+      "y": -0.928977,
+      "size": 8
+    },
+    {
+      "id": "wiki/plans/2026-10-29-smooth-review-delivery-and-context-handling-5fcf17c685.md",
+      "label": "Smooth review delivery and context handling",
+      "type": "plan",
+      "aliases": [],
+      "githubRefs": [
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 76,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/76"
+        }
+      ],
+      "bytes": 2727,
+      "degree": 3,
+      "x": 0.468408,
+      "y": -0.883512,
       "size": 8
     },
     {
@@ -970,15 +1008,21 @@
         },
         {
           "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 76,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/76"
+        },
+        {
+          "repository": "jfusco/agent-review-workflows",
           "kind": "pull-request",
           "number": 8,
           "url": "https://github.com/jfusco/agent-review-workflows/pull/8"
         }
       ],
-      "bytes": 24499,
-      "degree": 22,
-      "x": 0.532032,
-      "y": -0.846724,
+      "bytes": 24866,
+      "degree": 23,
+      "x": 0.561187,
+      "y": -0.827689,
       "size": 12
     },
     {
@@ -1008,8 +1052,8 @@
       ],
       "bytes": 4483,
       "degree": 5,
-      "x": 0.62349,
-      "y": -0.781831,
+      "x": 0.647386,
+      "y": -0.762162,
       "size": 8
     },
     {
@@ -1027,8 +1071,8 @@
       ],
       "bytes": 840,
       "degree": 3,
-      "x": 0.707107,
-      "y": -0.707107,
+      "x": 0.725995,
+      "y": -0.687699,
       "size": 8
     },
     {
@@ -1076,8 +1120,8 @@
       ],
       "bytes": 7577,
       "degree": 23,
-      "x": 0.781831,
-      "y": -0.62349,
+      "x": 0.796093,
+      "y": -0.605174,
       "size": 8
     },
     {
@@ -1095,8 +1139,8 @@
       ],
       "bytes": 1245,
       "degree": 4,
-      "x": 0.846724,
-      "y": -0.532032,
+      "x": 0.856857,
+      "y": -0.515554,
       "size": 8
     },
     {
@@ -1116,12 +1160,18 @@
           "kind": "issue",
           "number": 49,
           "url": "https://github.com/jfusco/agent-review-workflows/issues/49"
+        },
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "issue",
+          "number": 76,
+          "url": "https://github.com/jfusco/agent-review-workflows/issues/76"
         }
       ],
-      "bytes": 2172,
-      "degree": 7,
-      "x": 0.900969,
-      "y": -0.433884,
+      "bytes": 3066,
+      "degree": 9,
+      "x": 0.907575,
+      "y": -0.419889,
       "size": 8
     },
     {
@@ -1163,8 +1213,8 @@
       ],
       "bytes": 4759,
       "degree": 13,
-      "x": 0.943883,
-      "y": -0.330279,
+      "x": 0.947653,
+      "y": -0.319302,
       "size": 8
     },
     {
@@ -1188,8 +1238,8 @@
       ],
       "bytes": 2055,
       "degree": 5,
-      "x": 0.974928,
-      "y": -0.222521,
+      "x": 0.976621,
+      "y": -0.21497,
       "size": 8
     },
     {
@@ -1219,8 +1269,8 @@
       ],
       "bytes": 1931,
       "degree": 7,
-      "x": 0.993712,
-      "y": -0.111964,
+      "x": 0.994138,
+      "y": -0.108119,
       "size": 8
     }
   ],
@@ -1238,6 +1288,13 @@
       "target": "wiki/topics/review-agent-profiles.md",
       "type": "link",
       "relation": "link"
+    },
+    {
+      "id": "05d2f19299784c88",
+      "source": "wiki/journal/2026-10-29-review-packet-context.md",
+      "target": "wiki/topics/plan-review-protocol.md",
+      "type": "topic",
+      "relation": "topic"
     },
     {
       "id": "061f728467e993ae",
@@ -1506,6 +1563,13 @@
       "relation": "link"
     },
     {
+      "id": "487d120ed27e0a5c",
+      "source": "wiki/journal/2026-10-29-review-packet-context.md",
+      "target": "wiki/plans/2026-10-29-smooth-review-delivery-and-context-handling-5fcf17c685.md",
+      "type": "plan",
+      "relation": "plan"
+    },
+    {
       "id": "4e9927cdaedf5601",
       "source": "wiki/plans/2026-09-28-constrain-implementation-review-adjudication-findings-7eeb3aeff9.md",
       "target": "wiki/topics/implementation-review-evidence.md",
@@ -1595,6 +1659,13 @@
       "target": "wiki/topics/review-suite-evaluation.md",
       "type": "topic",
       "relation": "topic"
+    },
+    {
+      "id": "76e225e7d7e11290",
+      "source": "wiki/plans/INDEX.md",
+      "target": "wiki/plans/2026-10-29-smooth-review-delivery-and-context-handling-5fcf17c685.md",
+      "type": "link",
+      "relation": "link"
     },
     {
       "id": "78abbbc932c64af3",
@@ -1733,6 +1804,13 @@
       "id": "9c15eaa3577990c3",
       "source": "wiki/journal/2026-10-26-compare-recovery-context.md",
       "target": "wiki/topics/review-agent-profiles.md",
+      "type": "topic",
+      "relation": "topic"
+    },
+    {
+      "id": "9f0e859bed8f2e2e",
+      "source": "wiki/plans/2026-10-29-smooth-review-delivery-and-context-handling-5fcf17c685.md",
+      "target": "wiki/topics/plan-review-protocol.md",
       "type": "topic",
       "relation": "topic"
     },
