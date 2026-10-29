@@ -1,7 +1,8 @@
 ---
 topics: [plan-review-protocol]
 plans: [2026-10-29-smooth-review-delivery-and-context-handling-5fcf17c685.md]
-issues: ['https://github.com/JFusco/agent-review-workflows/issues/76']
+issues: ['https://github.com/jfusco/agent-review-workflows/issues/76']
+issue: 'https://github.com/jfusco/agent-review-workflows/issues/76'
 ---
 # Reliable packet delivery and fresh read-only review stages
 
