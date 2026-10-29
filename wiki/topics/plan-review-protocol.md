@@ -37,3 +37,18 @@ mutable draft files.
 Deterministic fixtures establish routing, schema, persistence, permission, and
 obsolete-run rejection. They do not establish comparative model quality, actual
 provider effort, or production behavior.
+
+## Reliable stage inputs
+
+[Issue #76](https://github.com/JFusco/agent-review-workflows/issues/76) keeps the
+same two-refinement budget while starting future read-only CLI attempts fresh,
+including on supported saved runs. Complete current packets carry the review
+context; prior session history is supplemental evidence. Large inputs use a
+validated readable file bundle rather than an oversized inline message.
+Structured context errors can use only the already-frozen fallback chain; real
+permission denials and writer interruptions still stop. Details are maintained in
+[the shared CLI procedure](../../references/cli.md#packet-delivery-and-sessions).
+
+Deterministic transport fixtures cover UTF-8 thresholds, reconstruction of long
+lines, evidence corruption, and permission failures. They do not prove provider
+file access, complete model reading, latency improvements or review quality.

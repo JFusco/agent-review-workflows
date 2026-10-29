@@ -182,7 +182,7 @@ class ReviewTests(unittest.TestCase):
                 patch.object(r, 'extract_response', side_effect=extract), patch.object(r, 'accept') as accept:
             r.advance(self.run, self.state)
         self.assertEqual(len(calls), 2)
-        self.assertIn('resume', calls[0][0])
+        self.assertNotIn('resume', calls[0][0])
         self.assertNotIn('resume', calls[1][0])
         self.assertIn('gpt-6.1-sol', calls[1][0])
         self.assertIn('sandbox_mode="read-only"', calls[1][0])
@@ -1288,13 +1288,36 @@ class ReviewTests(unittest.TestCase):
             self.assertIn(model,argv)
             self.assertNotIn('--last',argv)
             if who=='opus':
+                self.assertNotIn('--resume', argv)
                 self.assertIn('--safe-mode',argv); self.assertIn('Read,Glob,Grep',argv)
                 self.assertIn('--restricted',argv); self.assertIn('mcp__*',argv)
                 self.assertEqual(argv[argv.index('--effort')+1],effort)
             else:
+                self.assertEqual('resume' in argv, who == 'sol')
                 self.assertIn(f'model_reasoning_effort="{effort}"',argv)
                 self.assertIn('sandbox_mode="'+('workspace-write' if who=='sol' else 'read-only')+'"',argv)
                 if who=='sol': self.assertIn('sandbox_workspace_write.writable_roots='+json.dumps([str(self.project)]),argv)
+
+    def test_fresh_and_historical_resumed_response_identity(self):
+        old = '11111111-1111-4111-8111-111111111111'
+        fresh = '22222222-2222-4222-8222-222222222222'
+        self.state['sessions']['opus'] = old
+        call = self.root/'identity-call'
+        call.mkdir()
+        def output(session):
+            (call/'stdout.log').write_text(json.dumps({'structured_output': self.response([]),
+                'session_id': session, 'modelUsage': {'claude-opus-5-5': {}}}))
+        for session in (None, old, 'invalid'):
+            output(session)
+            with self.assertRaises(r.ReviewError):
+                r.extract_response(self.state, call)
+        output(fresh)
+        self.assertEqual(r.extract_response(self.state, call)[1], fresh)
+        r.write_new(call/'invocation.json', {'argv': ['claude', '--resume', old]})
+        with self.assertRaisesRegex(r.ReviewError, 'different session'):
+            r.extract_response(self.state, call)
+        output(old)
+        self.assertEqual(r.extract_response(self.state, call)[1], old)
 
     def test_claude_auth_status_uses_frozen_binary(self):
         self.state['claude_binary'] = '/pinned/claude'
@@ -1411,7 +1434,8 @@ class ReviewTests(unittest.TestCase):
         self.assertEqual(args.coordinator_effort, 'ultra')
 
     def test_paths_and_symlink_execution(self):
-        with patch.dict(os.environ,{'CODEX_HOME':str(self.root/'codex')},clear=True):
+        with patch.dict(os.environ,{'CODEX_HOME':str(self.root/'codex')},clear=True), \
+                patch.object(Path, 'home', side_effect=RuntimeError('Home lookup unavailable')):
             self.assertEqual(r.runs_root(),self.root/'codex/review-runs')
             with patch.dict(os.environ,{'AGENT_REVIEW_RUNS_DIR':str(self.root/'env')}):
                 self.assertEqual(r.runs_root(),self.root/'env')
