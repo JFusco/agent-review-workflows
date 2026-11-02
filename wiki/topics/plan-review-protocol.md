@@ -52,3 +52,26 @@ permission denials and writer interruptions still stop. Details are maintained i
 Deterministic transport fixtures cover UTF-8 thresholds, reconstruction of long
 lines, evidence corruption, and permission failures. They do not prove provider
 file access, complete model reading, latency improvements or review quality.
+
+## Required research
+
+[Issue #80](https://github.com/JFusco/agent-review-workflows/issues/80) adds a
+separate Codex research stage for new state-schema-3 plan runs while retaining
+plan protocol 2 and introducing research contract 1. Saved schema-2 runs still
+use the original two roles and are labeled research unrecorded. The preceding
+stage counts describe that historical path; new unchanged, first-refined, and
+second-refined plans require three, four, and six accepted provider stages.
+
+Research investigates reusable local solutions, Brain, and current primary web
+sources before independent review. Its immutable accepted brief and digest stay
+fixed through ordinary refinements and are supplied completely to both review
+roles. Missing searches fail validation; source and recording limitations remain
+visible. Material changes to requirements or scope require a new run. Existing
+finding IDs, user-decision routing, independent rechecks, and two-refinement limit
+remain in force. The researcher cannot write to the reviewed project.
+
+The provisional researcher default is Codex Astra high, configurable and frozen
+per run, with no automatic researcher fallback. Permission-profile and evidence
+contracts are defined once in the [research reference](../../references/research.md).
+Local fixtures and sandbox probes do not establish live model quality or usage;
+the planned Astra high/xhigh and Opus high comparison remains separate.

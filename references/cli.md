@@ -8,12 +8,13 @@ Review packets ask each role to act as a pragmatic, minimalist senior software a
 
 ## Agent profiles
 
-The ignored installation-local `runtime.local.json` may contain partial profiles under `skills.review-plan`, `skills.review-implementation`, and `skills.review-diff`. Plan and diff support `reviewer` (Claude) and `coordinator` (Codex); implementation also supports `implementer` (Codex). Each role accepts `model`, `effort`, and an optional ordered `fallbacks` list. Primary providers and permissions remain fixed. Reviewer fallbacks may use Claude or Codex; coordinator fallbacks use Codex. Implementation writers do not fall back.
+The ignored installation-local `runtime.local.json` may contain partial profiles under `skills.review-plan`, `skills.review-implementation`, and `skills.review-diff`. All modes support `reviewer` (Claude) and `coordinator` (Codex); implementation adds `implementer` (Codex), and new plan runs add `researcher` (Codex). Research procedure and permissions are defined in [required research](research.md). Each role accepts `model`, `effort`, and an optional ordered `fallbacks` list. Primary providers and permissions remain fixed. Reviewer fallbacks may use Claude or Codex; coordinator fallbacks use Codex. Implementation writers do not fall back.
 
 ```json
 {
   "skills": {
     "review-plan": {
+      "researcher": { "model": "gpt-6-astra", "effort": "high" },
       "reviewer": { "model": "claude-opus-5-5", "effort": "high" },
       "coordinator": { "model": "gpt-6-astra", "effort": "max" }
     },
@@ -32,7 +33,7 @@ The ignored installation-local `runtime.local.json` may contain partial profiles
 
 Those values are also the built-in defaults. Claude effort accepts `low`, `medium`, `high`, `xhigh`, or `max`. Codex effort accepts `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`, or `ultra`; the selected model may support only a subset. Model identifiers must be nonblank and contain no whitespace. The provider CLI remains authoritative for model availability and model/effort compatibility; unclassified rejection stops the workflow. See [Recorded model fallback](#recorded-model-fallback) for eligible capacity failures.
 
-At `start`, explicit `--reviewer-model` / `--reviewer-effort`, `--coordinator-model` / `--coordinator-effort`, and implementation-only `--implementer-model` / `--implementer-effort` override the selected skill profile. Resolution is per field: start flag, then installation profile, then built-in default. The helper validates the entire local configuration before creating a run and stores the complete resolved profile in its state, original snapshot, status, packet, and handoff. Later edits or deletion of `runtime.local.json` never change that run or its resumed sessions. The separate `agent_fallbacks` snapshot freezes the fallback policy alongside the primary profile.
+At `start`, explicit `--reviewer-model` / `--reviewer-effort`, `--coordinator-model` / `--coordinator-effort`, plan-only `--researcher-model` / `--researcher-effort`, and implementation-only `--implementer-model` / `--implementer-effort` override the selected skill profile. Resolution is per field: start flag, then installation profile, then built-in default. The helper validates the entire local configuration before creating a run and stores the complete resolved profile in its state, original snapshot, status, packet, and handoff. Later edits or deletion of `runtime.local.json` never change that run or its resumed sessions. The separate `agent_fallbacks` snapshot freezes the fallback policy alongside the primary profile.
 
 The Sol 6.1 / `xhigh` default applies to implementation runs. Current saved runs use their frozen profile. An installation-local `implementer.model` of `gpt-6-sol` or explicit `--implementer-model gpt-6-sol` selects Sol 6 for a new run; effort follows the same per-field precedence.
 
@@ -60,7 +61,7 @@ Override a role's ordered fallback list in `runtime.local.json`, for example:
 }
 ```
 
-Each list permits at most two distinct candidates with exactly `provider`, `model`, and `effort`. Effort is validated against the candidate provider. An empty list disables fallback; an exact duplicate of the primary is omitted at start. Nonempty writer fallback lists are rejected. Start model/effort overrides affect the primary only.
+Each list permits at most two distinct candidates with exactly `provider`, `model`, and `effort`. Effort is validated against the candidate provider. An empty list disables fallback; an exact duplicate of the primary is omitted at start. Nonempty writer and researcher fallback lists are rejected. Start model/effort overrides affect the primary only.
 
 A model-call timeout, explicit provider errors identifying unavailable models, rate/usage/quota/token/credit exhaustion, context exhaustion, overload, or an incomplete `max_output_tokens` response can advance the list, as can a contract rejection that persists after its one corrective re-prompt. Check failures and state preconditions, such as finalization without passing checks, never select models. Unknown errors, login/permission failures, extraction identity errors, stale targets, and manual interruption stop normally. Exhaustion blocks visibly. A repair timeout remains `interrupted`: inspect partial writes and reconcile rather than launching another writer.
 
@@ -206,10 +207,11 @@ need for an authorized focused follow-up; it never starts another cycle itself.
 | --- | --- | --- | --- |
 | implementation | 2 | evidence 2, response 2 | Frozen coordinator finalization |
 | implementation | 3 | evidence 2, response 2 | Local deterministic finalization |
-| plan | 2 | plan protocol 2 | Existing helper completion |
+| plan | 2 | plan protocol 2 | Existing helper completion; research unrecorded |
+| plan | 3 | plan protocol 2, research contract 1 | Research before existing helper completion |
 | diff | 2 | evidence 2 | Existing adjudication report |
 
-Versions must be actual integers. Missing/unknown markers or stages, schema-3 plan/diff runs, and retired version-1 contracts cannot resume. Existing original snapshots may omit the state schema field; they are never rewritten. State schema is exposed in new originals, packets, status, and handoffs. Canonical response and artifact schemas remain unchanged.
+Versions must be actual integers. Missing/unknown markers or stages, schema-3 diff runs, and retired version-1 contracts cannot resume. Existing original snapshots may omit the state schema field; they are never rewritten. State schema is exposed in new originals, packets, status, and handoffs. Canonical review responses retain their existing schema; research has a separate contract.
 
 Local finalization validates the complete frozen profile before creating an artifact or saving state, then reuses canonical acceptance, exact finding preservation, fresh evidence, passing checks, and scope guards under the project lock. It records `local-finalizer` / `deterministic`, without authentication, a session, CLI launch, or external request. `run`, ordinary `step`, accepted external adjudication `submit`, and passing check-only recovery complete the eligible tail. Local finalization cannot accept an external submission. `step --reviewer-only` dispatches one reviewer and leaves the tail ready.
 
@@ -240,7 +242,7 @@ One step may exhaust its frozen fallback candidates for that same read-only stag
 - A transient configured-check failure on an unchanged current implementation or pre-report diff target: run `rerun-checks RUN`. The command is allowed only in a read-only recoverable state, retains prior receipt files, writes current receipts, increments the handoff revision, and invalidates stale agent output. It does not change the configured commands, target, findings, stage, or repair count. A check-only unresolved implementation finalization becomes ready only after every configured check passes, then completes locally in version 3; other blocked or unresolved states retain their status and still require their normal recovery.
 - A diff check execution interrupted before review: inspect the saved receipts, then use `retry RUN` for the blocked read-only stage. The helper reruns the complete configured check set before reviewer dispatch and preserves prior receipt files. A `reported` run is terminal: `run` and `step` regenerate readable views without provider dispatch; `retry`, `rerun-checks`, `reconcile`, `submit`, and `decide` reject it. Any changed target needs a new review.
 - `interrupted` repair: inspect actual changes, Git state, process output, and scope. Stop any still-running process first. Then `reconcile RUN --note "actual inspected partial changes"`. This advances to independent recheck, counts a repair pass, and never reruns the write automatically.
-- `needs_user`: obtain the user's actual decision, then `decide RUN --instruction "user decision"` and run again. Do not invent approval.
+- `needs_user`: material changes to plan requirements or scope need a fresh run and fresh research; ordinary clarifications may use the existing decision path. Obtain the user's actual decision, then `decide RUN --instruction "user decision"` and run again. Do not invent approval.
 - Unexpected target changes or out-of-scope writes: preserve them, report the discrepancy, and start a new appropriately scoped run only after inspection. No automatic reset, checkout, or rollback.
 - Session loss: retain handoff artifacts. Future read-only CLI attempts are fresh; use the normal guarded retry only for a recoverable read-only state. Lost or interrupted writer sessions require inspection and reconciliation, never replay. Never use `--last`.
 
@@ -250,7 +252,7 @@ One step may exhaust its frozen fallback candidates for that same read-only stag
 
 Python 3.11+, Git for implementation reviews, the pinned requirements installed in the installation virtual environment, Codex CLI and Claude Code on PATH, and working CLI login. Current tested CLI baselines are recorded in the validation report; the helper uses supported flags and fails on incompatible versions. See [Recorded model fallback](#recorded-model-fallback) for timeout defaults, bounds, and saved-run compatibility.
 
-The configured Claude reviewer runs with read/search tools, safe/restricted mode, no MCP tools, and hooks disabled; subscription authentication remains available. Codex roles run from an isolated runtime directory with user configuration ignored, explicit sandbox/approval settings, no nested agents, and no network access for execution tools. The implementer receives project write access only at repair stages; all other stages use read-only execution. Project instructions are supplied as context rather than enabling hooks or integrations. Managed host policies still apply; do not bypass them.
+The configured Claude reviewer runs with read/search tools, safe/restricted mode, no MCP tools, and hooks disabled; subscription authentication remains available. Codex roles run from an isolated runtime directory with user configuration ignored, explicit sandbox/approval settings, no nested agents, and no network access for execution tools. The implementer receives project write access only at repair stages; other review stages use read-only execution. The plan researcher uses the narrowly writable profile in [required research](research.md). Project instructions are supplied as context rather than enabling hooks or integrations. Managed host policies still apply; do not bypass them.
 
 The helper's receipts report only observable configuration. It never equates a requested flag with provider attestation. Global permissions are not modified. Ignored runtime/build files are outside the project content guard; scoped tracked/nonignored files and Git staging/history are checked. No production/browser/provider verification is implied by a local pass.
 
