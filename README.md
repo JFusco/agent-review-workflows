@@ -2,22 +2,22 @@
 
 Agent Review Workflows provides six installable agent skills for evidence-backed review and evaluation:
 
-- `review-plan`: a Claude reviewer critiques and rechecks; a Codex coordinator adjudicates and refines; the helper completes the plan review.
+- `review-plan`: a Codex researcher investigates reuse and current evidence; a Claude reviewer critiques and rechecks; a Codex coordinator adjudicates and refines; the helper completes the plan review.
 - `review-implementation`: a Claude reviewer finds and rechecks defects; a Codex coordinator locks accepted repairs; the helper finalizes new successful runs locally; a Codex implementer makes the scoped repair.
 - `review-handoff`: dispatches one authorized stage of an existing review run through the helper, then reports its status.
 - `review-diff`: a Claude reviewer and Codex coordinator report findings for a scoped local Git change without repair.
 - `review-delivery`: assesses an explicit GitHub PR against a terminal review run, its issue, and required checks without changing them.
 - `review-suite-eval`: compares the evidence and observable cost of two existing review runs without changing them.
 
-The built-in profile for new runs is Opus 5.5 High, Astra 6 Max, and Sol 6.1 Extra High (`xhigh`). Installation-local profiles and explicit per-run overrides can select other model and effort combinations without changing provider or permission boundaries.
+The built-in profile for new runs is Opus 5.5 High, Astra 6 Max, and Sol 6.1 Extra High (`xhigh`), with a provisional Astra 6 High plan researcher. Installation-local profiles and explicit per-run overrides can select other model and effort combinations without changing provider or permission boundaries.
 
 Invoke a skill in Codex by name. Finishing ordinary work does not launch a cycle. Plan review always stops before application implementation.
 
-Review runs keep a revision-bound decision ledger and separate review from repair. Revised plans and repaired implementations require independent rechecks before completion. Diff reviews report accepted findings as unverified. Only the implementation workflow gives write access to its designated repair agent. Evaluation reads existing artifacts only.
+Review runs keep a revision-bound decision ledger and separate review from repair. Revised plans and repaired implementations require independent rechecks before completion. Diff reviews report accepted findings as unverified. Only the implementation writer may change a reviewed project. Plan research permits isolated scratch and Brain usage-metadata writes. Evaluation reads existing artifacts only.
 
 ## How it works
 
-Plan reviews use `review → adjudicate → recheck` when refinement is needed. The coordinator always checks completeness, even after a clean review. Unchanged sound plans finish in two calls; first-pass corrected plans finish in three, with at most two refinement attempts. Stage-specific JSON responses carry only new findings, owned assessments, and any complete refinement. The helper assigns finding IDs, preserves canonical definitions, validates current evidence, and routes completion. See the [plan protocol](references/plan-protocol.md) for the exact contracts.
+New plan reviews use `research → review → adjudicate → recheck` when refinement is needed. The coordinator always checks completeness, even after a clean review. Unchanged sound plans finish in three calls; first-pass corrected plans finish in four, with at most two refinement attempts. Stage-specific JSON responses carry only new findings, owned assessments, and any complete refinement. The helper assigns finding IDs, preserves canonical definitions, validates current evidence, and routes completion. Research is validated and cited before review and reused through refinements. See [required research](references/research.md) and the [plan protocol](references/plan-protocol.md) for the contracts. Schema-2 saved plan runs retain their original two-role routing with research labeled unrecorded.
 
 Implementation reviews follow this sequence:
 
@@ -57,6 +57,7 @@ Add any desired partial overrides to the ignored `runtime.local.json` beside thi
 {
   "skills": {
     "review-plan": {
+      "researcher": { "model": "gpt-6-astra", "effort": "high" },
       "reviewer": { "model": "claude-opus-5-5", "effort": "high" },
       "coordinator": { "model": "gpt-6-astra", "effort": "max" }
     },
@@ -73,9 +74,9 @@ Add any desired partial overrides to the ignored `runtime.local.json` beside thi
 }
 ```
 
-`start` also accepts `--reviewer-model`, `--reviewer-effort`, `--coordinator-model`, `--coordinator-effort`, and implementation-only `--implementer-model` / `--implementer-effort`. Explicit flags override the installation profile, which overrides built-in defaults. The complete result is recorded in the run and used unchanged on resume. Configuration errors fail before run artifacts are created; new runs use a 30-minute per-call timeout, one recorded corrective re-prompt for read-only contract rejections, and bounded, recorded read-only model fallbacks for explicit capacity failures. See [fallback configuration and recovery](references/cli.md#recorded-model-fallback). Existing runs retain their saved candidates and gain contract correction; `retry --timeout` changes a blocked run's per-call timeout.
+`start` also accepts `--reviewer-model`, `--reviewer-effort`, `--coordinator-model`, `--coordinator-effort`, plan-only `--researcher-model` / `--researcher-effort`, and implementation-only `--implementer-model` / `--implementer-effort`. Explicit flags override the installation profile, which overrides built-in defaults. The complete result is recorded in the run and used unchanged on resume. Configuration errors fail before run artifacts are created; new runs use a 30-minute per-call timeout, one recorded corrective re-prompt for read-only contract rejections, and bounded, recorded read-only model fallbacks for explicit capacity failures. See [fallback configuration and recovery](references/cli.md#recorded-model-fallback). Existing runs retain their saved candidates and gain contract correction; `retry --timeout` changes a blocked run's per-call timeout.
 
-Existing current-protocol runs retain their frozen profiles, including Sol 6. New implementation runs use state version 3 with local finalization; supported version-2 implementation runs keep coordinator finalization. Obsolete runs without current protocol markers stop before dispatch; preserve their artifacts and start a new run. Updating the helper does not migrate run artifacts. Future read-only CLI attempts start fresh from the complete current packet; historical and in-flight calls and writer recovery stay unchanged. To select Sol 6 for a new implementation run, pass `--implementer-model gpt-6-sol` or set it in the installation profile.
+New plan runs use state schema 3, plan protocol 2, and research contract 1. Researcher fallback is disabled; the Codex CLI must support named permission profiles. Existing current-protocol runs retain their frozen profiles, including Sol 6. New implementation runs use state version 3 with local finalization; supported version-2 implementation runs keep coordinator finalization. Obsolete runs without current protocol markers stop before dispatch; preserve their artifacts and start a new run. Updating the helper does not migrate run artifacts. Future read-only CLI attempts start fresh from the complete current packet; historical and in-flight calls and writer recovery stay unchanged. To select Sol 6 for a new implementation run, pass `--implementer-model gpt-6-sol` or set it in the installation profile.
 
 Large CLI packets use validated, readable evidence bundles above 900,000 UTF-8
 bytes; smaller packets remain inline. The canonical 4 MiB ceiling and all review

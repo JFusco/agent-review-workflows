@@ -1,0 +1,125 @@
+{
+  "research_contract_version": 1,
+  "run_id": "fixture",
+  "stage": "research",
+  "handoff_revision": 0,
+  "target_fingerprint": "0000000000000000000000000000000000000000000000000000000000000000",
+  "summary": "Fixture research recommends extending the existing calculator; no provider evidence.",
+  "searches": [
+    {
+      "channel": "local",
+      "area": "repository",
+      "query": "Fixture search: repository",
+      "status": "read",
+      "outcome": "Synthetic read outcome.",
+      "source_ids": [
+        "RES-001"
+      ]
+    },
+    {
+      "channel": "local",
+      "area": "dependencies",
+      "query": "Fixture search: dependencies",
+      "status": "no_matches",
+      "outcome": "Synthetic no_matches outcome.",
+      "source_ids": []
+    },
+    {
+      "channel": "local",
+      "area": "skills",
+      "query": "Fixture search: skills",
+      "status": "no_matches",
+      "outcome": "Synthetic no_matches outcome.",
+      "source_ids": []
+    },
+    {
+      "channel": "local",
+      "area": "workflows",
+      "query": "Fixture search: workflows",
+      "status": "read",
+      "outcome": "Synthetic read outcome.",
+      "source_ids": [
+        "RES-001"
+      ]
+    },
+    {
+      "channel": "brain",
+      "area": "brain",
+      "query": "Fixture search: brain",
+      "status": "unavailable",
+      "outcome": "Synthetic unavailable outcome.",
+      "source_ids": []
+    },
+    {
+      "channel": "web",
+      "area": "web",
+      "query": "Fixture search: web",
+      "status": "read",
+      "outcome": "Synthetic read outcome.",
+      "source_ids": [
+        "RES-002"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "RES-001",
+      "channel": "local",
+      "locator": "calculator.py",
+      "retrieved_on": "2026-11-02",
+      "applicable_version": "fixture checkout",
+      "evidence": "The existing average function implements the required operation.",
+      "primary": true
+    },
+    {
+      "id": "RES-002",
+      "channel": "web",
+      "locator": "https://example.invalid/primary-docs",
+      "retrieved_on": "2026-11-02",
+      "applicable_version": "synthetic fixture",
+      "evidence": "Synthetic primary documentation, never fetched.",
+      "primary": true
+    }
+  ],
+  "existing_solutions": [
+    {
+      "name": "Existing calculator",
+      "assessment": "Extend its existing average function.",
+      "source_ids": [
+        "RES-001"
+      ]
+    }
+  ],
+  "alternatives": [
+    {
+      "name": "New calculator package",
+      "assessment": "An additional package is unnecessary for this fixture.",
+      "source_ids": [
+        "RES-001"
+      ]
+    }
+  ],
+  "recommendation": {
+    "action": "extend",
+    "rationale": "The existing implementation meets the narrow requirement after repair.",
+    "source_ids": [
+      "RES-001",
+      "RES-002"
+    ]
+  },
+  "contradictions": [],
+  "unavailable_sources": [
+    "Brain unavailable in the synthetic fixture."
+  ],
+  "unresolved_assumptions": [
+    "Synthetic web evidence does not establish live-provider behavior."
+  ],
+  "brain": {
+    "snapshot": null,
+    "session": null,
+    "activity_receipts": [],
+    "limitations": [
+      "No Brain consultation in this fixture."
+    ]
+  }
+}

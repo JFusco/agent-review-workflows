@@ -1116,7 +1116,7 @@ class ReviewTests(unittest.TestCase):
         original = r.read_json(self.run/'original.json')
         self.assertEqual(original['agent_profile'], expected)
 
-    def test_plan_default_profile_is_unchanged(self):
+    def test_plan_default_profile_adds_researcher(self):
         args = copy.deepcopy(self.args)
         args.mode = 'plan'
         args.plan = str(ROOT/'tests/fixtures/sound-plan.md')
@@ -1124,6 +1124,7 @@ class ReviewTests(unittest.TestCase):
         expected = {
             'reviewer': {'model': 'claude-opus-5-5', 'effort': 'high'},
             'coordinator': {'model': 'gpt-6-astra', 'effort': 'max'},
+            'researcher': {'model': 'gpt-6-astra', 'effort': 'high'},
         }
         self.assertEqual(state['agent_profile'], expected)
         self.assertEqual(r.read_json(run/'original.json')['agent_profile'], expected)
@@ -1218,6 +1219,7 @@ class ReviewTests(unittest.TestCase):
         self.assertEqual(plan_state['agent_profile'], {
             'reviewer': {'model': 'claude-plan-reviewer', 'effort': 'medium'},
             'coordinator': {'model': 'gpt-run-override', 'effort': 'max'},
+            'researcher': {'model': 'gpt-6-astra', 'effort': 'high'},
         })
         self.assertEqual(implementation_state['agent_profile']['reviewer']['model'],
                          'claude-implementation-reviewer')
@@ -1387,7 +1389,16 @@ class ReviewTests(unittest.TestCase):
         args = copy.deepcopy(self.args)
         args.mode = 'plan'
         args.plan = str(ROOT/'tests/fixtures/sound-plan.md')
-        run, _ = r.initialize(args)
+        run, state = r.initialize(args)
+        with patch.object(sys, 'argv', ['review_cli.py', 'step', str(run), '--reviewer-only']), \
+                patch('sys.stderr', new_callable=io.StringIO), patch.object(r, 'advance') as advance:
+            with self.assertRaises(SystemExit) as stopped:
+                r.main()
+        self.assertEqual(stopped.exception.code, 2)
+        advance.assert_not_called()
+        research = r.read_json(ROOT / 'tests/fixtures/research.json')
+        research.update({key: state[key] for key in ('run_id', 'stage', 'handoff_revision', 'target_fingerprint')})
+        r.accept(run, state, research, {**r.agent_candidate(state, 'researcher'), 'observed': {'source': 'fixture'}})
         with patch.object(sys, 'argv', ['review_cli.py', 'step', str(run), '--reviewer-only']), \
                 patch('sys.stdout', new_callable=io.StringIO), patch.object(r, 'advance') as advance:
             r.main()
@@ -1524,6 +1535,11 @@ class ReviewTests(unittest.TestCase):
                 args.mode = mode
                 args.plan = str(ROOT/'tests/fixtures/sound-plan.md') if mode == 'plan' else None
                 self.run, self.state = r.initialize(args)
+                if mode == 'plan':
+                    self.state.update(schema_version=2, stage='review')
+                    self.state['agent_profile'].pop('researcher')
+                    self.state['agent_fallbacks'].pop('researcher')
+                    self.state['target_fingerprint'] = r.digest(r.target(self.state))
                 self.state['agent_profile']['reviewer'] = {'model': 'fixture-reviewer', 'effort': 'low'}
                 if mode == 'implementation':
                     self.use_passing_check()

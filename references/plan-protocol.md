@@ -1,6 +1,8 @@
 # Plan review protocol 2
 
-Plan runs record `plan_protocol_version: 2`. The helper owns identity,
+Plan runs record `plan_protocol_version: 2`. New schema-3 runs first require
+[research contract 1](research.md); saved schema-2 runs keep their original
+two-role routing with research labeled unrecorded. The helper owns identity,
 canonical findings, persistence, routing, and completion. Models supply findings,
 assessments, and complete plan refinements through the schema supplied for their
 current stage. Prose carries evidence and judgment; it never controls routing.
@@ -16,7 +18,8 @@ assessments; current canonical findings remain authoritative.
 
 The prompt includes the exact response schema. CLI structured output and
 `external-request.json` use that same schema. Return a JSON object with these
-required common fields:
+required common fields for review, adjudication, and recheck (research uses its
+separate brief contract):
 
 | Field | Contract |
 | --- | --- |
@@ -36,6 +39,7 @@ normalization, then validates the complete canonical response before acceptance.
 
 | Stage | Additional required fields |
 | --- | --- |
+| `research` (schema 3) | Separate [research brief](research.md) contract |
 | `review` | `new_findings` |
 | `adjudicate` | `assessments`, `new_findings`, `plan_markdown` |
 | `recheck` | `assessments`, `new_findings` |
@@ -103,7 +107,7 @@ have passed.
 
 ## Routing, artifacts, and recovery
 
-Review always enters adjudication. Complete findings after adjudication or recheck
+New runs first accept research, then enter review. Review always enters adjudication. Complete findings after adjudication or recheck
 produce `stage: finalize`, `status: complete` without a final provider call or
 invented finalize ledger entry. An incomplete first recheck returns to
 adjudication; an incomplete second recheck ends `unresolved`.

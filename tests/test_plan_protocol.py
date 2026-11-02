@@ -20,6 +20,14 @@ class PlanProtocolTests(unittest.TestCase):
         self.args.base = None
         self.args.check = []
         self.run, self.state = r.initialize(self.args)
+        # Preserve the original protocol fixtures as genuine saved schema-2 runs.
+        self.state.update(schema_version=2, stage='review')
+        self.state['agent_profile'].pop('researcher')
+        self.state['agent_fallbacks'].pop('researcher')
+        for key in ('research', 'research_contract_version', 'research_access'):
+            self.state.pop(key)
+        self.state['target_fingerprint'] = r.digest(r.target(self.state))
+        r.save(self.run, self.state)
 
     accept = fixtures.ReviewTests.accept
 

@@ -1,0 +1,349 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PlanResearchBrief",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "research_contract_version": {
+      "type": "integer",
+      "enum": [
+        1
+      ]
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "stage": {
+      "type": "string",
+      "enum": [
+        "research"
+      ]
+    },
+    "handoff_revision": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "target_fingerprint": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "searches": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "channel": {
+            "enum": [
+              "local",
+              "brain",
+              "web"
+            ],
+            "type": "string"
+          },
+          "area": {
+            "enum": [
+              "repository",
+              "dependencies",
+              "skills",
+              "workflows",
+              "brain",
+              "web"
+            ],
+            "type": "string"
+          },
+          "query": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "status": {
+            "enum": [
+              "read",
+              "no_matches",
+              "unavailable"
+            ],
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "source_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            }
+          }
+        },
+        "required": [
+          "channel",
+          "area",
+          "query",
+          "status",
+          "outcome",
+          "source_ids"
+        ]
+      },
+      "minItems": 6
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^RES-[0-9]{3,}$"
+          },
+          "channel": {
+            "enum": [
+              "local",
+              "brain",
+              "web"
+            ],
+            "type": "string"
+          },
+          "locator": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "retrieved_on": {
+            "type": "string",
+            "format": "date"
+          },
+          "applicable_version": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "evidence": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "primary": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "channel",
+          "locator",
+          "retrieved_on",
+          "applicable_version",
+          "evidence",
+          "primary"
+        ]
+      }
+    },
+    "existing_solutions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "assessment": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "source_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "assessment",
+          "source_ids"
+        ]
+      },
+      "minItems": 1
+    },
+    "alternatives": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "assessment": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "source_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "assessment",
+          "source_ids"
+        ]
+      },
+      "minItems": 1
+    },
+    "recommendation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            "reuse",
+            "extend",
+            "build"
+          ],
+          "type": "string"
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "source_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          }
+        }
+      },
+      "required": [
+        "action",
+        "rationale",
+        "source_ids"
+      ]
+    },
+    "contradictions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "\\S"
+      }
+    },
+    "unavailable_sources": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "\\S"
+      }
+    },
+    "unresolved_assumptions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "\\S"
+      }
+    },
+    "brain": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "snapshot": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{40,64}$"
+        },
+        "session": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "activity_receipts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "event": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              },
+              "receipt": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              }
+            },
+            "required": [
+              "event",
+              "receipt"
+            ]
+          }
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          }
+        }
+      },
+      "required": [
+        "snapshot",
+        "session",
+        "activity_receipts",
+        "limitations"
+      ]
+    }
+  },
+  "required": [
+    "research_contract_version",
+    "run_id",
+    "stage",
+    "handoff_revision",
+    "target_fingerprint",
+    "summary",
+    "searches",
+    "sources",
+    "existing_solutions",
+    "alternatives",
+    "recommendation",
+    "contradictions",
+    "unavailable_sources",
+    "unresolved_assumptions",
+    "brain"
+  ]
+}
