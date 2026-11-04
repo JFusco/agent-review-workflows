@@ -31,6 +31,12 @@ New implementation runs need one provider stage with no findings, two when all f
 
 Transient configured-check failures on an unchanged implementation target can be recovered with `rerun-checks`. The command retains old receipts, creates revision-bound current receipts, and never replays model or repair work.
 
+Recognized Codex repair startup failures with unchanged files and complete original
+receipts can use `recover-startup`. An explicitly approved `step --codex-repair-only`
+launches one locked writer while retaining its command sandbox, then leaves fresh
+checks and independent recheck for sandbox continuation. Unknown or partial writes
+still require reconciliation. See [writer launch recovery](references/cli.md#repair-startup-recovery-and-guarded-writer-launch).
+
 Diff reviews require a frozen Git base, scoped files, and a local check. They run `review → adjudicate` and end at `reported`, including when findings remain accepted or checks fail. The final report and handoff retain the decisions and check evidence; diff mode never repairs or independently verifies findings. See the [CLI procedure](references/cli.md) for the exact contract.
 
 PR delivery assessment compares an explicit PR with one terminal run. The read-only `delivery-evidence` command collects local identity, receipts, linked issue content, and hosted gates; the invoking conversation assesses semantic coverage before declaring readiness. See the [delivery procedure](references/delivery.md).
@@ -76,7 +82,7 @@ Add any desired partial overrides to the ignored `runtime.local.json` beside thi
 
 `start` also accepts `--reviewer-model`, `--reviewer-effort`, `--coordinator-model`, `--coordinator-effort`, plan-only `--researcher-model` / `--researcher-effort`, and implementation-only `--implementer-model` / `--implementer-effort`. Explicit flags override the installation profile, which overrides built-in defaults. The complete result is recorded in the run and used unchanged on resume. Configuration errors fail before run artifacts are created; new runs use a 30-minute per-call timeout, one recorded corrective re-prompt for read-only contract rejections, and bounded, recorded read-only model fallbacks for explicit capacity failures. See [fallback configuration and recovery](references/cli.md#recorded-model-fallback). Existing runs retain their saved candidates and gain contract correction; `retry --timeout` changes a blocked run's per-call timeout.
 
-New plan runs use state schema 3, plan protocol 2, and research contract 1. Researcher fallback is disabled; the Codex CLI must support named permission profiles. Existing current-protocol runs retain their frozen profiles, including Sol 6. New implementation runs use state version 3 with local finalization; supported version-2 implementation runs keep coordinator finalization. Obsolete runs without current protocol markers stop before dispatch; preserve their artifacts and start a new run. Updating the helper does not migrate run artifacts. Future read-only CLI attempts start fresh from the complete current packet; historical and in-flight calls and writer recovery stay unchanged. To select Sol 6 for a new implementation run, pass `--implementer-model gpt-6-sol` or set it in the installation profile.
+New plan runs use state schema 3, plan protocol 2, and research contract 1. Researcher fallback is disabled; the Codex CLI must support named permission profiles. Existing current-protocol runs retain their frozen profiles, including Sol 6. New implementation runs use state version 3 with local finalization; supported version-2 implementation runs keep coordinator finalization. Obsolete runs without current protocol markers stop before dispatch; preserve their artifacts and start a new run. Updating the helper does not migrate run artifacts. Future read-only CLI attempts start fresh from the complete current packet; historical and in-flight calls remain unchanged. To select Sol 6 for a new implementation run, pass `--implementer-model gpt-6-sol` or set it in the installation profile.
 
 Large CLI packets use validated, readable evidence bundles above 900,000 UTF-8
 bytes; smaller packets remain inline. The canonical 4 MiB ceiling and all review

@@ -1662,7 +1662,7 @@ def next_artifact(run, state):
     return f'revision-{sequence:03d}', [name for name in existing if name not in known]
 
 
-def accept(run, state, data, config, session=None):
+def accept(run, state, data, config, session=None, defer_repair_checks=False):
     current = state
     state = copy.deepcopy(current)
     require_current_protocol(state)
@@ -1777,6 +1777,8 @@ def accept(run, state, data, config, session=None):
             state['stage'] = 'finalize'
     elif stage == 'repair':
         state['stage'] = 'recheck'
+        if defer_repair_checks:
+            state.update(status='blocked', error='Repair accepted; run retry in the sandbox for post-repair checks.')
     elif stage == 'recheck':
         if state['mode'] == 'implementation':
             if complete_findings(state):
@@ -1797,7 +1799,7 @@ def accept(run, state, data, config, session=None):
     current.clear()
     current.update(state)
     state = current
-    if stage == 'repair':
+    if stage == 'repair' and not defer_repair_checks:
         perform_checks(run, state)
         save(run, state)
     try:
@@ -1979,6 +1981,9 @@ def render(run, state):
                      f'{item["reason"]}; evidence: {item["call_dir"]}')
     for item in state.get('timeout_history', []):
         lines.append(f'- Timeout at {item["stage"]}: {item["from"]} → {item["to"]} seconds.')
+    for item in state.get('startup_recoveries', []):
+        lines.append(f'- Startup recovery at revision {item["handoff_revision"]}: {item["call"]}; '
+                     'no dispatch or repair pass consumed.')
     lines.append('')
     if state.get('error'):
         lines += ['Current blocker: ' + state['error'], '']
@@ -2081,11 +2086,79 @@ def guard_codex_read_only(state, external_coordinator=False):
         raise ReviewError('Codex read-only step requires complete current check receipts; run checks in the sandbox.')
 
 
-def advance(run, state, external_coordinator=False, reviewer_only=False, codex_read_only=False):
+def guard_codex_repair(run, state, external_coordinator=False):
+    if (external_coordinator or not local_finalization(state) or state['status'] != 'ready' or
+            state['stage'] != 'repair' or type(state['round']) is not int or state['round'] != 0 or agent_provider(state) != 'codex' or
+            state['sessions'].get('sol')):
+        raise ReviewError('Codex repair-only step requires a ready first locked implementation repair without a session.')
+    validate_repair_lock(run, state)
+    if (not isinstance(state.get('checks'), list) or not isinstance(state.get('check_commands'), list) or
+            not diff_checks_current(state)):
+        raise ReviewError('Codex repair-only step requires complete current checks; run checks in the sandbox.')
+
+
+def recover_startup(run, state):
+    """Rearm only an unchanged, stopped, recognized startup failure; never uncertain writes."""
+    if state['status'] != 'interrupted':
+        raise ReviewError('Startup recovery requires an interrupted repair.')
+    candidate = copy.deepcopy(state)
+    candidate['status'] = 'ready'
+    guard_codex_repair(run, candidate)
+    assert_fresh(state)
+    if not isinstance(state.get('last_call'), str):
+        raise ReviewError('Startup recovery requires an original call identity.')
+    call = Path(state['last_call'])
+    calls = sorted((run / 'calls').iterdir())
+    if not calls or call != calls[-1] or call.parent != run / 'calls' or call.resolve() != call:
+        raise ReviewError('Startup recovery requires the latest original call directory.')
+    names = ('agent.json', 'invocation.json', 'input-transport.json', 'prompt.txt', 'stdin.txt',
+             'provider-schema.json', 'started.json', 'process.json', 'stdout.log', 'stderr.log')
+    for name in names:
+        path = call / name
+        if path.resolve() != path or not path.is_file():
+            raise ReviewError('Startup recovery requires complete original call receipts.')
+    process, started = read_json(call / 'process.json'), read_json(call / 'started.json')
+    if (not isinstance(process, dict) or set(process) != {'exit_code', 'interruption', 'elapsed_seconds'} or
+            not isinstance(started, dict) or set(started) != {'pid', 'process_group'} or
+            not isinstance(read_json(call / 'agent.json'), dict) or
+            type(process.get('exit_code')) is not int or process['exit_code'] == 0 or
+            process.get('interruption') is not None or not codex_startup_failure(call) or
+            (call / 'last-message.json').exists() or (call / 'last-message.json').is_symlink()):
+        raise ReviewError('Call is not a recognized startup-only failure; inspect and reconcile uncertain writes.')
+    group = started.get('process_group')
+    if type(group) is not int or group <= 1 or group != started.get('pid') or group_alive(group):
+        raise ReviewError('Startup recovery requires a stopped original process group.')
+    expected = {'argv': cli_argv(state, call), 'cwd': str(run / 'executor'), 'timeout_seconds': state['timeout']}
+    if (read_json(call / 'invocation.json') != expected or
+            read_json(call / 'agent.json') != agent_candidate(state, 'sol') or
+            read_json(call / 'provider-schema.json') != provider_schema(state)):
+        raise ReviewError('Startup recovery call differs from the pinned writer and repair contract.')
+    validate_transport(prompt(state) + '\nProject source is at: ' + state['project'] + '\n', call)
+    event = {'call': str(call), 'target_fingerprint': state['target_fingerprint'],
+             'handoff_revision': state['handoff_revision'], 'inventory_sha256': digest(state['inventory']),
+             'repair_lock_sha256': digest(state['ledger'][-1]['repair_lock']),
+             'receipts': {name: digest((call / name).read_bytes()) for name in names}}
+    event_path = run / ('startup-recovery-' + call.name + '.json')
+    if event_path.resolve() != event_path:
+        raise ReviewError('Startup recovery receipt must not use a symlink.')
+    if event_path.exists():
+        if read_json(event_path) != event:
+            raise ReviewError('Startup recovery receipt conflicts with this call.')
+    else:
+        write_new(event_path, event)
+    state.setdefault('startup_recoveries', []).append(event)
+    state.update(status='ready', error=None)
+    save(run, state)
+
+
+def advance(run, state, external_coordinator=False, reviewer_only=False, codex_read_only=False,
+            codex_repair_only=False):
     require_current_protocol(state)
     assert_fresh(state)
     if codex_read_only:
         guard_codex_read_only(state, external_coordinator)
+    if codex_repair_only:
+        guard_codex_repair(run, state, external_coordinator)
     if state['status'] != 'ready':
         raise ReviewError(f'Run is {state["status"]}; inspect status before resuming.')
     if local_finalization(state) and state['stage'] == 'finalize':
@@ -2137,9 +2210,9 @@ def advance(run, state, external_coordinator=False, reviewer_only=False, codex_r
         save(run, state)
         revision_before = state['handoff_revision']
         try:
-            if codex_read_only:
+            if codex_read_only or codex_repair_only:
                 write_new(call_dir / 'launch-boundary.json', {
-                    'boundary': 'codex-read-only', 'stage': state['stage'],
+                    'boundary': 'codex-repair-only' if codex_repair_only else 'codex-read-only', 'stage': state['stage'],
                     'agent': agent_candidate(state, role(state)), 'single_attempt': True})
             write_new(call_dir / 'provider-schema.json', provider_schema(state))
             write_new(call_dir / 'agent.json', agent_candidate(state, role(state)))
@@ -2154,7 +2227,7 @@ def advance(run, state, external_coordinator=False, reviewer_only=False, codex_r
                 raise
             except ReviewError as exc:
                 raise HandoffResponseError(str(exc)) from exc
-            accept(run, state, data, config, session)
+            accept(run, state, data, config, session, defer_repair_checks=codex_repair_only)
             return
         except (Exception, KeyboardInterrupt) as exc:
             if (collapsed_plan(state) or state['mode'] == 'diff' or
@@ -3024,7 +3097,7 @@ def build_parser():
     comparison = sub.add_parser('compare-runs', help='Compare recorded run inputs and measurements without execution.')
     comparison.add_argument('baseline', type=Path)
     comparison.add_argument('candidate', type=Path)
-    for action in ('run', 'step', 'status', 'retry', 'rerun-checks', 'reconcile', 'submit', 'decide'):
+    for action in ('run', 'step', 'status', 'retry', 'recover-startup', 'rerun-checks', 'reconcile', 'submit', 'decide'):
         p = sub.add_parser(action)
         p.add_argument('run', type=Path)
         if action in ('run', 'step'):
@@ -3037,6 +3110,8 @@ def build_parser():
                            help='Dispatch exactly one Claude reviewer stage; reject Codex stages and missing checks.')
             boundary.add_argument('--codex-read-only', action='store_true',
                            help='Dispatch one selected Codex read-only attempt; no checks, fallback, writer, or local tail.')
+            boundary.add_argument('--codex-repair-only', action='store_true',
+                           help='Dispatch one locked sandboxed writer; defer checks and recheck to sandbox continuation.')
         if action == 'retry':
             p.add_argument('--timeout', type=int,
                            help='Recorded new per-agent/check seconds for this run, bounded to 1–14400.')
@@ -3102,6 +3177,8 @@ def main():
                     perform_checks(run, state)
                 state.update(status='ready', error=None)
                 save(run, state)
+            elif args.action == 'recover-startup':
+                recover_startup(run, state)
             elif args.action == 'rerun-checks':
                 rerun_checks(run, state)
             elif args.action == 'reconcile':
@@ -3127,6 +3204,8 @@ def main():
             else:
                 if args.action == 'step' and args.codex_read_only:
                     guard_codex_read_only(state, args.external_coordinator)
+                if args.action == 'step' and args.codex_repair_only:
+                    guard_codex_repair(run, state, args.external_coordinator)
                 if args.action == 'step' and args.reviewer_only:
                     if state['status'] != 'ready' or role(state) != 'opus' or agent_provider(state) != 'claude':
                         raise ReviewError('Reviewer-only step requires a ready Claude reviewer stage.')
@@ -3145,9 +3224,10 @@ def main():
                         print(f'{state["stage"]}: {model} ({effort})', flush=True)
                     advance(run, state, args.external_coordinator,
                             reviewer_only=args.action == 'step' and args.reviewer_only,
-                            codex_read_only=args.action == 'step' and args.codex_read_only)
+                            codex_read_only=args.action == 'step' and args.codex_read_only,
+                            codex_repair_only=args.action == 'step' and args.codex_repair_only)
                     if args.action == 'step':
-                        if not (args.reviewer_only or args.codex_read_only):
+                        if not (args.reviewer_only or args.codex_read_only or args.codex_repair_only):
                             finish_local(run, state)
                         break
             render(run, state)
