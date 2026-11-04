@@ -1,6 +1,7 @@
 ---
 topics: [plan-review-protocol]
-issues: ['https://github.com/JFusco/agent-review-workflows/issues/89']
+issues: ['https://github.com/jfusco/agent-review-workflows/issues/89']
+issue: 'https://github.com/jfusco/agent-review-workflows/issues/89'
 ---
 # Guard the required researcher launch
 
