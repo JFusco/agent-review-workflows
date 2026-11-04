@@ -1,7 +1,8 @@
 ---
 topics: [review-agent-profiles]
 plans: [2026-11-04-bound-codex-launcher-recovery-518cb66bca.md]
-issues: ['https://github.com/JFusco/agent-review-workflows/issues/83']
+issues: ['https://github.com/jfusco/agent-review-workflows/issues/83']
+issue: 'https://github.com/jfusco/agent-review-workflows/issues/83'
 ---
 # Recover a bounded Codex adjudication launch
 
