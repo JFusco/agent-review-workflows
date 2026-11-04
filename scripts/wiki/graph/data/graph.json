@@ -602,9 +602,15 @@
           "kind": "issue",
           "number": 83,
           "url": "https://github.com/jfusco/agent-review-workflows/issues/83"
+        },
+        {
+          "repository": "jfusco/agent-review-workflows",
+          "kind": "pull-request",
+          "number": 84,
+          "url": "https://github.com/jfusco/agent-review-workflows/pull/84"
         }
       ],
-      "bytes": 2840,
+      "bytes": 3834,
       "degree": 3,
       "x": -0.97953,
       "y": 0.201299,
@@ -1003,7 +1009,7 @@
       "type": "plan",
       "aliases": [],
       "githubRefs": [],
-      "bytes": 1629,
+      "bytes": 1677,
       "degree": 3,
       "x": 0.528964,
       "y": -0.848644,
@@ -1094,7 +1100,7 @@
           "url": "https://github.com/jfusco/agent-review-workflows/pull/8"
         }
       ],
-      "bytes": 25597,
+      "bytes": 25645,
       "degree": 25,
       "x": 0.612106,
       "y": -0.790776,

@@ -42,3 +42,18 @@ require a fresh review rather than reusing its stale target. The initial full
 host CI passed 190 Python and 17 tooling tests; final host CI passed 191 Python
 and 17 tooling tests, lint and wiki integrity. The initial nested CI failure was an existing macOS sandbox
 initialization restriction, preserved separately from the host pass.
+
+The committed candidate then completed Opus/Astra diff review. Both accepted
+a further regression gap: malformed receipts at adjudication were also rejected
+later in advance, so the test did not isolate the host receipt guard at initial
+review. The correction covers selected Codex reviewer fallbacks with missing
+checks in both diff and implementation modes, asserts the guard message and
+unchanged state, and forbids check/provider execution. The archived evidence
+now distinguishes the initial 10 tests from the corrected 11-test suite.
+Launcher source and runtime permissions remain unchanged.
+
+The next independent recheck also isolated the Claude-provider rejection: its
+regression now asserts the guard diagnostic and that authentication is never
+reached. Removing the provider clause is detected by that regression. All eleven
+focused tests pass; the launcher implementation remains unchanged. Delivery is
+tracked in [PR #84](https://github.com/JFusco/agent-review-workflows/pull/84).

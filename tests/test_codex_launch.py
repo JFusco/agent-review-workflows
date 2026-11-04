@@ -90,10 +90,13 @@ class CodexLaunchTests(MechanicsFixture, unittest.TestCase):
                 state.update(status=status, stage=stage)
                 r.save(self.run, state)
                 before = (self.run/'state.json').read_bytes()
-                with patch.object(r, 'execute_process') as execute, patch.object(r, 'perform_checks') as checks:
-                    self.command('step', '--codex-read-only', failed=True)
+                with patch.object(r, 'execute_process') as execute, patch.object(r, 'perform_checks') as checks, \
+                        patch.object(r, 'assert_claude_auth') as auth:
+                    output = self.command('step', '--codex-read-only', failed=True)
+                self.assertIn('Codex read-only step requires a ready Codex review, adjudicate, or recheck stage', output)
                 execute.assert_not_called()
                 checks.assert_not_called()
+                auth.assert_not_called()
                 self.assertEqual((self.run/'state.json').read_bytes(), before)
 
     def test_guard_rejects_valid_writer_research_and_finalizer_states(self):
@@ -126,10 +129,29 @@ class CodexLaunchTests(MechanicsFixture, unittest.TestCase):
                 state = copy.deepcopy(self.state)
                 state['checks'] = checks
                 r.save(self.run, state)
+                before = (self.run/'state.json').read_bytes()
                 with patch.object(r, 'execute_process') as execute, patch.object(r, 'perform_checks') as perform:
-                    self.command('step', '--codex-read-only', failed=True)
+                    output = self.command('step', '--codex-read-only', failed=True)
+                self.assertIn('Codex read-only step requires complete current check receipts', output)
                 execute.assert_not_called()
                 perform.assert_not_called()
+                self.assertEqual((self.run/'state.json').read_bytes(), before)
+
+        for mode in ('diff', 'implementation'):
+            with self.subTest(mode=mode, stage='review', checks=[]):
+                args = copy.deepcopy(self.args)
+                args.mode = mode
+                self.run, self.state = r.initialize(args)
+                self.state['agent_selections'] = {'opus': 1}
+                self.assertEqual(r.agent_provider(self.state), 'codex')
+                r.save(self.run, self.state)
+                before = (self.run/'state.json').read_bytes()
+                with patch.object(r, 'execute_process') as execute, patch.object(r, 'perform_checks') as perform:
+                    output = self.command('step', '--codex-read-only', failed=True)
+                self.assertIn('Codex read-only step requires complete current check receipts', output)
+                execute.assert_not_called()
+                perform.assert_not_called()
+                self.assertEqual((self.run/'state.json').read_bytes(), before)
 
     def test_guard_rejects_external_and_combined_boundaries(self):
         for extra in ('--external-coordinator', '--reviewer-only'):

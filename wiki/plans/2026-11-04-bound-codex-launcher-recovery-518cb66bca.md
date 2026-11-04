@@ -1,7 +1,7 @@
 ---
 status: "implemented"
 executed: true
-evidence: ["Issue 83; ten command regressions passed; guarded live run 3546ab44-7bcd-4dd6-b6f0-2c92619ad574 reported with observed tool denials"]
+evidence: ["Issue 83; initial 10 command regressions passed; corrected 11 command regressions passed; guarded live run 3546ab44-7bcd-4dd6-b6f0-2c92619ad574 reported with observed tool denials"]
 source_tool: "repository"
 source: "/private/tmp/workflow-83-plan.md"
 topics: ["review-agent-profiles"]
