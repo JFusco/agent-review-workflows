@@ -182,7 +182,8 @@ class CodexLaunchTests(MechanicsFixture, unittest.TestCase):
         for error in (r.ProviderCallError('rate_limit'), r.ContractResponseError('invalid response')):
             r.save(self.run, self.state)
             with patch.object(r, 'execute_process', side_effect=error) as execute, \
-                    patch.object(r, 'request_correction') as correct, patch.object(r, 'select_fallback') as fallback:
+                    patch.object(r, 'request_correction', return_value=False) as correct, \
+                    patch.object(r, 'select_fallback', return_value=False) as fallback:
                 self.command('step', '--codex-read-only', failed=True)
             self.assertEqual(execute.call_count, 1)
             correct.assert_not_called()
@@ -211,3 +212,20 @@ class CodexLaunchTests(MechanicsFixture, unittest.TestCase):
         with patch.object(r, 'execute_process') as replay:
             self.command('step', '--codex-read-only', failed=True)
         replay.assert_not_called()
+
+        args = copy.deepcopy(self.args)
+        args.mode = 'diff'
+        self.run, self.state = r.initialize(args)
+        self.use_passing_check()
+        self.state['agent_selections'] = {'opus': 1}
+        self.assertEqual(r.agent_provider(self.state), 'codex')
+        r.save(self.run, self.state)
+        with patch.object(r, 'execute_process') as execute, patch.object(r, 'extract_response', side_effect=extract), \
+                patch.object(r, 'finish_local') as finish, patch.object(r, 'perform_checks') as checks:
+            self.command('step', '--codex-read-only')
+        execute.assert_called_once()
+        finish.assert_not_called()
+        checks.assert_not_called()
+        saved = r.read_json(self.run/'state.json')
+        self.assertEqual((saved['stage'], saved['status']), ('adjudicate', 'ready'))
+        self.assertEqual(len(list((self.run/'calls').iterdir())), 1)

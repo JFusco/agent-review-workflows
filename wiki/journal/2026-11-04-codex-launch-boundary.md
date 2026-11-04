@@ -57,3 +57,8 @@ regression now asserts the guard diagnostic and that authentication is never
 reached. Removing the provider clause is detected by that regression. All eleven
 focused tests pass; the launcher implementation remains unchanged. Delivery is
 tracked in [PR #84](https://github.com/JFusco/agent-review-workflows/pull/84).
+
+Retry-suppression mocks now return False, so a deliberate regression fails
+promptly instead of looping. The selected-Codex initial-review case also proves
+that one guarded call leaves adjudication ready; removing the single-stage stop
+is detected as two calls. Both mutations were rejected by the eleven-test suite.
