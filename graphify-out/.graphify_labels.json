@@ -8,7 +8,6 @@
   "6": "routing.cjs",
   "7": "delivery_evidence",
   "8": "reconcile-merges.cjs",
-  "9": "serve-graph.cjs",
   "10": "validate_pr_body.cjs",
   "11": "python.cjs",
   "12": "routing.js",
