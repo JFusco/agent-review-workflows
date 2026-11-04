@@ -31,6 +31,11 @@ New implementation runs need one provider stage with no findings, two when all f
 
 Transient configured-check failures on an unchanged implementation target can be recovered with `rerun-checks`. The command retains old receipts, creates revision-bound current receipts, and never replays model or repair work.
 
+A blocked plan researcher can use an explicitly approved
+`step --codex-research-only` after sandboxed freshness recovery. It runs one
+attempt with the existing restricted research profile and stops before review.
+See [researcher launch recovery](references/cli.md#research-startup-recovery-and-guarded-researcher-launch).
+
 Recognized Codex repair startup failures with unchanged files and complete original
 receipts can use `recover-startup`. An explicitly approved `step --codex-repair-only`
 launches one locked writer while retaining its command sandbox, then leaves fresh

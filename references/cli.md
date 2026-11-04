@@ -170,9 +170,45 @@ Authentication remains with the existing CLI; do not inspect or copy credentials
 permissions. See the [validation record](https://github.com/JFusco/agent-review-workflows/blob/main/VALIDATION.md)
 for actual runtime evidence.
 This path does not make nested launcher startup work or authorize unrestricted
-host `run` / `step`, research, writers, or a global sandbox change. If host access
+host `run` / `step`, research, writers, or a global sandbox change. Research has
+its own [guarded path](#research-startup-recovery-and-guarded-researcher-launch). If host access
 is denied, stop and report that boundary. Do not retry unchanged environments,
 downgrade the CLI, substitute models, or weaken model permissions.
+
+### Research startup recovery and guarded researcher launch
+
+For a plan researcher stopped by the recognized Codex startup error, preserve
+its call receipts and verify the owned process has exited. Run `retry RUN` in
+the sandbox to check freshness and restore readiness without dispatch.
+
+With explicit invoking-tool approval for the launcher context, run only:
+
+```text
+PYTHON HELPER step RUN --codex-research-only
+```
+
+Under the existing project lock, this guard requires a ready state-schema-3
+plan research stage, research contract 1, the frozen researcher profile, no
+accepted research, unchanged inputs, and the original valid permission roots.
+It rejects other modes/stages, external coordination, changed or symlinked
+roots, and active owned processes before dispatch. Schema-2 runs remain unchanged.
+
+This is one attempt with the existing researcher permission profile: only its
+isolated scratch and recorded Brain usage metadata are writable; project,
+canonical artifacts, Brain knowledge, and general temp remain protected.
+Hosted web search stays enabled; execution-tool networking and nested agents
+stay disabled. The launcher does not relax these model-command permissions.
+
+The helper records `launch-boundary.json`, retains earlier receipts, and accepts
+the brief through the normal research schema, identity, digest, and persistence
+checks. Success leaves independent review ready for separate sandbox continuation.
+Failure stays blocked. There is no automatic correction, fallback, check execution,
+second provider stage, or local finalization tail in this guarded command.
+
+If launcher approval is denied or startup still fails, preserve the new receipt
+and stop; never substitute unrestricted host `run`/`step` or change global
+permissions. This recovery path does not itself repair nested app-server startup.
+Requested flags and fixture tests are not live-provider permission attestation.
 
 ### Repair startup recovery and guarded writer launch
 
@@ -297,7 +333,7 @@ need for an authorized focused follow-up; it never starts another cycle itself.
 
 Versions must be actual integers. Missing/unknown markers or stages, schema-3 diff runs, and retired version-1 contracts cannot resume. Existing original snapshots may omit the state schema field; they are never rewritten. State schema is exposed in new originals, packets, status, and handoffs. Canonical review responses retain their existing schema; research has a separate contract.
 
-Local finalization validates the complete frozen profile before creating an artifact or saving state, then reuses canonical acceptance, exact finding preservation, fresh evidence, passing checks, and scope guards under the project lock. It records `local-finalizer` / `deterministic`, without authentication, a session, CLI launch, or external request. `run`, ordinary `step`, accepted external adjudication `submit`, and passing check-only recovery complete the eligible tail. Local finalization cannot accept an external submission. Guarded host steps (`--reviewer-only`, `--codex-read-only`, `--codex-repair-only`) never run the local tail.
+Local finalization validates the complete frozen profile before creating an artifact or saving state, then reuses canonical acceptance, exact finding preservation, fresh evidence, passing checks, and scope guards under the project lock. It records `local-finalizer` / `deterministic`, without authentication, a session, CLI launch, or external request. `run`, ordinary `step`, accepted external adjudication `submit`, and passing check-only recovery complete the eligible tail. Local finalization cannot accept an external submission. Guarded host steps (`--reviewer-only`, `--codex-read-only`, `--codex-research-only`, `--codex-repair-only`) never run the local tail.
 
 Completion saves its immutable artifact and complete state before rendering. A failure before state save may leave an orphan artifact; ordinary continuation records the orphan and repeats only local completion. A final derived-view failure after durable acceptance leaves the accepted status intact. Ordinary `run`/`step` regenerate completed version-3 views from the accepted artifact and ledger even if the checkout changes or disappears, without a new revision. Complete runs reject `retry`, `rerun-checks`, `reconcile`, `submit`, and `decide`.
 
@@ -318,7 +354,7 @@ Call `step` only when `status` reports `ready` and the invoking conversation per
 
 For a Claude stage with a sandbox-hidden login, follow [Claude login visibility in a sandbox](#claude-login-visibility-in-a-sandbox). A sandboxed `step` may stop after recording initial checks but before dispatch; a subsequent approved host `step RUN --reviewer-only` is the single dispatched stage. Stop after that one reviewer dispatch. The reviewer-only guard fails before provider execution if the stage changed or initial implementation checks are missing.
 
-For a Codex startup failure, follow [Codex launch recovery](#codex-launch-recovery); an approved host `step RUN --codex-read-only` is one selected attempt and leaves any local tail ready. A ready locked implementation repair may instead use the explicit [repair-only guard](#repair-startup-recovery-and-guarded-writer-launch), which defers post-repair checks as well.
+For a Codex startup failure, follow [Codex launch recovery](#codex-launch-recovery); an approved host `step RUN --codex-read-only` is one selected attempt and leaves any local tail ready. A ready schema-3 plan researcher uses the [research-only guard](#research-startup-recovery-and-guarded-researcher-launch). A ready locked implementation repair may instead use the explicit [repair-only guard](#repair-startup-recovery-and-guarded-writer-launch), which defers post-repair checks as well.
 
 An ordinary step may exhaust its frozen fallback candidates for that same read-only stage. Stop after the step and report the attempted stage, resulting status, blocker if any, and `handoff.md`. A ready next provider stage requires another invocation. An ordinary `step` completes an eligible version-3 local tail; guarded host steps defer it to sandbox continuation. A repair-only acceptance leaves recheck blocked until sandboxed checks run. A step starting at local finalization dispatches no provider. Non-ready states, including external-coordinator waits, use [Recovery](#recovery) or the existing [external submission procedure](#run-and-interact); the handoff skill performs neither automatically. If output is lost, read `status` without replaying `step`. The existing `run` command and full review skills continue to support complete cycles.
 

@@ -33,6 +33,11 @@ User configuration is ignored; additional agents are disabled. See
 [OpenAI web search](https://learn.chatgpt.com/docs/web-search). These requested
 settings and local sandbox probes do not prove provider execution.
 
+For the recognized nested Codex startup failure, the
+[guarded researcher launch](cli.md#research-startup-recovery-and-guarded-researcher-launch)
+provides one explicitly approved launcher attempt with this same permission
+profile. It never changes the frozen settings or skips required research.
+
 ## Investigation and brief
 
 The researcher receives the original requirements, complete draft, project
