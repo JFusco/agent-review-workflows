@@ -174,6 +174,43 @@ host `run` / `step`, research, writers, or a global sandbox change. If host acce
 is denied, stop and report that boundary. Do not retry unchanged environments,
 downgrade the CLI, substitute models, or weaken model permissions.
 
+### Repair startup recovery and guarded writer launch
+
+For a schema-3 implementation repair that exits with the exact recognized Codex
+startup error, use `PYTHON HELPER recover-startup RUN` in the sandbox. Under the
+project lock it requires the first repair, no prior writer session, the original
+adjudication lock, complete current checks and unchanged full inventory, HEAD,
+index and target. It validates the latest call's complete prompt/transport,
+schema, selected writer, invocation, nonzero uninterrupted exit, empty stdout,
+absent final response and stopped owned group. Empty stdout alone is insufficient.
+It preserves failed calls, records a recovery receipt and restores readiness
+without dispatch, a new revision, or consuming the actual repair pass. Existing
+supported schema-3 startup failures can use this command without rewriting their
+original artifacts. Unknown failures, partial writes and interrupted model work
+still require inspection and reconciliation; never replay those writers.
+
+With explicit invoking-tool approval for compatible host launcher access, use
+only `PYTHON HELPER step RUN --codex-repair-only`. This guard permits one ready
+first locked schema-3 implementation repair with complete current checks and a
+fresh target. It retains the selected frozen writer and the existing command
+sandbox: workspace-write for the project root only, no implicit temporary roots,
+no execution-tool network, no approval prompts, ignored user configuration and
+disabled agents. Existing post-write scope/HEAD/index checks remain mandatory.
+It cannot run configured checks, select fallback, re-prompt, launch recheck or
+finalization, or advance another provider stage. The boundary receipt records
+requested restrictions, not independent provider attestation.
+Initial nonzero checks remain evidence for the repair; successful completion
+still requires passing checks on the repaired target.
+
+An accepted repair stops at `recheck / blocked`, with its new target and one
+repair pass durably saved. Resume `PYTHON HELPER retry RUN` in the sandbox to
+run the complete post-repair checks, then continue with ordinary sandbox `run`/`step`
+for the independent recheck (use the Claude reviewer-only guard only if the sandbox
+hides the login). No new writer runs. A failed writer stays
+interrupted; use startup recovery only if its strict proof passes, otherwise
+follow the interrupted-repair procedure. Do not use unrestricted host `run` or
+`step`, change global permissions, or weaken the model command sandbox.
+
 ### External coordinator
 
 If this conversation verifiably matches the frozen coordinator model and effort, use `run RUN --external-coordinator`. At `awaiting_coordinator`, read `external-request.json`, produce the requested response JSON in a separate file outside the target project (for example, within the run directory), then submit with the exact requested values:
@@ -260,7 +297,7 @@ need for an authorized focused follow-up; it never starts another cycle itself.
 
 Versions must be actual integers. Missing/unknown markers or stages, schema-3 diff runs, and retired version-1 contracts cannot resume. Existing original snapshots may omit the state schema field; they are never rewritten. State schema is exposed in new originals, packets, status, and handoffs. Canonical review responses retain their existing schema; research has a separate contract.
 
-Local finalization validates the complete frozen profile before creating an artifact or saving state, then reuses canonical acceptance, exact finding preservation, fresh evidence, passing checks, and scope guards under the project lock. It records `local-finalizer` / `deterministic`, without authentication, a session, CLI launch, or external request. `run`, ordinary `step`, accepted external adjudication `submit`, and passing check-only recovery complete the eligible tail. Local finalization cannot accept an external submission. Both guarded steps (`--reviewer-only` and `--codex-read-only`) leave the tail ready for sandbox continuation.
+Local finalization validates the complete frozen profile before creating an artifact or saving state, then reuses canonical acceptance, exact finding preservation, fresh evidence, passing checks, and scope guards under the project lock. It records `local-finalizer` / `deterministic`, without authentication, a session, CLI launch, or external request. `run`, ordinary `step`, accepted external adjudication `submit`, and passing check-only recovery complete the eligible tail. Local finalization cannot accept an external submission. Guarded host steps (`--reviewer-only`, `--codex-read-only`, `--codex-repair-only`) never run the local tail.
 
 Completion saves its immutable artifact and complete state before rendering. A failure before state save may leave an orphan artifact; ordinary continuation records the orphan and repeats only local completion. A final derived-view failure after durable acceptance leaves the accepted status intact. Ordinary `run`/`step` regenerate completed version-3 views from the accepted artifact and ledger even if the checkout changes or disappears, without a new revision. Complete runs reject `retry`, `rerun-checks`, `reconcile`, `submit`, and `decide`.
 
@@ -281,16 +318,16 @@ Call `step` only when `status` reports `ready` and the invoking conversation per
 
 For a Claude stage with a sandbox-hidden login, follow [Claude login visibility in a sandbox](#claude-login-visibility-in-a-sandbox). A sandboxed `step` may stop after recording initial checks but before dispatch; a subsequent approved host `step RUN --reviewer-only` is the single dispatched stage. Stop after that one reviewer dispatch. The reviewer-only guard fails before provider execution if the stage changed or initial implementation checks are missing.
 
-For a Codex startup failure, follow [Codex launch recovery](#codex-launch-recovery); an approved host `step RUN --codex-read-only` is one selected attempt and leaves any local tail ready.
+For a Codex startup failure, follow [Codex launch recovery](#codex-launch-recovery); an approved host `step RUN --codex-read-only` is one selected attempt and leaves any local tail ready. A ready locked implementation repair may instead use the explicit [repair-only guard](#repair-startup-recovery-and-guarded-writer-launch), which defers post-repair checks as well.
 
-An ordinary step may exhaust its frozen fallback candidates for that same read-only stage. Stop after the step and report the attempted stage, resulting status, blocker if any, and `handoff.md`. A ready next provider stage requires another invocation. An ordinary `step` completes an eligible version-3 local tail; either guarded host step leaves it ready for sandbox continuation. A step starting at local finalization dispatches no provider. Non-ready states, including external-coordinator waits, use [Recovery](#recovery) or the existing [external submission procedure](#run-and-interact); the handoff skill performs neither automatically. If output is lost, read `status` without replaying `step`. The existing `run` command and full review skills continue to support complete cycles.
+An ordinary step may exhaust its frozen fallback candidates for that same read-only stage. Stop after the step and report the attempted stage, resulting status, blocker if any, and `handoff.md`. A ready next provider stage requires another invocation. An ordinary `step` completes an eligible version-3 local tail; guarded host steps defer it to sandbox continuation. A repair-only acceptance leaves recheck blocked until sandboxed checks run. A step starting at local finalization dispatches no provider. Non-ready states, including external-coordinator waits, use [Recovery](#recovery) or the existing [external submission procedure](#run-and-interact); the handoff skill performs neither automatically. If output is lost, read `status` without replaying `step`. The existing `run` command and full review skills continue to support complete cycles.
 
 ## Recovery
 
 - `blocked`, or an orphaned read-only `running` stage: inspect the saved process output. `retry RUN` only resets a read-only stage after target freshness checks; then run again. Never edit model settings to clear a blocker; retry retains the saved selected candidate and remaining frozen list. Add `--timeout SECONDS` when the stage needs more time.
 - A transient configured-check failure on an unchanged current implementation or pre-report diff target: run `rerun-checks RUN`. The command is allowed only in a read-only recoverable state, retains prior receipt files, writes current receipts, increments the handoff revision, and invalidates stale agent output. It does not change the configured commands, target, findings, stage, or repair count. A check-only unresolved implementation finalization becomes ready only after every configured check passes, then completes locally in version 3; other blocked or unresolved states retain their status and still require their normal recovery.
 - A diff check execution interrupted before review: inspect the saved receipts, then use `retry RUN` for the blocked read-only stage. The helper reruns the complete configured check set before reviewer dispatch and preserves prior receipt files. A `reported` run is terminal: `run` and `step` regenerate readable views without provider dispatch; `retry`, `rerun-checks`, `reconcile`, `submit`, and `decide` reject it. Any changed target needs a new review.
-- `interrupted` repair: inspect actual changes, Git state, process output, and scope. Stop any still-running process first. Then `reconcile RUN --note "actual inspected partial changes"`. This advances to independent recheck, counts a repair pass, and never reruns the write automatically.
+- `interrupted` repair: for the exact unchanged startup-only case, use [repair startup recovery](#repair-startup-recovery-and-guarded-writer-launch). Otherwise inspect actual changes, Git state, process output, and scope. Stop any still-running process first. Then `reconcile RUN --note "actual inspected partial changes"`. This advances to independent recheck, counts a repair pass, and never reruns the write automatically.
 - `needs_user`: material changes to plan requirements or scope need a fresh run and fresh research; ordinary clarifications may use the existing decision path. Obtain the user's actual decision, then `decide RUN --instruction "user decision"` and run again. Do not invent approval.
 - Unexpected target changes or out-of-scope writes: preserve them, report the discrepancy, and start a new appropriately scoped run only after inspection. No automatic reset, checkout, or rollback.
 - Session loss: retain handoff artifacts. Future read-only CLI attempts are fresh; use the normal guarded retry only for a recoverable read-only state. Lost or interrupted writer sessions require inspection and reconciliation, never replay. Never use `--last`.

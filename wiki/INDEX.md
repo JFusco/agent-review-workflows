@@ -7,6 +7,7 @@ This wiki is the durable project record for decisions, executed plans, and subst
 - [Wiki mechanics](./MECHANICS.md) — authoring, plan capture, validation, and automation.
 - [Plan ledger](./plans/INDEX.md) — executed-plan archives and historical audit results.
 - [Maintainer workflow](./topics/maintainer-workflow.md) — commit guidance and Graphify code-map boundaries.
+- [Writer startup recovery](./topics/writer-startup-recovery.md) — strict no-write recovery and guarded sandboxed writer launch.
 - [Plan review protocol](./topics/plan-review-protocol.md) — deterministic handoffs and bounded refinement.
 - [Diff review](./topics/diff-review.md) — read-only scoped diff review and check evidence.
 - [Review-suite evaluation](./topics/review-suite-evaluation.md) — comparison of saved review evidence.

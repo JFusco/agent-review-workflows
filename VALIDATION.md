@@ -1,5 +1,44 @@
 # Validation record
 
+## Guarded repair startup recovery (2026-11-04)
+
+Issue [#86](https://github.com/JFusco/agent-review-workflows/issues/86) adds
+`recover-startup` and `step --codex-repair-only`. Twelve focused public-command
+tests use temporary Git projects and controlled children, covering unchanged
+startup-only recovery, original receipts and repair lock, HEAD/index/file drift,
+malformed and ambiguous evidence, active groups, scope denial, no fallback or
+re-prompt, and post-repair checks deferred to sandbox continuation. Initial
+nonzero checks remain repair evidence; passing current checks are still required
+before completion.
+
+A harmless actual writer trial ran from the managed conversation in disposable
+run `0fa9d47e-6a4e-431b-989f-84a1750c8094`, under
+`/private/tmp/review-writer-recovery-no5Rij/canary-runs/`. Its initial review and
+adjudication are explicitly synthetic setup. Call `001-repair` retained the exact
+nested app-server startup failure. Strict recovery restored the same locked
+target without a dispatch or repair pass. An explicitly approved host launcher
+then ran call `002-repair`, requesting Sol 6.1/xhigh with the existing project-only
+workspace-write command sandbox, denied execution-tool network and no prompts.
+Only `value.py` changed. The launcher accepted one repair and stopped at blocked
+recheck without running configured checks or another provider.
+
+Sandbox `retry` ran both existing arithmetic tests successfully. An actual
+Opus 5.5/xhigh recheck independently passed the repair with no new findings;
+local finalization completed the run. The native CLI command events record
+`PermissionError: [Errno 1] Operation not permitted` for an outside-project write
+and a connection to `127.0.0.1:9`; caller readback confirms the probe file is absent.
+`/private/tmp/review-writer-recovery-no5Rij/canary-observation.json` retains these
+events and exact helper hash. Opus's evidence catalog did not expose those probe
+events, so its independent verification establishes the arithmetic fix and tests;
+the caller's native-output readback establishes the probe observations. Requested
+model/effort and sandbox flags are not independent provider attestation.
+
+The canary exercised launch/recovery before additional malformed-path guards
+were added for missing call identities and symlinked recovery receipts; these
+denials are covered by controlled tests. No ASTRAL source, original run, fixture,
+service, credential or account was used. The nested launcher environment itself
+remains unchanged. Existing review artifacts are preserved without migration.
+
 ## Codex guarded launcher recovery (2026-11-04)
 
 Issue [#83](https://github.com/JFusco/agent-review-workflows/issues/83) reproduced
