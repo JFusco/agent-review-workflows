@@ -1,5 +1,5 @@
 ---
-issues: ['https://github.com/JFusco/agent-review-workflows/issues/33']
+issues: ['https://github.com/JFusco/agent-review-workflows/issues/33', 'https://github.com/JFusco/agent-review-workflows/issues/89']
 ---
 # Plan review protocol
 
@@ -75,3 +75,16 @@ per run, with no automatic researcher fallback. Permission-profile and evidence
 contracts are defined once in the [research reference](../../references/research.md).
 Local fixtures and sandbox probes do not establish live model quality or usage;
 the planned Astra high/xhigh and Opus high comparison remains separate.
+
+## Researcher launch recovery
+
+[Issue #89](https://github.com/JFusco/agent-review-workflows/issues/89) adds a
+separate `step --codex-research-only` boundary for the required researcher when
+nested Codex startup fails. The existing read-only review guard still excludes
+research. After sandboxed retry/freshness checks, an explicitly approved launcher
+runs one attempt using the original restricted research profile and frozen model.
+Accepted research enters the ordinary independent review path; failures retain
+receipts without automatic retries or fallback. The
+[recovery procedure](../../references/cli.md#research-startup-recovery-and-guarded-researcher-launch)
+is the authoritative contract. No saved-run migration or global permission change
+is needed. Controlled tests establish the boundary; live execution is separate.

@@ -1,5 +1,27 @@
 # Validation record
 
+## Guarded researcher launch recovery (2026-11-04)
+
+Issue [#89](https://github.com/JFusco/agent-review-workflows/issues/89) adds
+`step --codex-research-only`. Ten focused tests passed using temporary Git
+projects, controlled subprocess failures and synthetic research/review responses.
+They cover preserved startup receipts and normal reviewer continuation, one
+attempt with the frozen researcher and original named permission profile,
+rejection of other modes/stages and malformed contracts, stale source/drafts,
+changed/missing/symlinked permission roots, invalid profiles, active process
+groups, duplicate acceptance, and no correction/fallback on failed attempts.
+
+The existing sandbox-permission probe remains part of the full suite: scratch
+and Brain usage metadata are writable; project, Brain knowledge, canonical
+artifacts, executor and unrelated temporary paths are denied. No new model
+permissions, schema migration or researcher fallback are introduced. The existing
+review-only guard continues to reject research.
+
+These tests establish local contracts, not provider availability or independent
+model-effort/permission attestation. The actual Office review's original startup
+failure and run remain preserved; its authorized continuation with the shipped
+helper is separate live evidence, not a condition disguised as a fixture pass.
+
 ## Guarded repair startup recovery (2026-11-04)
 
 Issue [#86](https://github.com/JFusco/agent-review-workflows/issues/86) adds

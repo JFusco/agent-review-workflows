@@ -2086,6 +2086,21 @@ def guard_codex_read_only(state, external_coordinator=False):
         raise ReviewError('Codex read-only step requires complete current check receipts; run checks in the sandbox.')
 
 
+def guard_codex_research(run, state, external_coordinator=False):
+    require_current_protocol(state)
+    if (external_coordinator or not research_required(state) or state['status'] != 'ready' or
+            state['stage'] != 'research' or state.get('research') is not None or
+            agent_provider(state) != 'codex'):
+        raise ReviewError('Codex research-only step requires a ready schema-3 plan research stage; '
+                          'accepted research and all other stages are excluded.')
+    access = state.get('research_access')
+    if (not isinstance(access, dict) or
+            access != read_json(run / 'original.json').get('research_access') or
+            access.get('scratch') != str(run / 'research-scratch')):
+        raise ReviewError('Research launch requires the original isolated permission roots.')
+    research_writable_roots(state)
+
+
 def guard_codex_repair(run, state, external_coordinator=False):
     if (external_coordinator or not local_finalization(state) or state['status'] != 'ready' or
             state['stage'] != 'repair' or type(state['round']) is not int or state['round'] != 0 or agent_provider(state) != 'codex' or
@@ -2152,13 +2167,15 @@ def recover_startup(run, state):
 
 
 def advance(run, state, external_coordinator=False, reviewer_only=False, codex_read_only=False,
-            codex_repair_only=False):
+            codex_repair_only=False, codex_research_only=False):
     require_current_protocol(state)
     assert_fresh(state)
     if codex_read_only:
         guard_codex_read_only(state, external_coordinator)
     if codex_repair_only:
         guard_codex_repair(run, state, external_coordinator)
+    if codex_research_only:
+        guard_codex_research(run, state, external_coordinator)
     if state['status'] != 'ready':
         raise ReviewError(f'Run is {state["status"]}; inspect status before resuming.')
     if local_finalization(state) and state['stage'] == 'finalize':
@@ -2210,9 +2227,11 @@ def advance(run, state, external_coordinator=False, reviewer_only=False, codex_r
         save(run, state)
         revision_before = state['handoff_revision']
         try:
-            if codex_read_only or codex_repair_only:
+            if codex_read_only or codex_repair_only or codex_research_only:
+                boundary = ('codex-research-only' if codex_research_only else
+                            'codex-repair-only' if codex_repair_only else 'codex-read-only')
                 write_new(call_dir / 'launch-boundary.json', {
-                    'boundary': 'codex-repair-only' if codex_repair_only else 'codex-read-only', 'stage': state['stage'],
+                    'boundary': boundary, 'stage': state['stage'],
                     'agent': agent_candidate(state, role(state)), 'single_attempt': True})
             write_new(call_dir / 'provider-schema.json', provider_schema(state))
             write_new(call_dir / 'agent.json', agent_candidate(state, role(state)))
@@ -2243,7 +2262,7 @@ def advance(run, state, external_coordinator=False, reviewer_only=False, codex_r
                 state['error'] = str(exc)
             save(run, state)
             render(run, state)
-            if state['stage'] != 'repair' and not codex_read_only:
+            if state['stage'] != 'repair' and not (codex_read_only or codex_research_only):
                 if isinstance(exc, ContractResponseError) and request_correction(run, state, call_dir, str(exc)):
                     continue
                 if (isinstance(exc, (ProviderCallError, ContractResponseError)) and
@@ -3110,6 +3129,8 @@ def build_parser():
                            help='Dispatch exactly one Claude reviewer stage; reject Codex stages and missing checks.')
             boundary.add_argument('--codex-read-only', action='store_true',
                            help='Dispatch one selected Codex read-only attempt; no checks, fallback, writer, or local tail.')
+            boundary.add_argument('--codex-research-only', action='store_true',
+                           help='Dispatch one sandboxed plan researcher attempt; no retries, fallback, or later stages.')
             boundary.add_argument('--codex-repair-only', action='store_true',
                            help='Dispatch one locked sandboxed writer; defer checks and recheck to sandbox continuation.')
         if action == 'retry':
@@ -3206,6 +3227,8 @@ def main():
                     guard_codex_read_only(state, args.external_coordinator)
                 if args.action == 'step' and args.codex_repair_only:
                     guard_codex_repair(run, state, args.external_coordinator)
+                if args.action == 'step' and args.codex_research_only:
+                    guard_codex_research(run, state, args.external_coordinator)
                 if args.action == 'step' and args.reviewer_only:
                     if state['status'] != 'ready' or role(state) != 'opus' or agent_provider(state) != 'claude':
                         raise ReviewError('Reviewer-only step requires a ready Claude reviewer stage.')
@@ -3225,9 +3248,11 @@ def main():
                     advance(run, state, args.external_coordinator,
                             reviewer_only=args.action == 'step' and args.reviewer_only,
                             codex_read_only=args.action == 'step' and args.codex_read_only,
-                            codex_repair_only=args.action == 'step' and args.codex_repair_only)
+                            codex_repair_only=args.action == 'step' and args.codex_repair_only,
+                            codex_research_only=args.action == 'step' and args.codex_research_only)
                     if args.action == 'step':
-                        if not (args.reviewer_only or args.codex_read_only or args.codex_repair_only):
+                        if not (args.reviewer_only or args.codex_read_only or args.codex_repair_only or
+                                args.codex_research_only):
                             finish_local(run, state)
                         break
             render(run, state)
