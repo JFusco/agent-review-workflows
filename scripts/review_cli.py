@@ -1256,10 +1256,25 @@ def execute_process(argv, cwd, input_text, call_dir, timeout, require_success=Tr
     if group_alive(proc.pid):
         raise ReviewError(f'Process group {proc.pid} still has active children; inspect started.json before recovery.')
     if proc.returncode and require_success:
+        if codex_startup_failure(call_dir):
+            stage = read_json(call_dir / 'input-transport.json')['identity']['stage']
+            raise ReviewError(f'Codex could not start in the current execution context at {stage}; '
+                              f'no stage response accepted. See {call_dir / "stderr.log"}. '
+                              'Inspect the documented Codex launch recovery; no automatic retry or fallback.')
         if capacity_failure(call_dir):
             raise ProviderCallError(f'Provider capacity failure; see {call_dir}.')
         raise ReviewError(f'Agent exited {proc.returncode}; see {call_dir / "stderr.log"} and stdout.log.')
     return proc.returncode
+
+
+def codex_startup_failure(call_dir):
+    agent_path = call_dir / 'agent.json'
+    if not agent_path.exists() or read_json(agent_path).get('provider') != 'codex':
+        return False
+    lines = (call_dir / 'stderr.log').read_text().splitlines()
+    return (not (call_dir / 'stdout.log').stat().st_size and bool(lines) and
+            lines[-1] == 'Error: failed to initialize in-process app-server client: '
+                         'Operation not permitted (os error 1)')
 
 
 def capacity_failure(call_dir, message=None):
@@ -2054,9 +2069,23 @@ def project_lock(project):
             # Closing our descriptor leaves the inherited child lock intact after a crash.
 
 
-def advance(run, state, external_coordinator=False, reviewer_only=False):
+def guard_codex_read_only(state, external_coordinator=False):
+    if (external_coordinator or state['status'] != 'ready' or
+            state['stage'] not in ('review', 'adjudicate', 'recheck') or
+            agent_provider(state) != 'codex'):
+        raise ReviewError('Codex read-only step requires a ready Codex review, adjudicate, or recheck stage; '
+                          'research, repair, finalization and external coordination are excluded.')
+    if state['mode'] in ('implementation', 'diff') and (
+            not isinstance(state.get('checks'), list) or
+            not isinstance(state.get('check_commands'), list) or not diff_checks_current(state)):
+        raise ReviewError('Codex read-only step requires complete current check receipts; run checks in the sandbox.')
+
+
+def advance(run, state, external_coordinator=False, reviewer_only=False, codex_read_only=False):
     require_current_protocol(state)
     assert_fresh(state)
+    if codex_read_only:
+        guard_codex_read_only(state, external_coordinator)
     if state['status'] != 'ready':
         raise ReviewError(f'Run is {state["status"]}; inspect status before resuming.')
     if local_finalization(state) and state['stage'] == 'finalize':
@@ -2108,6 +2137,10 @@ def advance(run, state, external_coordinator=False, reviewer_only=False):
         save(run, state)
         revision_before = state['handoff_revision']
         try:
+            if codex_read_only:
+                write_new(call_dir / 'launch-boundary.json', {
+                    'boundary': 'codex-read-only', 'stage': state['stage'],
+                    'agent': agent_candidate(state, role(state)), 'single_attempt': True})
             write_new(call_dir / 'provider-schema.json', provider_schema(state))
             write_new(call_dir / 'agent.json', agent_candidate(state, role(state)))
             argv = cli_argv(state, call_dir)
@@ -2137,7 +2170,7 @@ def advance(run, state, external_coordinator=False, reviewer_only=False):
                 state['error'] = str(exc)
             save(run, state)
             render(run, state)
-            if state['stage'] != 'repair':
+            if state['stage'] != 'repair' and not codex_read_only:
                 if isinstance(exc, ContractResponseError) and request_correction(run, state, call_dir, str(exc)):
                     continue
                 if (isinstance(exc, (ProviderCallError, ContractResponseError)) and
@@ -2999,8 +3032,11 @@ def build_parser():
                            action='store_true',
                            help='Yield coordinator stages to a conversation matching the frozen model and effort.')
         if action == 'step':
-            p.add_argument('--reviewer-only', action='store_true',
+            boundary = p.add_mutually_exclusive_group()
+            boundary.add_argument('--reviewer-only', action='store_true',
                            help='Dispatch exactly one Claude reviewer stage; reject Codex stages and missing checks.')
+            boundary.add_argument('--codex-read-only', action='store_true',
+                           help='Dispatch one selected Codex read-only attempt; no checks, fallback, writer, or local tail.')
         if action == 'retry':
             p.add_argument('--timeout', type=int,
                            help='Recorded new per-agent/check seconds for this run, bounded to 1–14400.')
@@ -3089,6 +3125,8 @@ def main():
                 accept(run, state, data, config)
                 finish_local(run, state)
             else:
+                if args.action == 'step' and args.codex_read_only:
+                    guard_codex_read_only(state, args.external_coordinator)
                 if args.action == 'step' and args.reviewer_only:
                     if state['status'] != 'ready' or role(state) != 'opus' or agent_provider(state) != 'claude':
                         raise ReviewError('Reviewer-only step requires a ready Claude reviewer stage.')
@@ -3106,9 +3144,10 @@ def main():
                         model, effort = agent_settings(state, role(state))
                         print(f'{state["stage"]}: {model} ({effort})', flush=True)
                     advance(run, state, args.external_coordinator,
-                            reviewer_only=args.action == 'step' and args.reviewer_only)
+                            reviewer_only=args.action == 'step' and args.reviewer_only,
+                            codex_read_only=args.action == 'step' and args.codex_read_only)
                     if args.action == 'step':
-                        if not args.reviewer_only:
+                        if not (args.reviewer_only or args.codex_read_only):
                             finish_local(run, state)
                         break
             render(run, state)

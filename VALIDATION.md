@@ -1,5 +1,43 @@
 # Validation record
 
+## Codex guarded launcher recovery (2026-11-04)
+
+Issue [#83](https://github.com/JFusco/agent-review-workflows/issues/83) reproduced
+the exact in-process app-server `Operation not permitted` startup failure in the
+managed invoking sandbox with app-bundled `codex-cli 0.163.0-alpha.11`. The denied
+operation remains unknown. The nested context itself is not repaired.
+
+From that same managed conversation, an explicitly approved tool invocation of
+`step RUN --codex-read-only` completed one Astra/max adjudication using the same
+binary and frozen target. The outer CLI launcher ran with approved host access;
+model execution remained sandboxed. This establishes the explicit recovery route,
+not general nested-launch compatibility or a host-only smoke test.
+
+Disposable run: `3546ab44-7bcd-4dd6-b6f0-2c92619ad574`, under
+`$TMPDIR/codex-launch-83-31yzwou3/runs/`. Call `001-adjudicate` is the retained
+failed nested attempt; `002-adjudicate` contains the boundary receipt, exact argv,
+tool output and accepted response. Session `01a1a687-9af2-78f3-a80d-a7e40e629e74`
+records `gpt-6-astra`, effort `max`, sandbox `read-only`, approval policy `never`.
+The invocation also disables agents and execution-tool networking. Actual model
+commands read `value.py` and received permission errors creating a project file,
+creating `/tmp/codex-launch-83-denied.txt`, and connecting to `127.0.0.1:9`.
+Neither probe file exists. Source, prior check receipts and synthetic reviewer
+artifact hashes remained unchanged. No fallback or writer ran.
+
+The preceding reviewer artifact was explicitly synthetic fixture setup, and its
+check was `/usr/bin/true`; this canary proves launcher recovery and tool boundaries,
+not a two-provider code review or production correctness. ASTRAL was not resumed.
+Eleven focused public-command regression tests passed using controlled local
+children, covering exact diagnostics, immutable receipts, recovery, stale targets,
+active process groups, malformed checks and rejected stages, one attempt, and
+no correction/fallback/local tail. Those tests are not provider evidence.
+The independent Opus review identified that the original forbidden-stage test
+used invalid diff stages and stopped at protocol validation. The corrected test
+uses valid implementation repair/finalization and plan research states, asserts
+the launch guard's own rejection, and rejects mutations that allow each stage.
+
+## Historical complete-cycle validation (2026-09-28)
+
 Executed 2026-09-28 using disposable, credential-free Python fixture projects. These results establish local workflow behavior and live provider CLI execution, not production verification.
 
 ## Default-profile configuration

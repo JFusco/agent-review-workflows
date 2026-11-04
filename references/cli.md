@@ -129,6 +129,53 @@ When sandboxed `claude auth status` reports logged out but the same command in a
 
 Never run an unrestricted `run` or ordinary `step` with host access as an auth workaround. If host authentication is also absent or expired, the user must complete one interactive host CLI login before a reviewer stage can proceed. Do not copy Keychain contents, OAuth tokens, API keys, or raw auth output into environment files, packets, or run artifacts. A host permission decision remains subject to the invoking tool's policy.
 
+### Codex launch recovery
+
+Codex can fail before model execution inside an invoking managed sandbox with
+`failed to initialize in-process app-server client: Operation not permitted (os error 1)`.
+The helper recognizes this exact terminal error only for a Codex call with empty
+stdout, identifies the stage and retained stderr receipt, and blocks without
+fallback. It does not infer which operation was denied. Earlier SQLite warnings
+or a successful socketpair probe do not establish the cause. Unknown failures
+retain their generic diagnostic. No automatic canary or paid preflight is added.
+
+The [Codex CLI sandbox setting](https://learn.chatgpt.com/docs/cli/reference)
+governs model-generated commands; the CLI launcher also needs a compatible outer
+execution context. When the invoking environment explicitly approves host
+launcher access, use this bounded procedure:
+
+1. Inspect `status RUN`, the failed call, and its `started.json` / `process.json`.
+   Confirm the owned process group has exited. Preserve old calls and copied
+   runtimes; use the current maintained helper against the supported saved run.
+2. For a blocked read-only stage, run `PYTHON HELPER retry RUN` in the sandbox.
+   This checks freshness and restores readiness without dispatch. For recheck,
+   retry can execute checks and therefore must stay sandboxed.
+3. Confirm a ready selected Codex `review`, `adjudicate`, or `recheck` stage.
+   Implementation and diff runs need complete current check receipts. Prepare
+   missing checks in the sandbox using normal continuation or `rerun-checks`.
+4. Invoke only `PYTHON HELPER step RUN --codex-read-only` with explicitly approved
+   launcher access. Under the project lock, the guard rejects non-ready states,
+   Claude, research, repair, finalization, external coordination, stale targets,
+   and missing/malformed/stale check receipts before dispatch. It cannot run checks.
+5. Inspect status and the new call's `launch-boundary.json`, invocation and output.
+   The command makes one attempt with the currently selected frozen model/effort.
+   It never selects fallback, re-prompts, replays a writer, advances a second
+   stage, or performs the local finalization tail. Any eligible local tail requires
+   separate sandbox continuation. A reported diff run is terminal.
+
+The model still receives `--ignore-user-config`, read-only execution, no writable
+roots, no approval prompts, disabled agents, and denied execution-tool networking.
+Authentication remains with the existing CLI; do not inspect or copy credentials.
+`launch-boundary.json` records the requested boundary, not observed provider
+permissions. See the [validation record](https://github.com/JFusco/agent-review-workflows/blob/main/VALIDATION.md)
+for actual runtime evidence.
+This path does not make nested launcher startup work or authorize unrestricted
+host `run` / `step`, research, writers, or a global sandbox change. If host access
+is denied, stop and report that boundary. Do not retry unchanged environments,
+downgrade the CLI, substitute models, or weaken model permissions.
+
+### External coordinator
+
 If this conversation verifiably matches the frozen coordinator model and effort, use `run RUN --external-coordinator`. At `awaiting_coordinator`, read `external-request.json`, produce the requested response JSON in a separate file outside the target project (for example, within the run directory), then submit with the exact requested values:
 
 ```text
@@ -213,7 +260,7 @@ need for an authorized focused follow-up; it never starts another cycle itself.
 
 Versions must be actual integers. Missing/unknown markers or stages, schema-3 diff runs, and retired version-1 contracts cannot resume. Existing original snapshots may omit the state schema field; they are never rewritten. State schema is exposed in new originals, packets, status, and handoffs. Canonical review responses retain their existing schema; research has a separate contract.
 
-Local finalization validates the complete frozen profile before creating an artifact or saving state, then reuses canonical acceptance, exact finding preservation, fresh evidence, passing checks, and scope guards under the project lock. It records `local-finalizer` / `deterministic`, without authentication, a session, CLI launch, or external request. `run`, ordinary `step`, accepted external adjudication `submit`, and passing check-only recovery complete the eligible tail. Local finalization cannot accept an external submission. `step --reviewer-only` dispatches one reviewer and leaves the tail ready.
+Local finalization validates the complete frozen profile before creating an artifact or saving state, then reuses canonical acceptance, exact finding preservation, fresh evidence, passing checks, and scope guards under the project lock. It records `local-finalizer` / `deterministic`, without authentication, a session, CLI launch, or external request. `run`, ordinary `step`, accepted external adjudication `submit`, and passing check-only recovery complete the eligible tail. Local finalization cannot accept an external submission. Both guarded steps (`--reviewer-only` and `--codex-read-only`) leave the tail ready for sandbox continuation.
 
 Completion saves its immutable artifact and complete state before rendering. A failure before state save may leave an orphan artifact; ordinary continuation records the orphan and repeats only local completion. A final derived-view failure after durable acceptance leaves the accepted status intact. Ordinary `run`/`step` regenerate completed version-3 views from the accepted artifact and ledger even if the checkout changes or disappears, without a new revision. Complete runs reject `retry`, `rerun-checks`, `reconcile`, `submit`, and `decide`.
 
@@ -234,7 +281,9 @@ Call `step` only when `status` reports `ready` and the invoking conversation per
 
 For a Claude stage with a sandbox-hidden login, follow [Claude login visibility in a sandbox](#claude-login-visibility-in-a-sandbox). A sandboxed `step` may stop after recording initial checks but before dispatch; a subsequent approved host `step RUN --reviewer-only` is the single dispatched stage. Stop after that one reviewer dispatch. The reviewer-only guard fails before provider execution if the stage changed or initial implementation checks are missing.
 
-One step may exhaust its frozen fallback candidates for that same read-only stage. Stop after the step and report the attempted stage, resulting status, blocker if any, and `handoff.md`. A ready next provider stage requires another invocation. An ordinary `step` completes an eligible version-3 local tail; a reviewer-only step leaves it ready for sandbox continuation. A step starting at local finalization dispatches no provider. Non-ready states, including external-coordinator waits, use [Recovery](#recovery) or the existing [external submission procedure](#run-and-interact); the handoff skill performs neither automatically. If output is lost, read `status` without replaying `step`. The existing `run` command and full review skills continue to support complete cycles.
+For a Codex startup failure, follow [Codex launch recovery](#codex-launch-recovery); an approved host `step RUN --codex-read-only` is one selected attempt and leaves any local tail ready.
+
+An ordinary step may exhaust its frozen fallback candidates for that same read-only stage. Stop after the step and report the attempted stage, resulting status, blocker if any, and `handoff.md`. A ready next provider stage requires another invocation. An ordinary `step` completes an eligible version-3 local tail; either guarded host step leaves it ready for sandbox continuation. A step starting at local finalization dispatches no provider. Non-ready states, including external-coordinator waits, use [Recovery](#recovery) or the existing [external submission procedure](#run-and-interact); the handoff skill performs neither automatically. If output is lost, read `status` without replaying `step`. The existing `run` command and full review skills continue to support complete cycles.
 
 ## Recovery
 

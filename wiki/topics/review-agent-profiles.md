@@ -73,7 +73,20 @@ uses an active login from the same configuration directory. The helper now
 checks authentication with the run's saved Claude executable before a reviewer
 call. An unavailable login leaves the stage ready without a provider call or
 new handoff record. A guarded reviewer-only step permits approved host access
-for that single Claude stage; configured checks and Codex stages continue in
-the sandbox. The [CLI procedure](../../references/cli.md#claude-login-visibility-in-a-sandbox)
+for that single Claude stage; configured checks continue in the sandbox.
+Codex normally continues there, with an explicit guarded recovery exception below.
+The [CLI procedure](../../references/cli.md#claude-login-visibility-in-a-sandbox)
 owns the execution sequence. Authentication is never copied into run artifacts,
 and the frozen profile and reviewer tool limits are unchanged.
+
+## Codex launcher context
+
+[Issue #83](https://github.com/JFusco/agent-review-workflows/issues/83) adds
+`step --codex-read-only` for an explicitly approved host launcher when nested
+Codex startup fails. It dispatches one selected read-only attempt, requires
+current checks, and rejects research, repair, finalization and external
+coordination. It performs no checks, fallback, correction or completion tail.
+Model tools retain their read-only sandbox and execution-network denial.
+The [CLI recovery procedure](../../references/cli.md#codex-launch-recovery) owns
+the sequence; the [journal](../journal/2026-11-04-codex-launch-boundary.md)
+distinguishes the reproduced failure, actual guarded canary and fixture coverage.
