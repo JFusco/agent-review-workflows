@@ -1,7 +1,8 @@
 ---
 topics: [plan-review-protocol]
 plans: [2026-11-02-add-required-research-to-plan-review-1f70b32c51.md]
-issues: ['https://github.com/JFusco/agent-review-workflows/issues/80']
+issues: ['https://github.com/jfusco/agent-review-workflows/issues/80']
+issue: 'https://github.com/jfusco/agent-review-workflows/issues/80'
 ---
 # Required research before plan review
 
