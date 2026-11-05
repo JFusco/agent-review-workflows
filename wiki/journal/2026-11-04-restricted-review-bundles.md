@@ -1,6 +1,7 @@
 ---
 topics: [plan-review-protocol]
-issues: ['https://github.com/JFusco/agent-review-workflows/issues/92']
+issues: ['https://github.com/jfusco/agent-review-workflows/issues/92']
+issue: 'https://github.com/jfusco/agent-review-workflows/issues/92'
 ---
 # Make complete bundles readable under restricted Claude tools
 
