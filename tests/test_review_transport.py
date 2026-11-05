@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import sys
 from pathlib import Path
 import tempfile
 import unittest
@@ -110,6 +111,57 @@ class TransportTests(unittest.TestCase):
             with self.assertRaises(r.ReviewError):
                 r.execute_process(['fixture'], self.root, 'x' * (r.MAX_BYTES + 1), new, 1)
             launch.assert_not_called()
+
+    def test_working_directory_routes_by_provider_stage_and_utf8_threshold(self):
+        project, run, call = self.root/'project', self.root/'run', self.root/'call'
+        state = {'stage': 'review', 'project': str(project)}
+        with patch.object(r, 'agent_provider', return_value='claude'):
+            self.assertEqual(r.provider_cwd(state, run, call, 'x' * r.INLINE_BYTES), project)
+            self.assertEqual(r.provider_cwd(state, run, call, 'x' * (r.INLINE_BYTES + 1)), call)
+            self.assertEqual(r.provider_cwd(state, run, call, '🙂' * 225001), call)
+            state['stage'] = 'recheck'
+            self.assertEqual(r.provider_cwd(state, run, call, 'x' * (r.INLINE_BYTES + 1)), call)
+        with patch.object(r, 'agent_provider', return_value='codex'):
+            for stage in ['review', 'adjudicate', 'repair', 'recheck']:
+                state['stage'] = stage
+                self.assertEqual(r.provider_cwd(state, run, call, 'x' * (r.INLINE_BYTES + 1)), run/'executor')
+            state.update(stage='research', research_access={'scratch': str(self.root/'scratch')})
+            self.assertEqual(r.provider_cwd(state, run, call, 'x' * (r.INLINE_BYTES + 1)), self.root/'scratch')
+
+    def test_restricted_child_reads_all_bundle_parts_from_owned_call_directory(self):
+        project, run = self.root/'project', self.root/'run'
+        project.mkdir()
+        run.mkdir()
+        text = self.content(r.INLINE_BYTES + 1)
+        script = """import json, pathlib, sys
+wire = sys.stdin.read()
+index = pathlib.Path(wire.split(' at ', 1)[1].split('. Read every', 1)[0]).resolve()
+root = pathlib.Path.cwd().resolve()
+assert index.is_relative_to(root), 'restricted read outside cwd'
+data = json.loads(index.read_text())
+for entry in data['sections']:
+    for part in entry['parts']:
+        path = (index.parent.parent / part['path']).resolve()
+        assert path.is_relative_to(root), 'restricted part outside cwd'
+        path.read_text()
+print('All indexed parts read inside restricted root')
+"""
+        state = {'stage': 'review', 'project': str(project)}
+        for name, old_cwd in [('before', True), ('after', False)]:
+            call = run/name
+            call.mkdir()
+            r.write_new(call/'agent.json', {'provider': 'claude', 'model': 'fixture', 'effort': 'high'})
+            with patch.object(r, 'agent_provider', return_value='claude'):
+                cwd = project if old_cwd else r.provider_cwd(state, run, call, text)
+            code = r.execute_process([sys.executable, '-c', script], cwd, text, call, 10, require_success=False)
+            self.assertEqual(code == 0, not old_cwd)
+            self.assertEqual(r.read_json(call/'invocation.json')['cwd'], str(cwd))
+            self.assertEqual((call/'prompt.txt').read_text(), text)
+            r.validate_transport(text, call)
+            if old_cwd:
+                self.assertIn('restricted read outside cwd', (call/'stderr.log').read_text())
+            else:
+                self.assertIn('All indexed parts read', (call/'stdout.log').read_text())
 
     def test_structured_context_error_and_real_denials_remain_distinct(self):
         envelope = {'is_error': True, 'terminal_reason': 'prompt_too_long',

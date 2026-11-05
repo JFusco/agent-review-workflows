@@ -1,5 +1,18 @@
 # Validation record
 
+## Restricted Claude bundle access (2026-11-04)
+
+Issue [#92](https://github.com/JFusco/agent-review-workflows/issues/92)
+corrects the working directory for Claude file-bundle calls. A controlled child
+reproduces denial of the external bundle under the old project directory and
+reads every indexed part under the owned call directory. Routing tests cover
+the UTF-8 byte threshold, inline calls, recheck, Codex stages, and research.
+Canonical evidence validation and restricted CLI flags remain unchanged.
+
+This is deterministic transport evidence, not proof of model reading or review
+quality. The Office call that could not read evidence remains preserved; its
+continuation with the installed helper is separate live evidence.
+
 ## Guarded researcher launch recovery (2026-11-04)
 
 Issue [#89](https://github.com/JFusco/agent-review-workflows/issues/89) adds
