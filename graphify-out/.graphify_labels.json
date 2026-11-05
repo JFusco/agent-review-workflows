@@ -1,22 +1,21 @@
 {
-  "0": "review_cli.py",
+  "0": "accept",
   "1": "archive-plan.cjs",
   "2": "audit-plan-candidates.cjs",
   "3": "routing.cjs",
   "4": "viewer.js",
-  "5": "atomicWrite",
+  "5": "review_cli.py",
   "6": "on-merge-sync.cjs",
   "7": "delivery_evidence",
   "8": "plans.cjs",
-  "9": "navigate.cjs",
+  "9": "ReviewError",
   "10": "reconcile-merges.cjs",
-  "11": "wiki-graph.cjs",
-  "12": "serve-graph.cjs",
+  "11": "digest",
+  "12": "advance",
   "13": "validate_pr_body.cjs",
   "14": "python.cjs",
   "15": "routing.js",
   "16": "create_trial.py",
   "17": "install_skills.py",
-  "18": "repoRoot",
-  "19": "common.cjs"
+  "18": "rerun_checks"
 }

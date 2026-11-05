@@ -1211,6 +1211,15 @@ def validate_transport(content, call_dir):
         raise ReviewError('Cannot read complete review evidence; no agent dispatched.') from exc
 
 
+def provider_cwd(state, run, call_dir, content):
+    if state['stage'] == 'research':
+        return Path(state['research_access']['scratch'])
+    if agent_provider(state) == 'claude':
+        # Restricted file tools need the complete validated bundle below cwd.
+        return call_dir if len(content.encode()) > INLINE_BYTES else Path(state['project'])
+    return run / 'executor'
+
+
 def execute_process(argv, cwd, input_text, call_dir, timeout, require_success=True):
     if ACTIVE_LOCK:
         assert_idle_group(ACTIVE_LOCK)
@@ -2236,9 +2245,8 @@ def advance(run, state, external_coordinator=False, reviewer_only=False, codex_r
             write_new(call_dir / 'provider-schema.json', provider_schema(state))
             write_new(call_dir / 'agent.json', agent_candidate(state, role(state)))
             argv = cli_argv(state, call_dir)
-            cwd = (Path(state['research_access']['scratch']) if state['stage'] == 'research' else
-                   Path(state['project']) if agent_provider(state) == 'claude' else run / 'executor')
             content = prompt(state) + '\nProject source is at: ' + state['project'] + '\n'
+            cwd = provider_cwd(state, run, call_dir, content)
             execute_process(argv, cwd, content, call_dir, state['timeout'])
             try:
                 data, session, config = extract_response(state, call_dir)

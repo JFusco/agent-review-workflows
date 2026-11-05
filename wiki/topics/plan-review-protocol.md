@@ -88,3 +88,12 @@ receipts without automatic retries or fallback. The
 [recovery procedure](../../references/cli.md#research-startup-recovery-and-guarded-researcher-launch)
 is the authoritative contract. No saved-run migration or global permission change
 is needed. Controlled tests establish the boundary; live execution is separate.
+
+## Restricted bundle access
+
+[Issue #92](https://github.com/JFusco/agent-review-workflows/issues/92) runs
+Claude file-bundle calls from their owned call directory. The restricted file
+tools can read all frozen evidence without gaining access to the live project
+or broader temporary files. Inline calls, Codex execution, model profiles, and
+evidence bytes retain their existing behavior. Controlled-child tests reproduce
+the earlier denial and exercise complete indexed reads; live review is separate.

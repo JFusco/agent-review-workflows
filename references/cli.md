@@ -292,6 +292,12 @@ Before launch, the helper regenerates the expected bundle from the canonical
 input and checks its exact bytes, index, hashes, identity and short input. Missing,
 changed, symlinked or unreadable evidence blocks dispatch. `input-transport.json`
 records bytes and characters separately; `stdin.txt` retains the actual input.
+Claude file-bundle calls start in their owned per-call directory so restricted
+file tools can read the index and every part below that root. They review frozen
+sources in the complete bundle. Inline Claude calls retain the project directory;
+Codex and research working directories are unchanged. Restricted safe mode and
+read/search-only tools remain enabled.
+
 Reviewers retain read-only access and the writer retains its locked scope. The
 output schema, target fingerprint and response checks do not change. File access
 must work under the existing permissions; it is never a reason to broaden them.
