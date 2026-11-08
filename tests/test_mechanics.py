@@ -352,6 +352,110 @@ class MechanicsTests(MechanicsFixture, unittest.TestCase):
         self.assertEqual(self.state['status'], 'unresolved')
         self.assertEqual(self.state['ledger'][-1]['stage'], 'rerun-checks')
 
+    def check_blocked_recheck(self):
+        marker = self.root/'check-ready'
+        self.state['check_commands'] = [[sys.executable, '-c',
+            f'import pathlib,sys; sys.exit(0 if pathlib.Path({str(marker)!r}).exists() else 1)']]
+        self.to_repair()
+        source = self.project/'calculator.py'
+        source.write_text(source.read_text().replace('(len(values) + 1)', 'len(values)'))
+        self.accept(self.repair_response())
+        checked = self.response()
+        checked['findings'][0].update(verification_status='BLOCKED',
+            verification_evidence=['SOURCE:calculator.py', 'CHECK-1-1'],
+            rationale='Source repair is correct; required check failed transiently.')
+        self.accept(checked)
+        self.assertEqual((self.state['stage'], self.state['status']), ('recheck', 'unresolved'))
+        return marker
+
+    def test_check_blocked_recheck_recovers_without_replaying_repair(self):
+        marker = self.check_blocked_recheck()
+        findings = copy.deepcopy(self.state['findings'])
+        frozen = {k: copy.deepcopy(self.state[k]) for k in
+                  ('round', 'agent_profile', 'check_commands', 'scope', 'target_fingerprint')}
+        receipts = {p: p.read_bytes() for p in (self.run/'checks').rglob('*') if p.is_file()}
+        stale = self.response()
+        # Another failed rerun must not reopen anything.
+        self.cli('rerun-checks')
+        self.assertEqual(r.read_json(self.run/'state.json')['status'], 'unresolved')
+        marker.write_text('ready')
+        with patch.object(r, 'execute_process', wraps=r.execute_process) as execute:
+            self.cli('rerun-checks')
+        self.assertFalse(any('/calls/' in str(c.args[3]) for c in execute.call_args_list))
+        self.state = r.read_json(self.run/'state.json')
+        self.assertEqual((self.state['stage'], self.state['status']), ('recheck', 'ready'))
+        self.assertIsNone(self.state['error'])
+        self.assertEqual(self.state['findings'], findings)
+        self.assertEqual({k: self.state[k] for k in frozen}, frozen)
+        for p, content in receipts.items():
+            self.assertEqual(p.read_bytes(), content)
+        with self.assertRaises(r.ReviewError):
+            r.validate_response(self.state, stale)
+        # Repeating recovery while ready does not dispatch or duplicate a repair.
+        self.cli('rerun-checks')
+        a, b = self.fake_dispatch('repair')
+        with a, b, patch.object(r, 'assert_claude_auth'):
+            self.cli('run')
+        self.state = r.read_json(self.run/'state.json')
+        self.assertEqual(self.state['status'], 'complete')
+        self.assertEqual(self.state['round'], 1)
+        self.assertEqual([e['stage'] for e in self.state['ledger']].count('repair'), 1)
+        self.assertEqual(self.state['ledger'][-2]['stage'], 'recheck')
+
+    def test_failed_checks_pause_before_reviewer_dispatch(self):
+        marker = self.root/'check-ready'
+        self.state['check_commands'] = [[sys.executable, '-c',
+            f'import pathlib,sys; sys.exit(0 if pathlib.Path({str(marker)!r}).exists() else 1)']]
+        self.to_repair()
+        source = self.project/'calculator.py'
+        source.write_text(source.read_text().replace('(len(values) + 1)', 'len(values)'))
+        self.accept(self.repair_response())
+        with patch.object(r, 'execute_process') as execute, patch.object(r, 'assert_claude_auth') as auth:
+            self.cli('run')
+        execute.assert_not_called()
+        auth.assert_not_called()
+        self.state = r.read_json(self.run/'state.json')
+        self.assertEqual((self.state['stage'], self.state['status']), ('recheck', 'blocked'))
+        self.cli('rerun-checks')
+        self.assertEqual(r.read_json(self.run/'state.json')['status'], 'blocked')
+        marker.write_text('ready')
+        self.cli('rerun-checks')
+        self.state = r.read_json(self.run/'state.json')
+        self.assertEqual((self.state['stage'], self.state['status']), ('recheck', 'ready'))
+        a, b = self.fake_dispatch('repair')
+        with a, b, patch.object(r, 'assert_claude_auth'):
+            self.cli('run')
+        self.state = r.read_json(self.run/'state.json')
+        self.assertEqual(self.state['status'], 'complete')
+        self.assertEqual([e['stage'] for e in self.state['ledger']].count('recheck'), 1)
+        self.assertEqual(self.state['round'], 1)
+
+    def test_check_recovery_does_not_reopen_substantive_or_unrelated_gaps(self):
+        marker = self.check_blocked_recheck()
+        baseline = copy.deepcopy(self.state)
+        marker.write_text('ready')
+        for gap in ('FAILED', 'UNVERIFIED', 'OPEN', 'PENDING_USER', 'legacy', 'passing', 'missing', 'stale'):
+            with self.subTest(gap=gap):
+                self.state = copy.deepcopy(baseline)
+                if gap in ('FAILED', 'UNVERIFIED'):
+                    self.state['findings'][0]['verification_status'] = gap
+                elif gap in ('OPEN', 'PENDING_USER'):
+                    extra = fixtures.finding()
+                    extra.update(id='FIND-002', disposition=gap)
+                    self.state['findings'].append(extra)
+                elif gap == 'legacy':
+                    self.state['schema_version'] = 2
+                elif gap == 'passing':
+                    self.state['checks'][0]['exit_code'] = 0
+                elif gap == 'missing':
+                    self.state['checks'] = []
+                else:
+                    self.state['checks'][0]['target_fingerprint'] = '0'*64
+                findings = copy.deepcopy(self.state['findings'])
+                r.rerun_checks(self.run, self.state)
+                self.assertEqual(self.state['status'], 'unresolved')
+                self.assertEqual(self.state['findings'], findings)
+
 
 class CollectionTests(MechanicsFixture, unittest.TestCase):
     # Reuse setup and fixture utilities without rerunning the completion suite.
