@@ -24,7 +24,7 @@ class PlanProtocolTests(unittest.TestCase):
         self.state.update(schema_version=2, stage='review')
         self.state['agent_profile'].pop('researcher')
         self.state['agent_fallbacks'].pop('researcher')
-        for key in ('research', 'research_contract_version', 'research_access'):
+        for key in ('research', 'research_contract_version', 'research_access', 'agent_providers'):
             self.state.pop(key)
         self.state['target_fingerprint'] = r.digest(r.target(self.state))
         r.save(self.run, self.state)

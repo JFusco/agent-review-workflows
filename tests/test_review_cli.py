@@ -232,7 +232,8 @@ class ReviewTests(unittest.TestCase):
         self.assertEqual(self.state['fallback_history'], [])
         self.state.update(stage='review', status='ready')
         self.to_repair()
-        with patch.object(r, 'execute_process', side_effect=r.ProviderCallError('fixture timeout')) as execute:
+        with patch.object(r, 'assert_claude_auth'), \
+                patch.object(r, 'execute_process', side_effect=r.ProviderCallError('fixture timeout')) as execute:
             with self.assertRaises(r.ProviderCallError):
                 r.advance(self.run, self.state)
         self.assertEqual(execute.call_count, 1)
@@ -855,13 +856,14 @@ class ReviewTests(unittest.TestCase):
         bad = self.repair_response()
         bad['assessments'][0]['evidence'] = 'Paraphrased after implementation.'
         p = self.project/'calculator.py'
-        config = {'model': r.agent_settings(self.state, 'sol')[0], 'effort': 'xhigh',
+        config = {'model': r.agent_settings(self.state, 'sol')[0], 'effort': r.agent_settings(self.state, 'sol')[1],
                   'observed': {'source': 'fixture'}}
 
         def writer(_argv, _cwd, _content, _call_dir, _timeout):
             p.write_text(p.read_text().replace('(len(values) + 1)', 'len(values)'))
 
-        with patch.object(r, 'execute_process', side_effect=writer) as execute, \
+        with patch.object(r, 'assert_claude_auth'), \
+                patch.object(r, 'execute_process', side_effect=writer) as execute, \
                 patch.object(r, 'extract_response', return_value=(bad, None, config)):
             with self.assertRaisesRegex(r.HandoffResponseError, 'FIND-001.evidence'):
                 r.advance(self.run, self.state)
@@ -883,7 +885,8 @@ class ReviewTests(unittest.TestCase):
 
     def test_repair_execution_failure_has_distinct_diagnostic(self):
         self.to_repair()
-        with patch.object(r, 'execute_process', side_effect=r.ReviewError('Agent exited 1')):
+        with patch.object(r, 'assert_claude_auth'), \
+                patch.object(r, 'execute_process', side_effect=r.ReviewError('Agent exited 1')):
             with self.assertRaisesRegex(r.ReviewError, 'Agent exited 1'):
                 r.advance(self.run, self.state)
         self.assertEqual((self.state['stage'], self.state['status']), ('repair', 'interrupted'))
@@ -1107,7 +1110,7 @@ class ReviewTests(unittest.TestCase):
         expected = {
             'reviewer': {'model': 'claude-opus-5-5', 'effort': 'high'},
             'coordinator': {'model': 'gpt-6-astra', 'effort': 'max'},
-            'implementer': {'model': 'gpt-6.1-sol', 'effort': 'xhigh'},
+            'implementer': {'model': 'claude-opus-5-5', 'effort': 'high'},
         }
         self.assertEqual(self.state['schema_version'], 2)
         self.assertEqual(self.state['implementation_evidence_version'], 2)
@@ -1140,11 +1143,101 @@ class ReviewTests(unittest.TestCase):
                     state['sessions']['sol'] = session
                     r.save(self.run, state)
                     argv = r.cli_argv(r.read_json(self.run/'state.json'), self.run)
-                    self.assertEqual(argv[argv.index('--model')+1], 'gpt-6.1-sol')
-                    self.assertIn('model_reasoning_effort="xhigh"', argv)
-                    self.assertEqual('resume' in argv, session is not None)
+                    self.assertEqual(argv[argv.index('--model')+1], 'claude-opus-5-5')
+                    self.assertEqual(argv[argv.index('--effort')+1], 'high')
+                    self.assertEqual('--resume' in argv, session is not None)
                     if session:
-                        self.assertEqual(argv[-2:], [session, '-'])
+                        self.assertEqual(argv[-2:], ['--resume', session])
+
+    def test_claude_writer_permissions_and_independent_session(self):
+        self.to_repair()
+        reviewer_session = '11111111-1111-4111-8111-111111111111'
+        self.state['sessions']['opus'] = reviewer_session
+        self.state['scope'].append('src/[id]/space name*.py')
+        argv = r.cli_argv(self.state, self.run)
+        self.assertNotIn('--resume', argv)
+        self.assertEqual(argv[argv.index('--tools') + 1], 'Read,Glob,Grep,Edit,Write')
+        self.assertEqual(argv[argv.index('--allowedTools') + 1], 'Read,Glob,Grep')
+        self.assertEqual(argv[argv.index('--permission-mode') + 1], 'manual')
+        self.assertEqual(argv[argv.index('--permission-prompts') + 1], 'none')
+        self.assertEqual(argv[argv.index('--add-dir') + 1], str(self.project))
+        settings = json.loads(argv[argv.index('--settings') + 1])
+        self.assertTrue(settings['disableAllHooks'])
+        self.assertEqual(settings['permissions']['allow'], [
+            f'Edit(/{self.project}/calculator.py)', f'Edit(/{self.project}/test_calculator.py)',
+            f'Edit(/{self.project}/src/\\[id\\]/space\\ name\\*.py)'])
+        for flag in ('--safe-mode', '--restricted', '--strict-mcp-config', '--no-chrome'):
+            self.assertIn(flag, argv)
+        call = self.root / 'claude-writer'
+        call.mkdir()
+        r.write_new(call / 'stdout.log', {'structured_output': self.repair_response(),
+                    'session_id': reviewer_session, 'modelUsage': {'claude-opus-5-5': {}}})
+        with self.assertRaisesRegex(r.ReviewError, 'reused a previous session'):
+            r.extract_response(self.state, call)
+        for stage in ('review', 'recheck'):
+            self.state['stage'] = stage
+            argv = r.cli_argv(self.state, self.run)
+            self.assertEqual(argv[argv.index('--tools') + 1], 'Read,Glob,Grep')
+            self.assertEqual(argv[argv.index('--permission-mode') + 1], 'plan')
+            self.assertNotIn('permissions', json.loads(argv[argv.index('--settings') + 1]))
+
+    def test_repair_check_instructions_follow_writer_provider(self):
+        self.to_repair()
+        def header(state):
+            text = r.prompt(state)
+            self.assertIn(r.dumps(r.packet(state)), text)
+            return text.split('\nCURRENT HANDOFF\n')[0]
+        claude = header(self.state)
+        self.assertNotIn('Run relevant local checks', claude)
+        self.assertNotIn('Describe work and check results', claude)
+        self.assertIn('The helper runs the locked checks after this repair', claude)
+        self.assertIn('do not claim check results you did not observe', claude)
+        self.state['agent_profile']['implementer'] = {'model': 'gpt-6.1-sol', 'effort': 'xhigh'}
+        self.state['agent_providers']['implementer'] = 'codex'
+        explicit = header(self.state)
+        del self.state['agent_providers']
+        for codex in (explicit, header(self.state)):
+            self.assertIn('Run relevant local checks.', codex)
+            self.assertIn('Describe work and check results in summary or rationale.', codex)
+            self.assertNotIn('The helper runs the locked checks', codex)
+
+    def test_writer_provider_snapshot_and_legacy_routing(self):
+        for view in (self.state, r.read_json(self.run / 'original.json'),
+                     r.packet(self.state), r.status_payload(self.run, self.state)):
+            self.assertEqual(view['agent_providers']['implementer'], 'claude')
+        self.assertIn('Implementer (Claude): claude-opus-5-5 (high)', (self.run / 'handoff.md').read_text())
+        self.state['agent_profile']['implementer'] = {'model': 'gpt-6.1-sol', 'effort': 'xhigh'}
+        del self.state['agent_providers']
+        self.state['stage'] = 'repair'
+        self.assertEqual(r.agent_provider(self.state), 'codex')
+        self.assertIn('sandbox_mode="workspace-write"', r.cli_argv(self.state, self.run))
+        for providers in (None, {}, {'implementer': 'unknown'}, {**r.ROLE_PROVIDERS, 'reviewer': 'codex'}):
+            self.state['agent_providers'] = providers
+            with self.assertRaises(r.ReviewError):
+                r.agent_candidate(self.state, 'sol')
+
+    def test_claude_writer_rejects_effort_before_artifacts(self):
+        args = copy.deepcopy(self.args)
+        args.implementer_effort = 'ultra'
+        before = set((self.root / 'runs').iterdir())
+        with self.assertRaisesRegex(r.ReviewError, 'effort must be one of'):
+            r.initialize(args)
+        self.assertEqual(set((self.root / 'runs').iterdir()), before)
+
+    def test_claude_writer_auth_and_host_reviewer_guard(self):
+        self.to_repair()
+        command = r.command
+        def logged_out(argv, *args, **kwargs):
+            return (subprocess.CompletedProcess(argv, 1, '', '') if argv[1:3] == ['auth', 'status']
+                    else command(argv, *args, **kwargs))
+        with patch.object(r, 'execute_process') as execute, patch.object(r, 'command', side_effect=logged_out):
+            with self.assertRaisesRegex(r.ReviewError, 'cannot launch a writer'):
+                r.advance(self.run, self.state)
+            self.assertEqual(self.state['status'], 'ready')
+            self.assertEqual(list((self.run / 'calls').iterdir()), [])
+            with self.assertRaisesRegex(r.ReviewError, 'Reviewer-only launch'):
+                r.advance(self.run, self.state, reviewer_only=True)
+        execute.assert_not_called()
 
     def test_version_two_sol_six_runs_keep_frozen_implementer(self):
         with patch.dict(r.DEFAULT_PROFILES['review-implementation']['implementer'],
@@ -1153,7 +1246,7 @@ class ReviewTests(unittest.TestCase):
         state['schema_version'] = 2
         r.save(run, state)
         self.assertEqual(state['schema_version'], 2)
-        self.assertEqual(r.DEFAULT_PROFILES['review-implementation']['implementer']['model'], 'gpt-6.1-sol')
+        self.assertEqual(r.DEFAULT_PROFILES['review-implementation']['implementer']['model'], 'claude-opus-5-5')
         original_bytes = (run/'original.json').read_bytes()
         for session in (None, '11111111-1111-4111-8111-111111111111'):
             with self.subTest(session=session):
@@ -1176,7 +1269,7 @@ class ReviewTests(unittest.TestCase):
     def test_explicit_sol_six_implementer_overrides_retain_precedence(self):
         config_path = self.root/'runtime.local.json'
         for configured, override, expected in (
-            ({'model': 'gpt-6-sol'}, {}, {'model': 'gpt-6-sol', 'effort': 'xhigh'}),
+            ({'model': 'gpt-6-sol'}, {}, {'model': 'gpt-6-sol', 'effort': 'high'}),
             ({'model': 'gpt-6.1-sol', 'effort': 'high'}, {'model': 'gpt-6-sol'},
              {'model': 'gpt-6-sol', 'effort': 'high'}),
             ({'model': 'gpt-6.1-sol', 'effort': 'high'}, {'model': 'gpt-6-sol', 'effort': 'xhigh'},
@@ -1278,6 +1371,7 @@ class ReviewTests(unittest.TestCase):
 
 
     def test_model_settings_on_resume(self):
+        self.state['agent_providers']['implementer'] = 'codex'
         self.state['agent_profile'] = {
             'reviewer': {'model': 'claude-custom-reviewer', 'effort': 'medium'},
             'coordinator': {'model': 'gpt-custom-coordinator', 'effort': 'high'},
@@ -1539,6 +1633,7 @@ class ReviewTests(unittest.TestCase):
                     self.state.update(schema_version=2, stage='review')
                     self.state['agent_profile'].pop('researcher')
                     self.state['agent_fallbacks'].pop('researcher')
+                    self.state.pop('agent_providers')
                     self.state['target_fingerprint'] = r.digest(r.target(self.state))
                 self.state['agent_profile']['reviewer'] = {'model': 'fixture-reviewer', 'effort': 'low'}
                 if mode == 'implementation':
