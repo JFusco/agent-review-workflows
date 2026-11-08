@@ -1895,6 +1895,16 @@ def rerun_checks(run, state):
         raise ReviewError('Checks may rerun only while a review is in a read-only recoverable state.')
     assert_fresh(state)
     previous_checks = copy.deepcopy(state['checks'])
+    # Recovered checks permit another read-only assessment, never verification
+    # by the helper or another repair. Substantive/new findings still stop here.
+    check_blocked_recheck = (
+        local_finalization(state) and state['stage'] == 'recheck' and state['status'] == 'unresolved'
+        and diff_checks_current(state) and not checks_pass(state)
+        and any(f['disposition'] == 'ACCEPTED' and f['verification_status'] == 'BLOCKED'
+                for f in state['findings'])
+        and all(f['disposition'] == 'REJECTED' or
+                (f['disposition'] == 'ACCEPTED' and f['verification_status'] in ('PASSED', 'BLOCKED'))
+                for f in state['findings']))
     if collapsed_implementation(state):
         cited = {ref for finding in state['findings'] for ref in finding['verification_evidence']}
         retained = state.setdefault('cited_check_receipts', {})
@@ -1936,7 +1946,10 @@ def rerun_checks(run, state):
         'checks_after': copy.deepcopy(state['checks']),
     })
     state['ledger'].append(entry)
-    if previous_status == 'unresolved' and state['stage'] == 'finalize' and complete_findings(state) and passed:
+    if passed and (check_blocked_recheck or
+                   (local_finalization(state) and state['stage'] == 'recheck' and previous_status == 'blocked')):
+        state.update(status='ready', error=None)
+    elif previous_status == 'unresolved' and state['stage'] == 'finalize' and complete_findings(state) and passed:
         state.update(status='ready', error=None)
     elif local_finalization(state) and state['stage'] == 'finalize' and not passed:
         state.update(status='unresolved', error='Configured checks are missing or failing; no successful completion is claimed.')
@@ -2257,6 +2270,12 @@ def advance(run, state, external_coordinator=False, reviewer_only=False, codex_r
         raise ReviewError(f'Run is {state["status"]}; inspect status before resuming.')
     if local_finalization(state) and state['stage'] == 'finalize':
         finish_local(run, state)
+        return
+    if local_finalization(state) and state['stage'] == 'recheck' and not checks_pass(state):
+        state.update(status='blocked', error='Post-repair checks are missing or failing; '
+                     'rerun-checks on the unchanged target before independent recheck.')
+        save(run, state)
+        render(run, state)
         return
     if collapsed_plan(state):
         if state['stage'] not in ('research', 'review', 'adjudicate', 'recheck'):

@@ -20,6 +20,6 @@ For newly started runs, the repair response assesses accepted finding IDs and ra
 
 Follow the shared [review style](references/cli.md#review-style). Source, reproduced failures, and actual checks support decisions; agent agreement is insufficient verification.
 
-Continue ordinary authorized steps without repeated approval. New runs allow one repair and one recheck. Surface unresolved product decisions and missing permissions. Never repeat an interrupted repair blindly or overwrite unexpected edits. Use the documented recovery procedure.
+Continue ordinary authorized steps without repeated approval. New runs allow one repair and one recheck, with the documented check-recovery exception for a blocked read-only assessment. Surface unresolved product decisions and missing permissions. Never repeat an interrupted repair blindly or overwrite unexpected edits. Use the documented recovery procedure.
 
 Return what changed, required checks and their actual outcomes, unresolved findings, and the final target reviewed. Link the handoff and distinguish fixture evidence from live CLI or production evidence. Never call a blocked or incomplete cycle verified.

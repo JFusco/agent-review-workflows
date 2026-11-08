@@ -1,6 +1,4 @@
 {
-  "0": "render",
-  "1": "wiki-graph.cjs",
   "2": "audit-plan-candidates.cjs",
   "3": "routing.cjs",
   "4": "viewer.js",
@@ -8,19 +6,11 @@
   "6": "archive-plan.cjs",
   "7": "delivery_evidence",
   "8": "on-merge-sync.cjs",
-  "9": "ReviewError",
   "10": "reconcile-merges.cjs",
-  "11": "digest",
-  "12": "advance",
   "13": "validate_pr_body.cjs",
   "14": "python.cjs",
   "15": "routing.js",
   "16": "create_trial.py",
   "17": "install_skills.py",
-  "18": "accept",
-  "19": "serve-graph.cjs",
-  "20": "HandoffResponseError",
-  "21": "plans.cjs",
-  "22": "refresh-issue-state.cjs",
-  "23": "common.cjs"
+  "19": "serve-graph.cjs"
 }

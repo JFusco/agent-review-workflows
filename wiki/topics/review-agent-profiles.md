@@ -58,6 +58,10 @@ responses are fallback-eligible, and `retry --timeout` records a raised per-call
 timeout up to 14400 seconds. See the
 [contract recovery journal](../journal/2026-10-26-review-contract-recovery.md).
 
+The [check-blocked recheck recovery journal](../journal/2026-11-08-check-blocked-recheck-recovery.md)
+records recovery after transient checks pass, preserving independent verification
+and the one-writer limit.
+
 ## Evidence policy
 
 Deterministic fixtures cover configuration precedence, freezing, malformed
