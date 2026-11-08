@@ -65,6 +65,11 @@ contradictions, unavailable sources, unresolved assumptions, and Brain provenanc
   source must belong to a recorded read; only reads may cite sources. Web sources
   must be primary HTTPS pages actually read. Brain locators begin with the recorded
   committed snapshot SHA followed by `:` and their knowledge path.
+  The schema descriptions sent to the researcher define the exact source/search
+  linking rules and the pre-submission consistency check. Validation reports all
+  search-reference errors together, naming source IDs and zero-based search
+  positions. A missing link describes the brief's bookkeeping, not proof that a
+  tool read never happened; the helper never adds links or infers reads.
 - Existing solutions and alternatives record assessments and source IDs.
   The recommendation chooses `reuse`, `extend`, or `build` with rationale and
   valid source IDs. An unsupported recommendation must expose assumptions.
@@ -83,6 +88,13 @@ contract-correction, and explicit retry machinery. A failed checkpoint retains
 the orphaned artifact; retry never overwrites it. Accepted/replayed responses
 cannot create another research stage. Modified or symlinked accepted briefs block
 subsequent packets and dispatch.
+
+Read-only contract failures append `response_rejections` independently of the
+`response_corrections` attempt budget. Subsequent prompts use the latest rejection
+for the same stage and handoff revision, including after explicit `retry`.
+Retry does not replenish the automatic correction budget. Saved runs without
+rejection history retain their existing correction feedback until another
+contract failure is recorded; no migration or rewriting of old artifacts is needed.
 
 The accepted brief is an immutable revision artifact. Its digest becomes part of
 the reviewed target, and `RESEARCH:brief` plus each source ID enter the evidence

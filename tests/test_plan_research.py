@@ -175,6 +175,100 @@ class PlanResearchTests(unittest.TestCase):
         self.assertEqual(r.accepted_research(self.state)['brain']['snapshot'], 'a' * 40)
         self.assertIn('Usage recording denied', r.prompt(self.state))
 
+    def test_source_link_errors_report_all_offending_ids_without_repairing_evidence(self):
+        brief = self.brief()
+        brief['sources'].append({**brief['sources'][0], 'id': 'RES-010'})
+        brief['sources'].append({**brief['sources'][0], 'id': 'RES-017'})
+        brief['searches'][4].update(status='read', source_ids=['RES-002'])
+        original = copy.deepcopy(brief)
+        with self.assertRaises(r.ReviewError) as raised:
+            r.validate_research(self.state, brief)
+        message = str(raised.exception)
+        self.assertIn('searches[4] (brain/brain): RES-002 has channel web, not brain.', message)
+        self.assertIn('Sources missing from searches[].source_ids: RES-010, RES-017.', message)
+        self.assertEqual(brief, original)
+        # A correction must come from the researcher; the helper never infers reads.
+        brief['searches'][4].update(status='unavailable', source_ids=[])
+        brief['searches'][0]['source_ids'].extend(['RES-010', 'RES-017'])
+        r.validate_research(self.state, brief)
+
+    def test_source_reference_diagnostics_preserve_rejection_boundaries(self):
+        cases = [
+            ({'source_ids': ['RES-001', 'RES-001']}, 'duplicate source IDs: RES-001'),
+            ({'source_ids': ['RES-999']}, 'unknown source ID RES-999'),
+            ({'source_ids': []}, 'status read requires at least one source ID'),
+            ({'status': 'no_matches'}, 'status no_matches cannot cite source IDs: RES-001'),
+            ({'status': 'unavailable'}, 'status unavailable cannot cite source IDs: RES-001'),
+        ]
+        for change, expected in cases:
+            with self.subTest(change=change):
+                brief = self.brief()
+                brief['searches'][0].update(change)
+                with self.assertRaises(r.ReviewError) as raised:
+                    r.validate_research(self.state, brief)
+                self.assertIn('searches[0] (local/repository): ' + expected, str(raised.exception))
+
+    def test_explicit_retry_uses_latest_rejection_without_resetting_correction_budget(self):
+        good = self.brief()
+        first, second = copy.deepcopy(good), copy.deepcopy(good)
+        first['searches'][4].update(status='read', source_ids=['RES-002'])
+        second['sources'].append({**second['sources'][0], 'id': 'RES-010'})
+        second['sources'].append({**second['sources'][0], 'id': 'RES-017'})
+        pending = iter([first, second, second, good])
+        prompts = []
+
+        def execute(argv, cwd, content, call_dir, timeout):
+            prompts.append(content)
+            r.write_new(call_dir / 'last-message.json', next(pending))
+
+        def extract(state, call_dir):
+            return (r.read_json(call_dir / 'last-message.json'), None,
+                    {**r.agent_candidate(state, 'researcher'), 'observed': {'source': 'fixture'}})
+
+        with patch.object(r, 'execute_process', side_effect=execute), \
+                patch.object(r, 'extract_response', side_effect=extract):
+            with self.assertRaisesRegex(r.ContractResponseError, 'RES-010, RES-017'):
+                r.advance(self.run, self.state)
+            self.assertEqual(len(prompts), 2)
+            self.assertEqual(len(self.state['response_corrections']), 1)
+            self.assertEqual(len(self.state['response_rejections']), 2)
+            history = copy.deepcopy(self.state['response_rejections'])
+            self.cli('retry')
+            self.cli('status')
+            self.assertEqual(self.state['response_rejections'], history)
+            with self.assertRaisesRegex(r.ContractResponseError, 'RES-010, RES-017'):
+                r.advance(self.run, self.state)
+            self.assertEqual(len(prompts), 3)  # Explicit retry grants no new automatic correction.
+            latest_feedback = prompts[2].split('PREVIOUS RESPONSE REJECTED\n')[1]
+            self.assertIn('RES-010, RES-017', latest_feedback)
+            self.assertNotIn('has channel web, not brain', latest_feedback)
+            self.assertEqual(self.state['response_rejections'][:2], history)
+            self.cli('retry')
+            r.advance(self.run, self.state)
+        self.assertEqual(self.state['stage'], 'review')
+        self.assertEqual(len(self.state['response_corrections']), 1)
+        self.assertEqual(len(self.state['response_rejections']), 3)
+        self.assertEqual(self.state['fallback_history'], [])
+        self.assertIsNone(r.current_rejection(self.state))
+        for index, expected in enumerate([first, second, second, good], 1):
+            self.assertEqual(r.read_json(self.run / f'calls/{index:03d}-research/last-message.json'), expected)
+
+    def test_rejection_feedback_respects_revision_and_legacy_history(self):
+        event = {'stage': 'research', 'handoff_revision': 0, 'reason': 'Legacy correction.'}
+        self.state['response_corrections'] = [event]
+        self.assertEqual(r.current_rejection(self.state), event)
+        self.state['response_rejections'] = [{**event, 'reason': 'Latest rejection.'}]
+        self.assertEqual(r.current_rejection(self.state)['reason'], 'Latest rejection.')
+        self.state['handoff_revision'] += 1
+        self.assertIsNone(r.current_rejection(self.state))
+
+    def test_provider_schema_delivers_source_link_contract(self):
+        schema = r.provider_schema(self.state)
+        self.assertIn('searches[].source_ids', schema['properties']['sources']['description'])
+        refs = schema['properties']['searches']['items']['properties']['source_ids']
+        self.assertIn('same channel', refs['description'])
+        self.assertIn('Never invent a read', r.research_prompt(self.state))
+
     def test_corrupted_and_symlinked_accepted_artifact_blocks(self):
         self.accept(self.brief())
         path = self.run / 'artifacts/revision-001.json'

@@ -83,7 +83,8 @@
               "type": "string",
               "minLength": 1,
               "pattern": "\\S"
-            }
+            },
+            "description": "IDs from sources actually read by this search, with the same channel as the search. Required and nonempty for status read; empty for no_matches or unavailable. No duplicate IDs within a search."
           }
         },
         "required": [
@@ -147,7 +148,8 @@
           "evidence",
           "primary"
         ]
-      }
+      },
+      "description": "Every source ID must appear in at least one searches[].source_ids entry whose status is read and whose channel matches the source. Before returning the brief, check all source IDs are linked, all references exist, and channels match. Never invent a read to repair a missing link; remove unread sources and their citations."
     },
     "existing_solutions": {
       "type": "array",

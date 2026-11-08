@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from collections import Counter
 import contextlib
 import copy
 from datetime import datetime, timezone
@@ -685,14 +686,31 @@ def validate_research(state, data):
     if {(item['channel'], item['area']) for item in searches} != expected:
         raise ReviewError('Research must record repository, dependencies, skills, workflows, Brain, and web searches.')
     read_ids = set()
-    for search in searches:
+    reference_errors = []
+    for index, search in enumerate(searches):
         refs = search['source_ids']
-        if (len(refs) != len(set(refs)) or (search['status'] == 'read') != bool(refs) or
-                any(ref not in sources or sources[ref]['channel'] != search['channel'] for ref in refs)):
-            raise ReviewError('Research searches require matching read sources; unavailable/no-match searches cannot cite reads.')
+        location = f'searches[{index}] ({search["channel"]}/{search["area"]})'
+        duplicates = sorted(ref for ref, count in Counter(refs).items() if count > 1)
+        if duplicates:
+            reference_errors.append(f'{location}: duplicate source IDs: {", ".join(duplicates)}.')
+        if search['status'] == 'read' and not refs:
+            reference_errors.append(f'{location}: status read requires at least one source ID.')
+        elif search['status'] != 'read' and refs:
+            reference_errors.append(f'{location}: status {search["status"]} cannot cite source IDs: {", ".join(refs)}.')
+        for ref in dict.fromkeys(refs):
+            if ref not in sources:
+                reference_errors.append(f'{location}: unknown source ID {ref}.')
+            elif sources[ref]['channel'] != search['channel']:
+                reference_errors.append(f'{location}: {ref} has channel {sources[ref]["channel"]}, '
+                                        f'not {search["channel"]}.')
         read_ids.update(refs)
-    if read_ids != sources.keys():
-        raise ReviewError('Every research source must be actually read in a recorded search.')
+    missing = sorted(sources.keys() - read_ids)
+    if missing:
+        reference_errors.append('Sources missing from searches[].source_ids: ' + ', '.join(missing) +
+                                '. Link each actually-read source to a read search with the same channel; '
+                                'remove unread sources and their citations. Never invent a read.')
+    if reference_errors:
+        raise ReviewError('Invalid research source references:\n' + '\n'.join(reference_errors))
     for item in [*data['existing_solutions'], *data['alternatives'], data['recommendation']]:
         if (len(item['source_ids']) != len(set(item['source_ids'])) or
                 any(ref not in sources for ref in item['source_ids'])):
@@ -2268,6 +2286,10 @@ def advance(run, state, external_coordinator=False, reviewer_only=False, codex_r
                                   ' Inspect scoped changes and use reconcile; do not retry the writer.')
             else:
                 state['error'] = str(exc)
+            if isinstance(exc, ContractResponseError) and state['stage'] != 'repair':
+                state.setdefault('response_rejections', []).append({
+                    'stage': state['stage'], 'handoff_revision': state['handoff_revision'],
+                    'agent': agent_candidate(state, role(state)), 'reason': str(exc), 'call_dir': str(call_dir)})
             save(run, state)
             render(run, state)
             if state['stage'] != 'repair' and not (codex_read_only or codex_research_only):
@@ -2280,7 +2302,10 @@ def advance(run, state, external_coordinator=False, reviewer_only=False, codex_r
 
 
 def current_rejection(state):
-    for event in reversed(state.get('response_corrections', [])):
+    # Rejections track feedback; corrections independently bound automatic attempts.
+    # Older runs have only the correction history and remain resumable unchanged.
+    events = state.get('response_rejections', []) or state.get('response_corrections', [])
+    for event in reversed(events):
         if (event['stage'], event['handoff_revision']) == (state['stage'], state['handoff_revision']):
             return event
     return None
@@ -2953,7 +2978,8 @@ def measurement_summary(records):
 
 # Recorded recovery context; older runs lack these fields and report them empty.
 RECOVERY_CONTEXT = {'agent_fallbacks': dict, 'agent_selections': dict, 'fallback_history': list,
-                    'response_corrections': list, 'timeout_history': list, 'timeout': lambda: None}
+                    'response_corrections': list, 'response_rejections': list,
+                    'timeout_history': list, 'timeout': lambda: None}
 
 
 def run_comparison_evidence(run, snapshot):
