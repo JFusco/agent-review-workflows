@@ -642,7 +642,8 @@ class CollectionTests(MechanicsFixture, unittest.TestCase):
         evidence = r.compare_runs(historical, historical)['baseline']
         self.assertEqual({k: evidence[k] for k in r.RECOVERY_CONTEXT},
                          {'agent_fallbacks': {}, 'agent_selections': {}, 'fallback_history': [],
-                          'response_corrections': [], 'timeout_history': [], 'timeout': None})
+                          'response_corrections': [], 'response_rejections': [],
+                          'timeout_history': [], 'timeout': None})
 
     def test_attempts_acceptance_provenance_and_individual_usage(self):
         agents = [{'model': 'claude-opus-5-5', 'effort': 'high', 'observed': {'source': 'Claude modelUsage', 'model': 'different'}},

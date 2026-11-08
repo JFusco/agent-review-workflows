@@ -97,3 +97,19 @@ tools can read all frozen evidence without gaining access to the live project
 or broader temporary files. Inline calls, Codex execution, model profiles, and
 evidence bytes retain their existing behavior. Controlled-child tests reproduce
 the earlier denial and exercise complete indexed reads; live review is separate.
+
+## Research citation feedback
+
+[Issue #95](https://github.com/JFusco/agent-review-workflows/issues/95) addresses
+repeated research rejection caused by missing source-to-search links and channel
+mismatches. The provider schema explains the linking contract; validation names
+all offending search references together. A missing link is a brief consistency
+failure and does not establish that the source was never read.
+
+Read-only rejection history supplies the latest error independently of the
+bounded automatic correction history. Explicit retry preserves that budget and
+uses feedback only from the same stage and revision. Historical briefs, frozen
+roles, permissions, and evidence acceptance remain unchanged. The authoritative
+details are in the [research reference](../../references/research.md).
+Deterministic fixtures reproduce the observed two-rejection sequence; they do
+not establish a measured reduction in live provider failures or cost.
