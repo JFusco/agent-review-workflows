@@ -23,6 +23,8 @@ class RepairLaunchTests(MechanicsFixture, unittest.TestCase):
                           'print(' + repr(STARTUP) + ',file=sys.stderr)\nsys.exit(1)\n')
         binary.chmod(0o700)
         self.state['codex_binary'] = str(binary)
+        self.state['agent_profile']['implementer'] = {'model': 'gpt-6.1-sol', 'effort': 'xhigh'}
+        self.state['agent_providers']['implementer'] = 'codex'
         self.use_passing_check()
         self.to_repair()
         self.ready = copy.deepcopy(self.state)
@@ -63,6 +65,28 @@ class RepairLaunchTests(MechanicsFixture, unittest.TestCase):
         before = (self.run / 'state.json').read_bytes()
         self.command('recover-startup', failed=True)
         self.assertEqual((self.run / 'state.json').read_bytes(), before)
+
+    def test_recover_accepts_historical_receipts_without_provider_snapshot(self):
+        # Runs saved before agent_providers recorded prompts without that packet field.
+        del self.state['agent_providers']
+        r.save(self.run, self.state)
+        call = self.fail_startup()
+        self.assertNotIn('"agent_providers"', (call / 'prompt.txt').read_text())
+        old = {p: p.read_bytes() for p in call.rglob('*') if p.is_file()}
+        prompt = call / 'prompt.txt'
+        prompt.write_bytes(old[prompt] + b'changed')
+        before = (self.run / 'state.json').read_bytes()
+        self.command('recover-startup', failed=True)
+        self.assertEqual((self.run / 'state.json').read_bytes(), before)
+        prompt.write_bytes(old[prompt])
+        with patch.object(r, 'execute_process') as execute, patch.object(r, 'perform_checks') as checks:
+            self.command('recover-startup')
+        execute.assert_not_called(); checks.assert_not_called()
+        after = r.read_json(self.run / 'state.json')
+        self.assertEqual((after['stage'], after['status'], after['round']), ('repair', 'ready', 0))
+        self.assertNotIn('agent_providers', after)
+        for path, content in old.items():
+            self.assertEqual(path.read_bytes(), content)
 
     def test_recovery_rejects_missing_changed_or_ambiguous_call_receipts(self):
         call = self.fail_startup()

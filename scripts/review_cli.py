@@ -58,7 +58,7 @@ DEFAULT_PROFILES = {
     'review-implementation': {
         'reviewer': {'model': 'claude-opus-5-5', 'effort': 'high'},
         'coordinator': {'model': 'gpt-6-astra', 'effort': 'max'},
-        'implementer': {'model': 'gpt-6.1-sol', 'effort': 'xhigh'},
+        'implementer': {'model': 'claude-opus-5-5', 'effort': 'high'},
     },
 }
 DEFAULT_PROFILES['review-diff'] = copy.deepcopy(DEFAULT_PROFILES['review-plan'])
@@ -134,13 +134,13 @@ def read_json(path):
         raise ReviewError(f'Cannot read JSON: {path}: {exc}') from exc
 
 
-def validate_setting(role_name, field, value, source):
+def validate_setting(role_name, field, value, source, provider=None):
     if not isinstance(value, str) or not value.strip() or value != value.strip():
         raise ReviewError(f'{source}.{role_name}.{field} must be a nonblank string without surrounding whitespace.')
     if any(char.isspace() for char in value):
         raise ReviewError(f'{source}.{role_name}.{field} cannot contain whitespace.')
     if field == 'effort':
-        provider = ROLE_PROVIDERS[role_name]
+        provider = provider or ROLE_PROVIDERS[role_name]
         if value not in PROVIDER_EFFORTS[provider]:
             choices = ', '.join(sorted(PROVIDER_EFFORTS[provider]))
             raise ReviewError(f'{source}.{role_name}.effort must be one of: {choices}.')
@@ -275,12 +275,28 @@ def local_finalization(state):
     return state['mode'] == 'implementation' and state['schema_version'] == 3
 
 
+def primary_provider(state, role_name):
+    # Runs saved before provider snapshots retain their original Codex writer.
+    if 'agent_providers' not in state:
+        return ROLE_PROVIDERS[role_name]
+    providers = state['agent_providers']
+    if not isinstance(providers, dict) or set(providers) != set(state['agent_profile']):
+        raise ReviewError('Invalid saved role providers.')
+    for name, provider in providers.items():
+        allowed = ('claude', 'codex') if name == 'implementer' else (ROLE_PROVIDERS[name],)
+        if provider not in allowed:
+            raise ReviewError('Saved provider violates the role provider boundary.')
+    return providers[role_name]
+
+
 def agent_candidate(state, who):
     role_name = AGENT_TO_PROFILE_ROLE[who]
     profile = effective_profile(state)
     if role_name not in profile:
         raise ReviewError(f'{MODE_TO_SKILL[state["mode"]]} has no {role_name} role.')
-    primary = {'provider': ROLE_PROVIDERS[role_name], **profile[role_name]}
+    provider = primary_provider(state, role_name)
+    validate_setting(role_name, 'effort', profile[role_name]['effort'], 'run agent profile', provider)
+    primary = {'provider': provider, **profile[role_name]}
     # Missing lists mean no fallback for pre-feature saved runs.
     candidates = [primary, *validate_fallbacks(role_name, state.get('agent_fallbacks', {}).get(role_name, []))]
     index = state.get('agent_selections', {}).get(who, 0)
@@ -331,9 +347,12 @@ def assert_claude_auth(state):
     binary = state.get('claude_binary') or resolve_cli('claude')
     result = command([binary, 'auth', 'status', '--json'], Path(state['project']))
     if result.returncode == 1:
-        raise ReviewError('Claude login is unavailable in this execution context. '
-                          'If the host is logged in, dispatch this reviewer with an approved host '
-                          '`step --reviewer-only`; otherwise sign in to Claude on the host.')
+        recovery = ('If the host is logged in, dispatch this reviewer with an approved host '
+                    '`step --reviewer-only`; otherwise sign in to Claude on the host.'
+                    if role(state) == 'opus' else
+                    'Restore Claude login in the authorized writer execution context, then resume this ready stage. '
+                    'The reviewer-only host guard cannot launch a writer.')
+        raise ReviewError('Claude login is unavailable in this execution context. ' + recovery)
     if result.returncode:
         raise ReviewError('Claude authentication status could not be checked in this execution context.')
     try:
@@ -861,6 +880,9 @@ def packet(state):
             'agent_selections': copy.deepcopy(state.get('agent_selections', {})),
             'fallback_history': copy.deepcopy(state.get('fallback_history', [])),
             'timeout': state['timeout']}
+    # Saved prompts are receipts; runs predating the snapshot keep their original packet shape.
+    if 'agent_providers' in state:
+        result['agent_providers'] = {name: primary_provider(state, name) for name in effective_profile(state)}
     if collapsed_plan(state):
         result['plan_protocol_version'] = 2
         result['research_contract_version'] = state.get('research_contract_version')
@@ -877,6 +899,9 @@ def prompt(state):
         return research_prompt(state)
     plan_v2 = collapsed_plan(state)
     compact_repair = implementation_response_v2(state) and state['stage'] == 'repair'
+    # The Claude writer has no shell; the helper runs locked checks after repair.
+    # Codex instruction text is unchanged because saved prompts are recovery receipts.
+    claude_writer = compact_repair and agent_provider(state) == 'claude'
     stage_text = {
         'review': 'Independently review this target. New findings must be OPEN and UNVERIFIED. No findings is valid.',
         'adjudicate': 'Resolve technical disagreements from evidence. Every finding must be ACCEPTED, REJECTED, or PENDING_USER. Do not edit files.',
@@ -892,7 +917,19 @@ def prompt(state):
             stage_text['adjudicate'] = ('Decide each finding from the independent review, scoped source, and checks. '
                                         'Append only evidence-backed scoped gaps; they start UNVERIFIED with empty '
                                         'verification_evidence. '
+                                        'Before accepting, confirm the acceptance check is supported by the requirements '
+                                        'and evidence, and explain in rationale how the frozen check commands or scoped '
+                                        'source inspection can establish it after repair. Reject unsupported or impossible '
+                                        'criteria without rewriting saved definitions; append a corrected scoped finding '
+                                        'only when evidence warrants it. Inspect relevant dependencies for necessary '
+                                        'companion files. If repair or verification requires files or commands outside '
+                                        'the frozen scope or checks, mark PENDING_USER and name the missing prerequisites; '
+                                        'do not expand authority. '
                                         'The helper locks accepted repairs after this response. Do not edit files.')
+            if claude_writer:
+                stage_text['repair'] = stage_text['repair'].replace(
+                    'Run relevant local checks.',
+                    'The helper runs the locked checks after this repair; do not claim check results you did not observe.')
             stage_text['repair'] += ' Follow the current repair_lock exactly.'
             for stage in ('adjudicate', 'recheck'):
                 stage_text[stage] += (' The helper retains saved definitions of existing findings; '
@@ -937,8 +974,10 @@ def prompt(state):
     elif compact_repair:
         finding_instructions = (
             'Return only the fields in this repair response schema. Assess every ACCEPTED finding exactly once '
-            'in canonical order with id and a substantive repair rationale. Describe work and check results in '
-            'summary or rationale. The helper retains definitions, dispositions, and verification fields from '
+            'in canonical order with id and a substantive repair rationale. '
+            + ('Describe the edits in summary or rationale; verification is pending helper checks and independent '
+               'recheck. ' if claude_writer else 'Describe work and check results in summary or rationale. ') +
+            'The helper retains definitions, dispositions, and verification fields from '
             'persisted state; do not echo them or claim independent verification. '
             'Echo implementation_response_version exactly. '
         )
@@ -1079,17 +1118,28 @@ def cli_argv(state, call_dir):
     who = role(state)
     model, effort = agent_settings(state, who)
     session = state['sessions'].get(who) if state['stage'] == 'repair' else None
+    writable = state['stage'] == 'repair' and state['mode'] == 'implementation'
     if agent_provider(state, who) == 'claude':
+        settings = {'disableAllHooks': True}
+        if writable:
+            # Edit rules cover both Edit and Write. Escape literal gitignore characters.
+            paths = [str(Path(state['project']) / name) for name in state['scope']]
+            if any(any(ord(char) < 32 for char in path) for path in paths):
+                raise ReviewError('Claude repair paths cannot contain control characters.')
+            settings['permissions'] = {'allow': [
+                'Edit(/' + re.sub(r'([\\*?\[\]!# ])', r'\\\1', path) + ')' for path in paths]}
         args = [state.get('claude_binary') or resolve_cli('claude'), '-p', '--model', model, '--effort', effort, '--output-format', 'json',
                 '--json-schema', json.dumps(provider_schema(state)), '--safe-mode', '--restricted',
-                '--tools', 'Read,Glob,Grep', '--allowedTools', 'Read,Glob,Grep',
+                '--tools', 'Read,Glob,Grep,Edit,Write' if writable else 'Read,Glob,Grep',
+                '--allowedTools', 'Read,Glob,Grep',
                 '--disallowedTools', 'mcp__*', '--strict-mcp-config',
-                '--permission-mode', 'plan', '--permission-prompts', 'none', '--no-chrome',
-                '--settings', '{"disableAllHooks":true}']
+                '--permission-mode', 'manual' if writable else 'plan', '--permission-prompts', 'none', '--no-chrome',
+                '--settings', json.dumps(settings)]
+        if writable:
+            args += ['--add-dir', state['project']]
         if session:
             args += ['--resume', session]
         return args
-    writable = state['stage'] == 'repair' and state['mode'] == 'implementation'
     researching = state['stage'] == 'research'
     args = [state.get('codex_binary') or resolve_cli('codex'), 'exec'] + (['resume'] if session else [])
     args += ['--ignore-user-config', '--model', model, '-c', f'model_reasoning_effort="{effort}"',
@@ -1990,7 +2040,7 @@ def render(run, state):
     if response_v2:
         lines[6:6] = ['Implementation response version: 2', '']
     for role_name, settings in effective_profile(state).items():
-        provider = ROLE_PROVIDERS[role_name].capitalize()
+        provider = primary_provider(state, role_name).capitalize()
         lines.append(f'- {role_name.capitalize()} ({provider}): {settings["model"]} ({settings["effort"]})')
     lines += ['', f'Per-call timeout: {state["timeout"]} seconds.', '']
     for who in PROFILE_ROLE_TO_AGENT.values():
@@ -2240,6 +2290,8 @@ def advance(run, state, external_coordinator=False, reviewer_only=False, codex_r
         render(run, state)
         return
     while True:
+        if reviewer_only and role(state) != 'opus':
+            raise ReviewError('Reviewer-only launch cannot dispatch an implementation writer.')
         if reviewer_only and agent_provider(state) != 'claude':
             state.update(status='ready', error=None)
             save(run, state)
@@ -2402,6 +2454,7 @@ def status_payload(run, state):
             'run': str(run), 'status': state['status'], 'stage': state['stage'],
             'round': state['round'], 'error': state['error'],
             'handoff': str(run / 'handoff.md'), 'agent_profile': effective_profile(state),
+            'agent_providers': {name: primary_provider(state, name) for name in effective_profile(state)},
             'agent_fallbacks': copy.deepcopy(state.get('agent_fallbacks', {})),
             'agent_selections': copy.deepcopy(state.get('agent_selections', {})),
             'fallback_history': copy.deepcopy(state.get('fallback_history', [])),
@@ -2439,11 +2492,15 @@ def initialize(args):
         raise ReviewError('Requirements must be nonempty.')
     runtime_config = load_runtime_config()
     agent_profile = resolve_agent_profile(args, runtime_config)
+    agent_providers = {name: ('claude' if name == 'implementer' and settings['model'].startswith('claude-')
+                              else ROLE_PROVIDERS[name]) for name, settings in agent_profile.items()}
+    for name, settings in agent_profile.items():
+        validate_setting(name, 'effort', settings['effort'], 'resolved agent profile', agent_providers[name])
     configured = runtime_config.get('skills', {}).get(MODE_TO_SKILL[args.mode], {})
     agent_fallbacks = {name: validate_fallbacks(name, configured.get(name, {}).get('fallbacks', DEFAULT_FALLBACKS[name]))
                        for name in agent_profile}
     for name, candidates in agent_fallbacks.items():
-        primary = {'provider': ROLE_PROVIDERS[name], **agent_profile[name]}
+        primary = {'provider': agent_providers[name], **agent_profile[name]}
         agent_fallbacks[name] = [candidate for candidate in candidates if candidate != primary]
     codex_binary = resolve_cli('codex', runtime_config)
     claude_binary = resolve_cli('claude', runtime_config)
@@ -2481,7 +2538,7 @@ def initialize(args):
     run_id = str(uuid.uuid4())
     state = {'schema_version': 3 if args.mode in ('implementation', 'plan') else 2, 'run_id': run_id, 'project': str(project), 'mode': args.mode,
              'codex_binary': codex_binary, 'claude_binary': claude_binary,
-             'agent_profile': agent_profile, 'agent_fallbacks': agent_fallbacks,
+             'agent_profile': agent_profile, 'agent_providers': agent_providers, 'agent_fallbacks': agent_fallbacks,
              'agent_selections': {}, 'fallback_history': [],
              'scope': sorted(set(scope)), 'requirements': requirements, 'plan_file': str(Path(args.plan).expanduser().resolve()) if args.plan else None,
              'current_plan': None, 'original_plan_hash': digest(text_file(Path(args.plan).expanduser().resolve())) if args.plan else None,
@@ -2523,7 +2580,7 @@ def initialize(args):
         research_writable_roots(state)
     original = {'schema_version': state['schema_version'], 'requirements': requirements, 'target': initial,
                 'inventory': state['inventory'], 'instructions': state['instructions'],
-                'agent_profile': agent_profile, 'agent_fallbacks': agent_fallbacks, 'timeout': args.timeout}
+                'agent_profile': agent_profile, 'agent_providers': agent_providers, 'agent_fallbacks': agent_fallbacks, 'timeout': args.timeout}
     if state['mode'] in ('implementation', 'diff'):
         original.update(check_commands=check_commands,
                         implementation_evidence_version=state['implementation_evidence_version'])
@@ -3203,6 +3260,7 @@ def main():
                 run, state = initialize(args)
             print(dumps({'run': str(run), 'status': state['status'],
                          'agent_profile': effective_profile(state),
+            'agent_providers': {name: primary_provider(state, name) for name in effective_profile(state)},
             'agent_fallbacks': copy.deepcopy(state.get('agent_fallbacks', {})),
             'agent_selections': copy.deepcopy(state.get('agent_selections', {})),
             'fallback_history': copy.deepcopy(state.get('fallback_history', [])),

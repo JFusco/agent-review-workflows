@@ -4,15 +4,18 @@
 defines the configurable model and effort contract for `review-plan` and
 `review-implementation`. Configuration is installation-local in ignored
 `runtime.local.json`; explicit `start` flags override that file, and missing
-fields inherit the built-in Opus 5.5 High, Astra 6 Max, and Sol 6.1 Extra High
-(`gpt-6.1-sol` / `xhigh`) profile. The new-run implementer default changed in
+fields inherit Opus 5.5 High for independent review and implementation, and
+Astra 6 Max for coordination. The previous Sol 6.1 default was introduced in
 [JFusco/agent-review-workflows issue #30](https://github.com/JFusco/agent-review-workflows/issues/30).
 
 Profiles use functional roles rather than model names. Both skills have a
 Claude `reviewer` and Codex `coordinator`; only implementation review has a
-Codex `implementer`. Primary provider routing, read/write permissions, target
+separate Claude `implementer` by default. Explicit Codex writer selections remain
+supported. New runs freeze provider routing in `agent_providers`; older runs
+without that snapshot retain their original Codex writer. Read/write permissions, target
 fingerprints, handoff revisions, bounded passes, and the single-writer rule are
-not configurable. Read-only fallback routing follows the bounded frozen policy in
+not configurable. The [Opus writer journal](../journal/2026-11-08-opus-implementer.md)
+records the new default and scoped Claude permissions. Read-only fallback routing follows the bounded frozen policy in
 the [CLI procedure](../../references/cli.md#recorded-model-fallback).
 
 ## Resolution and persistence
@@ -90,3 +93,11 @@ Model tools retain their read-only sandbox and execution-network denial.
 The [CLI recovery procedure](../../references/cli.md#codex-launch-recovery) owns
 the sequence; the [journal](../journal/2026-11-04-codex-launch-boundary.md)
 distinguishes the reproduced failure, actual guarded canary and fixture coverage.
+
+## Repair feasibility before locking
+
+Implementation adjudication checks whether the correction and its acceptance
+criteria fit the frozen files, commands, and source evidence. Missing
+prerequisites use the existing pending-decision path before any writer runs;
+unsupported criteria are rejected with their original records preserved. The
+[CLI procedure](../../references/cli.md) owns the detailed decision contract.

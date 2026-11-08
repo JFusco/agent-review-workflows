@@ -393,7 +393,7 @@ class PlanResearchTests(unittest.TestCase):
         state.update(schema_version=2, stage='review')
         state['agent_profile'].pop('researcher')
         state['agent_fallbacks'].pop('researcher')
-        for key in ('research', 'research_access', 'research_contract_version'):
+        for key in ('research', 'research_access', 'research_contract_version', 'agent_providers'):
             state.pop(key)
         state['target_fingerprint'] = r.digest(r.target(state))
         r.render(self.run, state)

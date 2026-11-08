@@ -292,7 +292,8 @@ class MechanicsTests(MechanicsFixture, unittest.TestCase):
                     if failure == 'receipt' and path.parent.name == 'checks':
                         raise OSError('receipt write failed')
                     write(path, value)
-                with a, b, patch.object(r, 'perform_checks', side_effect=checks), patch.object(r, 'write_new', side_effect=write_receipt):
+                with a, b, patch.object(r, 'assert_claude_auth'), \
+                        patch.object(r, 'perform_checks', side_effect=checks), patch.object(r, 'write_new', side_effect=write_receipt):
                     if failure == 'render':
                         with patch.object(r, 'render', side_effect=OSError('view failed')), self.assertRaises(r.DerivedViewError):
                             r.advance(self.run, self.state)
