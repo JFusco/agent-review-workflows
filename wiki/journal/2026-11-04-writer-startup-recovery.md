@@ -1,5 +1,7 @@
 ---
 topics: [writer-startup-recovery]
+issue: 'https://github.com/jfusco/agent-review-workflows/issues/86'
+issues: ['https://github.com/jfusco/agent-review-workflows/issues/86']
 ---
 
 # Recover a writer that cannot start
