@@ -1,7 +1,8 @@
 ---
 topics: [plan-review-protocol]
 plans: [2026-11-08-repair-research-citation-validation-feedback-488b0fbd3f.md]
-issues: ['https://github.com/JFusco/agent-review-workflows/issues/95']
+issues: ['https://github.com/jfusco/agent-review-workflows/issues/95']
+issue: 'https://github.com/jfusco/agent-review-workflows/issues/95'
 ---
 # Research citation validation and retry feedback
 
