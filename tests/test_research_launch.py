@@ -50,7 +50,7 @@ class ResearchLaunchTests(unittest.TestCase):
         finish.assert_not_called()
         argv, cwd, *_ = execute.call_args.args
         self.assertEqual(cwd, Path(self.state['research_access']['scratch']))
-        for value in ('--ignore-user-config', 'gpt-6-astra', 'model_reasoning_effort="high"',
+        for value in ('--ignore-user-config', 'gpt-6.2-astra', 'model_reasoning_effort="high"',
                       'approval_policy="never"', 'default_permissions="plan-research"',
                       'permissions.plan-research.extends=":read-only"',
                       'permissions.plan-research.network.enabled=false', 'web_search="live"',

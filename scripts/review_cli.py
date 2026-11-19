@@ -53,16 +53,16 @@ PROVIDER_EFFORTS = {
 DEFAULT_PROFILES = {
     'review-plan': {
         'reviewer': {'model': 'claude-opus-5-5', 'effort': 'high'},
-        'coordinator': {'model': 'gpt-6-astra', 'effort': 'max'},
+        'coordinator': {'model': 'gpt-6.2-astra', 'effort': 'max'},
     },
     'review-implementation': {
         'reviewer': {'model': 'claude-opus-5-5', 'effort': 'high'},
-        'coordinator': {'model': 'gpt-6-astra', 'effort': 'max'},
-        'implementer': {'model': 'claude-opus-5-5', 'effort': 'high'},
+        'coordinator': {'model': 'gpt-6.2-astra', 'effort': 'max'},
+        'implementer': {'model': 'gpt-6.2-sol', 'effort': 'xhigh'},
     },
 }
 DEFAULT_PROFILES['review-diff'] = copy.deepcopy(DEFAULT_PROFILES['review-plan'])
-DEFAULT_PROFILES['review-plan']['researcher'] = {'model': 'gpt-6-astra', 'effort': 'high'}
+DEFAULT_PROFILES['review-plan']['researcher'] = {'model': 'gpt-6.2-astra', 'effort': 'high'}
 SCHEMA = json.loads((ROOT / 'schemas/response.json').read_text())
 RESEARCH_SCHEMA = json.loads((ROOT / 'schemas/research.json').read_text())
 VALIDATOR = Draft202012Validator(SCHEMA)

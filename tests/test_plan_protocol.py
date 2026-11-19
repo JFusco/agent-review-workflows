@@ -272,7 +272,7 @@ class PlanProtocolTests(unittest.TestCase):
         pending['plan_markdown'] = None
         response_file = self.root / 'response.json'
         response_file.write_text(r.dumps(pending))
-        self.cli('submit', '--response', str(response_file), '--model', 'gpt-6-astra', '--effort', 'max')
+        self.cli('submit', '--response', str(response_file), '--model', 'gpt-6.2-astra', '--effort', 'max')
         self.assertEqual((self.state['status'], self.state['round']), ('needs_user', 0))
         revision = self.state['handoff_revision']
         self.cli('decide', '--instruction', 'Use ValueError for an empty list.')
@@ -281,7 +281,7 @@ class PlanProtocolTests(unittest.TestCase):
         self.assert_rejected(pending)
         r.advance(self.run, self.state, external_coordinator=True)
         response_file.write_text(r.dumps(self.response()))
-        self.cli('submit', '--response', str(response_file), '--model', 'gpt-6-astra', '--effort', 'max')
+        self.cli('submit', '--response', str(response_file), '--model', 'gpt-6.2-astra', '--effort', 'max')
         self.assertEqual(self.state['stage'], 'recheck')
         self.accept(self.response())
         self.assertEqual(self.state['status'], 'complete')

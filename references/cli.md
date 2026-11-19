@@ -8,24 +8,24 @@ Review packets ask each role to act as a pragmatic, minimalist senior software a
 
 ## Agent profiles
 
-The ignored installation-local `runtime.local.json` may contain partial profiles under `skills.review-plan`, `skills.review-implementation`, and `skills.review-diff`. All modes support `reviewer` (Claude) and `coordinator` (Codex); implementation adds `implementer` (Claude by default), and new plan runs add `researcher` (Codex). Research procedure and permissions are defined in [required research](research.md). Each role accepts `model`, `effort`, and an optional ordered `fallbacks` list. Reviewer, coordinator, and researcher primary providers remain fixed. New implementer profiles route `claude-` model IDs to Claude and other IDs to Codex; the resolved provider is frozen with the profile. Reviewer fallbacks may use Claude or Codex; coordinator fallbacks use Codex. Implementation writers do not fall back.
+The ignored installation-local `runtime.local.json` may contain partial profiles under `skills.review-plan`, `skills.review-implementation`, and `skills.review-diff`. All modes support `reviewer` (Claude) and `coordinator` (Codex); implementation adds `implementer` (Codex by default), and new plan runs add `researcher` (Codex). Research procedure and permissions are defined in [required research](research.md). Each role accepts `model`, `effort`, and an optional ordered `fallbacks` list. Reviewer, coordinator, and researcher primary providers remain fixed. New implementer profiles route `claude-` model IDs to Claude and other IDs to Codex; the resolved provider is frozen with the profile. Reviewer fallbacks may use Claude or Codex; coordinator fallbacks use Codex. Implementation writers do not fall back.
 
 ```json
 {
   "skills": {
     "review-plan": {
-      "researcher": { "model": "gpt-6-astra", "effort": "high" },
+      "researcher": { "model": "gpt-6.2-astra", "effort": "high" },
       "reviewer": { "model": "claude-opus-5-5", "effort": "high" },
-      "coordinator": { "model": "gpt-6-astra", "effort": "max" }
+      "coordinator": { "model": "gpt-6.2-astra", "effort": "max" }
     },
     "review-diff": {
       "reviewer": { "model": "claude-opus-5-5", "effort": "high" },
-      "coordinator": { "model": "gpt-6-astra", "effort": "max" }
+      "coordinator": { "model": "gpt-6.2-astra", "effort": "max" }
     },
     "review-implementation": {
       "reviewer": { "model": "claude-opus-5-5", "effort": "high" },
-      "coordinator": { "model": "gpt-6-astra", "effort": "max" },
-      "implementer": { "model": "claude-opus-5-5", "effort": "high" }
+      "coordinator": { "model": "gpt-6.2-astra", "effort": "max" },
+      "implementer": { "model": "gpt-6.2-sol", "effort": "xhigh" }
     }
   }
 }
@@ -35,13 +35,15 @@ Those values are also the built-in defaults. Claude effort accepts `low`, `mediu
 
 At `start`, explicit `--reviewer-model` / `--reviewer-effort`, `--coordinator-model` / `--coordinator-effort`, plan-only `--researcher-model` / `--researcher-effort`, and implementation-only `--implementer-model` / `--implementer-effort` override the selected skill profile. Resolution is per field: start flag, then installation profile, then built-in default. The helper validates the entire local configuration before creating a run and stores the complete resolved profile in its state, original snapshot, status, packet, and handoff. Later edits or deletion of `runtime.local.json` never change that run or its resumed sessions. The separate `agent_fallbacks` snapshot freezes the fallback policy alongside the primary profile.
 
-The Opus 5.5 / `high` implementer default applies to new implementation runs. The `agent_providers` snapshot freezes provider routing in state and the original snapshot and exposes it in status, packets, and handoffs. Current saved runs without that snapshot retain their original Codex implementer and frozen model/effort; no artifacts are migrated. To select Sol 6.1 explicitly, configure `implementer.model` as `gpt-6.1-sol` and `implementer.effort` as `xhigh`, or pass `--implementer-model gpt-6.1-sol --implementer-effort xhigh`; effort retains per-field precedence. Claude writers reject Codex-only effort values before creating artifacts.
+For a difficult review, pass `--reviewer-model claude-fable-5-2 --reviewer-effort high` at `start`. The override applies to the reviewer role, including recheck when the workflow calls for one. Fable 5.2 requires [Claude Code 2.1.321 or later and account access](https://support.claude.com/en/articles/15424964-claude-fable-models-on-your-plan).
+
+The `agent_providers` snapshot freezes provider routing in state and the original snapshot and exposes it in status, packets, and handoffs. Saved runs retain their frozen model and effort. Runs without a provider snapshot retain their original Codex implementer. To select the previous Claude writer for a new run, pass `--implementer-model claude-opus-5-5 --implementer-effort high` or set both fields in the installation profile. Claude writers reject Codex-only effort values before creating artifacts.
 
 ## Recorded model fallback
 
 New runs default to a 1800-second (30-minute) timeout for each model call and configured check. `start --timeout SECONDS` overrides it from 1 to 14400 seconds. `retry RUN --timeout SECONDS` resets a blocked read-only stage and sets the run's per-call timeout for all later model calls and checks, within the same bounds, recording the change in `handoff.md`. Each fallback call gets the same timeout; the finite candidate list bounds total attempts. Existing runs keep their saved timeout and candidates; runs predating this feature have no fallback candidates. Contract correction applies to every current-protocol run and uses only its frozen candidates. Start a new run to use the new defaults; never edit saved state to retrofit them.
 
-New reviewer runs default to Claude Opus 5.5 / `high`, then Codex Astra 6 / `max`. Coordinators default to Codex Astra 6 / `max`, then Codex Sol 6.1 / `xhigh`. Fallback selections persist for the role through later stages and recovery. Capacity failures, timeouts, and incomplete `max_output_tokens` responses are eligible. A read-only response rejected by the stage contract is re-dispatched once per selected candidate with the rejection reason appended to the prompt; a second rejection selects the next candidate or blocks. `retry` repeats the latest rejection reason for that stage and revision from the separate rejection history, without replenishing the automatic correction budget. See [research recovery](research.md#acceptance-reuse-and-recovery) for saved-run compatibility. Other extraction errors, such as an unexpected model or session, never trigger correction. The writer retains its frozen primary configuration and never automatically retries. Review and coordination always use independent sessions, including when they select the same model.
+The built-in read-only fallbacks are Codex Astra 6 / `max` for the reviewer and Codex Sol 6.1 / `xhigh` for the coordinator. Fallback selections persist for the role through later stages and recovery. Capacity failures, timeouts, and incomplete `max_output_tokens` responses are eligible. A read-only response rejected by the stage contract is re-dispatched once per selected candidate with the rejection reason appended to the prompt; a second rejection selects the next candidate or blocks. `retry` repeats the latest rejection reason for that stage and revision from the separate rejection history, without replenishing the automatic correction budget. See [research recovery](research.md#acceptance-reuse-and-recovery) for saved-run compatibility. Other extraction errors, such as an unexpected model or session, never trigger correction. The writer retains its frozen primary configuration and never automatically retries. Review and coordination always use independent sessions, including when they select the same model.
 
 Override a role's ordered fallback list in `runtime.local.json`, for example:
 

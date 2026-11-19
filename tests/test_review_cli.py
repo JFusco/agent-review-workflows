@@ -1109,8 +1109,8 @@ class ReviewTests(unittest.TestCase):
     def test_default_profile_is_frozen_into_new_runs(self):
         expected = {
             'reviewer': {'model': 'claude-opus-5-5', 'effort': 'high'},
-            'coordinator': {'model': 'gpt-6-astra', 'effort': 'max'},
-            'implementer': {'model': 'claude-opus-5-5', 'effort': 'high'},
+            'coordinator': {'model': 'gpt-6.2-astra', 'effort': 'max'},
+            'implementer': {'model': 'gpt-6.2-sol', 'effort': 'xhigh'},
         }
         self.assertEqual(self.state['schema_version'], 2)
         self.assertEqual(self.state['implementation_evidence_version'], 2)
@@ -1126,11 +1126,14 @@ class ReviewTests(unittest.TestCase):
         run, state = r.initialize(args)
         expected = {
             'reviewer': {'model': 'claude-opus-5-5', 'effort': 'high'},
-            'coordinator': {'model': 'gpt-6-astra', 'effort': 'max'},
-            'researcher': {'model': 'gpt-6-astra', 'effort': 'high'},
+            'coordinator': {'model': 'gpt-6.2-astra', 'effort': 'max'},
+            'researcher': {'model': 'gpt-6.2-astra', 'effort': 'high'},
         }
         self.assertEqual(state['agent_profile'], expected)
         self.assertEqual(r.read_json(run/'original.json')['agent_profile'], expected)
+        self.start_diff()
+        del expected['researcher']
+        self.assertEqual(self.state['agent_profile'], expected)
 
     def test_implementer_commands_use_frozen_new_default(self):
         self.to_repair()
@@ -1143,13 +1146,36 @@ class ReviewTests(unittest.TestCase):
                     state['sessions']['sol'] = session
                     r.save(self.run, state)
                     argv = r.cli_argv(r.read_json(self.run/'state.json'), self.run)
-                    self.assertEqual(argv[argv.index('--model')+1], 'claude-opus-5-5')
-                    self.assertEqual(argv[argv.index('--effort')+1], 'high')
-                    self.assertEqual('--resume' in argv, session is not None)
+                    self.assertEqual(argv[argv.index('--model')+1], 'gpt-6.2-sol')
+                    self.assertIn('model_reasoning_effort="xhigh"', argv)
+                    self.assertIn('sandbox_mode="workspace-write"', argv)
+                    self.assertIn('sandbox_workspace_write.network_access=false', argv)
+                    self.assertEqual('resume' in argv, session is not None)
                     if session:
-                        self.assertEqual(argv[-2:], ['--resume', session])
+                        self.assertEqual(argv[-2:], [session, '-'])
+
+    def test_fable_override_is_frozen_for_independent_claude_stages(self):
+        args = copy.deepcopy(self.args)
+        args.reviewer_model = 'claude-fable-5-2'
+        args.reviewer_effort = 'high'
+        run, state = r.initialize(args)
+        self.assertEqual(r.read_json(run / 'original.json')['agent_profile']['reviewer'],
+                         {'model': 'claude-fable-5-2', 'effort': 'high'})
+        for stage in ('review', 'recheck'):
+            with self.subTest(stage=stage):
+                state['stage'] = stage
+                self.assertEqual(r.agent_provider(state, 'opus'), 'claude')
+                argv = r.cli_argv(state, run)
+                self.assertEqual(argv[argv.index('--model') + 1], 'claude-fable-5-2')
+                self.assertEqual(argv[argv.index('--effort') + 1], 'high')
+                self.assertEqual(argv[argv.index('--tools') + 1], 'Read,Glob,Grep')
+                self.assertEqual(argv[argv.index('--permission-mode') + 1], 'plan')
 
     def test_claude_writer_permissions_and_independent_session(self):
+        args = copy.deepcopy(self.args)
+        args.implementer_model = 'claude-opus-5-5'
+        args.implementer_effort = 'high'
+        self.run, self.state = r.initialize(args)
         self.to_repair()
         reviewer_session = '11111111-1111-4111-8111-111111111111'
         self.state['sessions']['opus'] = reviewer_session
@@ -1182,6 +1208,10 @@ class ReviewTests(unittest.TestCase):
             self.assertNotIn('permissions', json.loads(argv[argv.index('--settings') + 1]))
 
     def test_repair_check_instructions_follow_writer_provider(self):
+        args = copy.deepcopy(self.args)
+        args.implementer_model = 'claude-opus-5-5'
+        args.implementer_effort = 'high'
+        self.run, self.state = r.initialize(args)
         self.to_repair()
         def header(state):
             text = r.prompt(state)
@@ -1204,8 +1234,8 @@ class ReviewTests(unittest.TestCase):
     def test_writer_provider_snapshot_and_legacy_routing(self):
         for view in (self.state, r.read_json(self.run / 'original.json'),
                      r.packet(self.state), r.status_payload(self.run, self.state)):
-            self.assertEqual(view['agent_providers']['implementer'], 'claude')
-        self.assertIn('Implementer (Claude): claude-opus-5-5 (high)', (self.run / 'handoff.md').read_text())
+            self.assertEqual(view['agent_providers']['implementer'], 'codex')
+        self.assertIn('Implementer (Codex): gpt-6.2-sol (xhigh)', (self.run / 'handoff.md').read_text())
         self.state['agent_profile']['implementer'] = {'model': 'gpt-6.1-sol', 'effort': 'xhigh'}
         del self.state['agent_providers']
         self.state['stage'] = 'repair'
@@ -1218,6 +1248,7 @@ class ReviewTests(unittest.TestCase):
 
     def test_claude_writer_rejects_effort_before_artifacts(self):
         args = copy.deepcopy(self.args)
+        args.implementer_model = 'claude-opus-5-5'
         args.implementer_effort = 'ultra'
         before = set((self.root / 'runs').iterdir())
         with self.assertRaisesRegex(r.ReviewError, 'effort must be one of'):
@@ -1225,6 +1256,10 @@ class ReviewTests(unittest.TestCase):
         self.assertEqual(set((self.root / 'runs').iterdir()), before)
 
     def test_claude_writer_auth_and_host_reviewer_guard(self):
+        args = copy.deepcopy(self.args)
+        args.implementer_model = 'claude-opus-5-5'
+        args.implementer_effort = 'high'
+        self.run, self.state = r.initialize(args)
         self.to_repair()
         command = r.command
         def logged_out(argv, *args, **kwargs):
@@ -1246,7 +1281,7 @@ class ReviewTests(unittest.TestCase):
         state['schema_version'] = 2
         r.save(run, state)
         self.assertEqual(state['schema_version'], 2)
-        self.assertEqual(r.DEFAULT_PROFILES['review-implementation']['implementer']['model'], 'claude-opus-5-5')
+        self.assertEqual(r.DEFAULT_PROFILES['review-implementation']['implementer']['model'], 'gpt-6.2-sol')
         original_bytes = (run/'original.json').read_bytes()
         for session in (None, '11111111-1111-4111-8111-111111111111'):
             with self.subTest(session=session):
@@ -1269,7 +1304,7 @@ class ReviewTests(unittest.TestCase):
     def test_explicit_sol_six_implementer_overrides_retain_precedence(self):
         config_path = self.root/'runtime.local.json'
         for configured, override, expected in (
-            ({'model': 'gpt-6-sol'}, {}, {'model': 'gpt-6-sol', 'effort': 'high'}),
+            ({'model': 'gpt-6-sol'}, {}, {'model': 'gpt-6-sol', 'effort': 'xhigh'}),
             ({'model': 'gpt-6.1-sol', 'effort': 'high'}, {'model': 'gpt-6-sol'},
              {'model': 'gpt-6-sol', 'effort': 'high'}),
             ({'model': 'gpt-6.1-sol', 'effort': 'high'}, {'model': 'gpt-6-sol', 'effort': 'xhigh'},
@@ -1312,7 +1347,7 @@ class ReviewTests(unittest.TestCase):
         self.assertEqual(plan_state['agent_profile'], {
             'reviewer': {'model': 'claude-plan-reviewer', 'effort': 'medium'},
             'coordinator': {'model': 'gpt-run-override', 'effort': 'max'},
-            'researcher': {'model': 'gpt-6-astra', 'effort': 'high'},
+            'researcher': {'model': 'gpt-6.2-astra', 'effort': 'high'},
         })
         self.assertEqual(implementation_state['agent_profile']['reviewer']['model'],
                          'claude-implementation-reviewer')
