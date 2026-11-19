@@ -1,7 +1,8 @@
 ---
 topics: [review-agent-profiles]
 plans: [2026-11-19-refresh-default-review-model-profiles-6c5e5fc575.md]
-issues: ['https://github.com/JFusco/agent-review-workflows/issues/102']
+issues: ['https://github.com/jfusco/agent-review-workflows/issues/102']
+issue: 'https://github.com/jfusco/agent-review-workflows/issues/102'
 ---
 
 # Refresh default review model profiles
