@@ -51,13 +51,13 @@ class PlanResearchTests(unittest.TestCase):
             run, state = r.initialize(self.args)
         self.assertEqual((state['schema_version'], state['plan_protocol_version'],
                           state['research_contract_version'], state['stage']), (3, 2, 1, 'research'))
-        self.assertEqual(state['agent_profile']['researcher'], {'model': 'gpt-6-astra', 'effort': 'high'})
+        self.assertEqual(state['agent_profile']['researcher'], {'model': 'gpt-6.2-astra', 'effort': 'high'})
         self.assertEqual(state['agent_fallbacks']['researcher'], [])
         self.assertFalse(list((run / 'calls').iterdir()))
         self.assertIn('required; awaiting research', (run / 'handoff.md').read_text())
         self.assertEqual(r.read_json(run / 'original.json')['research_contract_version'], 1)
         with patch.object(r, 'load_runtime_config', side_effect=AssertionError('Frozen settings only')):
-            self.assertEqual(r.agent_settings(state, 'researcher'), ('gpt-6-astra', 'high'))
+            self.assertEqual(r.agent_settings(state, 'researcher'), ('gpt-6.2-astra', 'high'))
 
     def test_precedence_and_mode_specific_configuration(self):
         r.RUNTIME_CONFIG.write_text(r.dumps({'skills': {'review-plan': {

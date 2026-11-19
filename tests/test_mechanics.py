@@ -156,7 +156,7 @@ class MechanicsTests(MechanicsFixture, unittest.TestCase):
         r.write_new(response_path, data)
         request_bytes = (self.run/'external-request.json').read_bytes()
         with patch.object(r, 'execute_process') as execute:
-            self.cli('submit', '--response', str(response_path), '--model', 'gpt-6-astra', '--effort', 'max')
+            self.cli('submit', '--response', str(response_path), '--model', 'gpt-6.2-astra', '--effort', 'max')
         execute.assert_not_called()
         self.assertEqual(r.read_json(self.run/'state.json')['status'], 'complete')
         self.assertEqual((self.run/'external-request.json').read_bytes(), request_bytes)
@@ -266,7 +266,7 @@ class MechanicsTests(MechanicsFixture, unittest.TestCase):
         self.assertIn('No findings', (self.run/'final.md').read_text())
         for action in ('retry', 'rerun-checks', 'reconcile', 'decide', 'submit'):
             extra = {'reconcile': ['--note', 'Inspected'], 'decide': ['--instruction', 'Actual decision'],
-                     'submit': ['--response', str(self.root/'missing'), '--model', 'gpt-6-astra', '--effort', 'max']}.get(action, [])
+                     'submit': ['--response', str(self.root/'missing'), '--model', 'gpt-6.2-astra', '--effort', 'max']}.get(action, [])
             with self.subTest(action=action), self.assertRaises(SystemExit):
                 self.cli(action, *extra)
         self.assertEqual(saved, (self.run/'state.json').read_bytes())
@@ -328,8 +328,8 @@ class MechanicsTests(MechanicsFixture, unittest.TestCase):
         data = self.response()
         response = self.root/'external-finalize.json'
         r.write_new(response, data)
-        self.cli('submit', '--response', str(response), '--model', 'gpt-6-astra', '--effort', 'max')
-        self.assertEqual(r.read_json(self.run/'state.json')['ledger'][-1]['agent']['model'], 'gpt-6-astra')
+        self.cli('submit', '--response', str(response), '--model', 'gpt-6.2-astra', '--effort', 'max')
+        self.assertEqual(r.read_json(self.run/'state.json')['ledger'][-1]['agent']['model'], 'gpt-6.2-astra')
         self.assertEqual(saved_original, (self.run/'original.json').read_bytes())
 
     def test_render_failure_after_provider_keeps_local_tail_ready(self):
@@ -752,15 +752,15 @@ class CollectionTests(MechanicsFixture, unittest.TestCase):
 
     def test_attempts_acceptance_provenance_and_individual_usage(self):
         agents = [{'model': 'claude-opus-5-5', 'effort': 'high', 'observed': {'source': 'Claude modelUsage', 'model': 'different'}},
-                  {'model': 'gpt-6-astra', 'effort': 'max', 'observed': {'source': 'not exposed by CLI output', 'model': None}},
-                  {'model': 'gpt-6-astra', 'effort': 'max', 'observed': {'source': 'caller attestation; not provider-verified'}},
+                  {'model': 'gpt-6.2-astra', 'effort': 'max', 'observed': {'source': 'not exposed by CLI output', 'model': None}},
+                  {'model': 'gpt-6.2-astra', 'effort': 'max', 'observed': {'source': 'caller attestation; not provider-verified'}},
                   {'model': 'local-finalizer'}, {'model': 'local-checks'}, {'model': 'operator'},
                   {'model': 'fixture', 'observed': {'source': 'fixture'}}, {'model': 'unknown'}]
         self.state['ledger'] = [{'stage': 'same-stage', 'agent': a} for a in agents]
         r.save(self.run, self.state)
         for name, argv, output in [('001', ['claude', '--model', 'requested', '--effort', 'high'], {'usage': {'input_tokens': 5, 'output_tokens': 2}, 'total_cost_usd': 0.2, 'modelUsage': {'observed': {'inputTokens': 5, 'costUSD': 0.2}}}),
                  ('002', ['claude', '--resume', 'session', '--model', 'requested'], {'usage': {'input_tokens': 20}, 'total_cost_usd': 0.8}),
-                 ('003', ['codex', 'exec', 'resume', '--model', 'gpt-6-astra', '-c', 'model_reasoning_effort="max"'], None)]:
+                 ('003', ['codex', 'exec', 'resume', '--model', 'gpt-6.2-astra', '-c', 'model_reasoning_effort="max"'], None)]:
             call = self.run/'calls'/name
             r.write_new(call/'invocation.json', {'argv': argv})
             if name != '002':

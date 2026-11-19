@@ -9,7 +9,7 @@ Schema-2 plan runs retain their two-role profiles and original routing, labeled
 
 ## Configuration and permissions
 
-The provisional researcher default is `gpt-6-astra` / `high`. Resolve model and
+See the [agent profile](cli.md#agent-profiles) for the researcher default. Resolve model and
 effort per field using start flags, installation-local `review-plan.researcher`,
 then defaults. The frozen profile appears in the original snapshot, packets,
 status, and handoff. `--researcher-model` and `--researcher-effort` are plan-only.

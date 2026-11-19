@@ -192,7 +192,7 @@ class CodexLaunchTests(MechanicsFixture, unittest.TestCase):
     def test_guard_dispatches_selected_readonly_role_once_without_tail(self):
         def extract(state, call_dir):
             self.state = state
-            return self.response([]), None, {'model': 'gpt-6-astra', 'effort': 'max', 'observed': {'source': 'fixture'}}
+            return self.response([]), None, {'model': 'gpt-6.2-astra', 'effort': 'max', 'observed': {'source': 'fixture'}}
         with patch.object(r, 'execute_process') as execute, patch.object(r, 'extract_response', side_effect=extract), \
                 patch.object(r, 'finish_local') as finish, patch.object(r, 'perform_checks') as checks:
             self.command('step', '--codex-read-only')
@@ -201,7 +201,7 @@ class CodexLaunchTests(MechanicsFixture, unittest.TestCase):
         for setting in ('sandbox_mode="read-only"', 'approval_policy="never"', 'agents.enabled=false',
                         'sandbox_workspace_write.network_access=false', 'sandbox_workspace_write.writable_roots=[]'):
             self.assertIn(setting, argv)
-        self.assertEqual(argv[argv.index('--model')+1], 'gpt-6-astra')
+        self.assertEqual(argv[argv.index('--model')+1], 'gpt-6.2-astra')
         self.assertIn('model_reasoning_effort="max"', argv)
         finish.assert_not_called()
         checks.assert_not_called()

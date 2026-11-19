@@ -1,33 +1,34 @@
 # Review agent profiles
 
 [JFusco/agent-review-workflows issue #7](https://github.com/JFusco/agent-review-workflows/issues/7)
-defines the configurable model and effort contract for `review-plan` and
-`review-implementation`. Configuration is installation-local in ignored
-`runtime.local.json`; explicit `start` flags override that file, and missing
-fields inherit Opus 5.5 High for independent review and implementation, and
-Astra 6 Max for coordination. The previous Sol 6.1 default was introduced in
-[JFusco/agent-review-workflows issue #30](https://github.com/JFusco/agent-review-workflows/issues/30).
+defines the configurable model and effort contract. Plan, implementation, and
+diff reviews share the profile resolution rules in the
+[CLI procedure](../../references/cli.md#agent-profiles).
 
-Profiles use functional roles rather than model names. Both skills have a
-Claude `reviewer` and Codex `coordinator`; only implementation review has a
-separate Claude `implementer` by default. Explicit Codex writer selections remain
-supported. New runs freeze provider routing in `agent_providers`; older runs
-without that snapshot retain their original Codex writer. Read/write permissions, target
-fingerprints, handoff revisions, bounded passes, and the single-writer rule are
-not configurable. The [Opus writer journal](../journal/2026-11-08-opus-implementer.md)
-records the new default and scoped Claude permissions. Read-only fallback routing follows the bounded frozen policy in
-the [CLI procedure](../../references/cli.md#recorded-model-fallback).
+[Issue #102](https://github.com/JFusco/agent-review-workflows/issues/102) selects
+Astra 6.2 High for plan research, Astra 6.2 Max for coordination, and Sol 6.2
+XHigh for scoped repair. Opus 5.5 High remains the routine independent reviewer.
+Fable 5.2 High is a per-run reviewer choice for difficult work. The
+[model refresh journal](../journal/2026-11-19-review-model-profiles.md) records the
+rationale and verification boundary.
+
+New runs freeze provider routing in `agent_providers`. The reviewer uses Claude;
+research and coordination use Codex. Implementation defaults to a Codex writer
+and supports explicitly selecting a Claude writer. The
+[Opus writer journal](../journal/2026-11-08-opus-implementer.md) records the
+previous default and the Claude writer permission scope. The
+[CLI procedure](../../references/cli.md#recorded-model-fallback) owns read-only
+fallback policy.
 
 ## Resolution and persistence
 
 The helper validates the entire local JSON shape before creating run artifacts.
 Each field resolves from an explicit start override, then the selected skill's
 local profile, then the built-in default. The complete result is stored in a
-version-2 run's state and original snapshot and is exposed in status, packets,
-handoffs, and receipts. Later configuration edits or deletion cannot alter a
-run or its resumed sessions. Updating the helper also preserves these stored
-profiles: existing Sol 6 runs continue to use Sol 6. An explicit installation or
-per-run `gpt-6-sol` selection still takes precedence over the new default.
+run's state and original snapshot and is exposed in status, packets, handoffs,
+and receipts. Later configuration or built-in default changes preserve stored
+profiles for existing runs. Runs that predate provider snapshots retain their
+historical Codex writer routing.
 
 Saved runs missing current protocol markers stop before dispatch. Existing current
 runs retain their saved primary profile and timeout, and have no fallback when
@@ -64,13 +65,11 @@ and the one-writer limit.
 
 ## Evidence policy
 
-Deterministic fixtures cover configuration precedence, freezing, malformed
-input, initial and resumed arguments, exact external submission, installer
-preservation, legacy recovery, and unchanged permission boundaries. Existing
-provider-backed validation records the historical Sol 6 profile. The Sol 6.1
-default change has deterministic configuration and compatibility coverage only;
-neither those fixtures nor the earlier trials establish Sol 6.1 provider
-execution or repair quality. See the [validation record](../../VALIDATION.md).
+Deterministic fixtures cover configuration precedence, frozen profiles,
+provider routing, exact startup arguments, legacy recovery, and permission
+boundaries. The profile refresh tests verify dispatch configuration. Model
+availability, runtime behavior, and review quality require live evidence. See the
+[validation record](../../VALIDATION.md) for historical trials.
 
 ## Reviewer authentication context
 
