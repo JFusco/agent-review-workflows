@@ -72,6 +72,7 @@ MAX_TIMEOUT = 14400  # Per-call seconds; long reasoning stages may need hours, n
 MAX_BYTES = 4 * 1024 * 1024  # Bounded packet; fail visibly, never truncate a plan or source.
 INLINE_BYTES = 900000  # Conservative margin below the observed native character cap.
 EXCLUDED = {'.git', '.venv', 'node_modules', '__pycache__', '.next', 'dist', 'build'}
+NON_GIT_FILE_LIMIT = 20000
 STAGES = {
     'plan': {'research', 'review', 'adjudicate', 'recheck', 'finalize'},
     'implementation': {'review', 'adjudicate', 'repair', 'recheck', 'finalize'},
@@ -375,8 +376,9 @@ def project_files(project):
     else:
         names = sorted(str(p.relative_to(project)) for p in project.rglob('*')
                        if not any(x in EXCLUDED for x in p.relative_to(project).parts) and (p.is_file() or p.is_symlink()))
-    if len(names) > 20000:
-        raise ReviewError('Project inventory exceeds 20,000 files. Select a smaller standalone project.')
+        # Git bounds its own listing; only the unbounded directory walk needs a ceiling.
+        if len(names) > NON_GIT_FILE_LIMIT:
+            raise ReviewError('Project inventory exceeds 20,000 files. Select a smaller standalone project.')
     return names
 
 
