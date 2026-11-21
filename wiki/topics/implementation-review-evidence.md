@@ -85,6 +85,11 @@ sets in an immutable revision artifact, and increments the handoff revision so
 older model output is stale. It never changes configured commands, findings,
 the repair count, or the target.
 
+The project inventory has no file-count limit for a Git project, whose listing
+Git already bounds; the 20,000-file ceiling applies only to the non-Git
+directory walk. See the
+[inventory limit journal](../journal/2026-11-20-git-inventory-limit.md).
+
 When failed checks are the sole reason finalization is unresolved, a fully
 passing rerun makes that same finalization ready and completes it locally for
 version 3. Other blocked or unresolved

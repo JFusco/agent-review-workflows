@@ -2136,4 +2136,20 @@ class ReviewTests(unittest.TestCase):
         self.assertEqual(r.packet(saved)['timeout'], 7200)
 
 
+class InventoryLimitTests(unittest.TestCase):
+    def test_file_limit_applies_only_outside_git(self):
+        with tempfile.TemporaryDirectory() as temp:
+            for name in ('repo', 'plain'):
+                project = Path(temp).resolve()/name
+                project.mkdir()
+                for index in range(3):
+                    (project/f'{index}.txt').write_text('x')
+            repo, plain = Path(temp).resolve()/'repo', Path(temp).resolve()/'plain'
+            subprocess.run(['git', 'init', '-q', str(repo)], check=True)
+            with patch.object(r, 'NON_GIT_FILE_LIMIT', 2):
+                self.assertEqual(r.project_files(repo), ['0.txt', '1.txt', '2.txt'])
+                with self.assertRaisesRegex(r.ReviewError, 'Project inventory exceeds'):
+                    r.project_files(plain)
+
+
 if __name__=='__main__': unittest.main()
