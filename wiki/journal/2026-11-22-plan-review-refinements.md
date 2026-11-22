@@ -1,7 +1,8 @@
 ---
 topics: [plan-review-protocol]
 plans: [2026-11-22-catch-plan-review-gaps-before-recheck-b30b53f407.md]
-issues: [https://github.com/JFusco/agent-review-workflows/issues/107]
+issues: ['https://github.com/jfusco/agent-review-workflows/issues/107']
+issue: 'https://github.com/jfusco/agent-review-workflows/issues/107'
 ---
 # Plan refinements and independent recheck
 
