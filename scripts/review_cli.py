@@ -7,6 +7,7 @@ from collections import Counter
 import contextlib
 import copy
 from datetime import datetime, timezone
+from difflib import unified_diff
 import fcntl
 import hashlib
 import json
@@ -70,6 +71,8 @@ VALIDATOR = Draft202012Validator(SCHEMA)
 PROVIDER_SCHEMA = {k: v for k, v in SCHEMA.items() if k != '$schema'}
 MAX_TIMEOUT = 14400  # Per-call seconds; long reasoning stages may need hours, never unbounded.
 MAX_BYTES = 4 * 1024 * 1024  # Bounded packet; fail visibly, never truncate a plan or source.
+MAX_PLAN_DIFF_BYTES = 128 * 1024
+MAX_PLAN_DIFF_LINES = 2000
 INLINE_BYTES = 900000  # Conservative margin below the observed native character cap.
 EXCLUDED = {'.git', '.venv', 'node_modules', '__pycache__', '.next', 'dist', 'build'}
 NON_GIT_FILE_LIMIT = 20000
@@ -869,7 +872,48 @@ def evidence_catalog(state):
     return result
 
 
-def packet(state):
+def plan_revision_diff(run, state):
+    """Compare the accepted refinement with the snapshot it replaced."""
+    ledger = state['ledger']
+    if len(ledger) < 2 or ledger[-1]['stage'] != 'adjudicate':
+        raise ReviewError('Plan recheck requires an accepted refinement and its parent snapshot.')
+    previous, current = ledger[-2:]
+    if (current['parent_artifact_id'] != previous['artifact_id'] or
+            current['target_before'] != previous['target_after'] or
+            current['target_after'] != state['target_fingerprint']):
+        raise ReviewError('Plan refinement snapshots do not match the current handoff.')
+    plans = []
+    for entry in (previous, current):
+        artifact_id = entry['artifact_id']
+        if not re.fullmatch(r'revision-[0-9]{3,}', artifact_id):
+            raise ReviewError('Invalid plan refinement snapshot ID.')
+        path = run / 'artifacts' / (artifact_id + '.json')
+        if path.resolve() != path:
+            raise ReviewError('Plan refinement snapshots cannot use symlinks.')
+        artifact = read_json(path)
+        saved_target = artifact.get('target') if isinstance(artifact, dict) else None
+        if (not isinstance(saved_target, dict) or not isinstance(saved_target.get('plan'), str) or
+                artifact.get('run_id') != state['run_id'] or artifact.get('artifact_id') != artifact_id or
+                digest(saved_target) != entry['target_after']):
+            raise ReviewError('Plan refinement snapshot does not match its saved fingerprint.')
+        plans.append(saved_target['plan'])
+
+    before, after = plans
+    result = {'before': previous['artifact_id'], 'after': current['artifact_id'], 'unified_diff': ''}
+    if before == after:
+        return result
+    old_lines, new_lines = (plan.splitlines(keepends=True) for plan in plans)
+    if len(old_lines) + len(new_lines) > MAX_PLAN_DIFF_LINES:
+        return {**result, 'unified_diff': None, 'reason': 'Plan revisions exceed the supplemental diff limit.'}
+    lines = unified_diff(old_lines, new_lines, fromfile=result['before'], tofile=result['after'])
+    diff = ''.join(line if line.endswith('\n') else line + '\n\\ No newline at end of file\n' for line in lines)
+    if len(diff.encode()) > MAX_PLAN_DIFF_BYTES:
+        return {**result, 'unified_diff': None, 'reason': 'Plan diff exceeds the supplemental diff limit.'}
+    result['unified_diff'] = diff
+    return result
+
+
+def packet(state, *, run=None):
     result = {'schema_version': state['schema_version'],
             'run_id': state['run_id'], 'mode': state['mode'], 'stage': state['stage'],
             'handoff_revision': state['handoff_revision'],
@@ -889,6 +933,8 @@ def packet(state):
         result['plan_protocol_version'] = 2
         result['research_contract_version'] = state.get('research_contract_version')
         result['research'] = accepted_research(state) if research_required(state) else 'unrecorded'
+        if state['stage'] == 'recheck' and run is not None:
+            result['plan_revision'] = plan_revision_diff(run, state)
     if implementation_response_v2(state):
         result['implementation_response_version'] = 2
     if collapsed_implementation(state) and state['stage'] == 'repair':
@@ -896,7 +942,7 @@ def packet(state):
     return result
 
 
-def prompt(state):
+def prompt(state, *, run=None):
     if state['stage'] == 'research':
         return research_prompt(state)
     plan_v2 = collapsed_plan(state)
@@ -950,8 +996,10 @@ def prompt(state):
                           'refined plan incorporating accepted corrections. Every substantive change must correspond '
                           'to an accepted finding. If all findings are rejected or already passed, return plan_markdown '
                           'null and preserve the current plan. Never implement code or write the plan file.',
-            'recheck': 'Independently verify each accepted finding against current evidence. Also assess the whole '
-                       'revised plan for requirement loss, contradictions, and newly introduced gaps. '
+            'recheck': 'Independently verify each accepted finding against current evidence. Use the plan revision '
+                       'diff, when available, to trace new or changed decisions through affected interfaces, '
+                       'callers, repository constraints, and planned verification. Also assess the whole revised plan '
+                       'for requirement loss, contradictions, and material gaps. '
                        'Return verification assessments for accepted findings only and report new gaps separately.',
         })
     finding_instructions = (
@@ -1020,7 +1068,14 @@ def prompt(state):
                    'Do not execute project code or test commands during plan review.\n')
         if state['stage'] == 'adjudicate':
             header += ('When producing a refined plan, use a clean, actionable checklist of exact edits and '
-                       'necessary verification; preserve sound decisions.\n')
+                       'necessary verification; preserve sound decisions. Before returning it, trace each material '
+                       'change through its owning component, affected interfaces and callers, applicable repository '
+                       'constraints, and the verification that distinguishes the planned behavior from the current '
+                       'behavior. Resolve any resulting gap within the accepted scope.\n')
+        header += ('For each new finding, explain the concrete consequence of leaving the plan as written, such as '
+                   'a violated requirement, an incompatible interface, or a test that can pass without proving the '
+                   'intended behavior. Put optional preferences in the summary. Severity alone does not establish '
+                   'whether a gap requires action.\n')
         header += ('Assess requirement completeness, relevant behavior and interfaces, failure handling, '
                    'assumptions, and observable acceptance criteria. Identify material unresolved user choices. '
                    'Do not add boilerplate for concerns that do not apply.\n')
@@ -1030,13 +1085,19 @@ def prompt(state):
                    'file path, optionally followed by :line or :start-end. BLOCKER, WARN, and SUGGESTION are the only '
                    'severity values. Locate the defect in the reviewed change, provide concrete evidence, recommend the '
                    'smallest correction, and state an observable acceptance check.\n')
-    result = header + '\nCURRENT HANDOFF\n' + dumps(packet(state))
+    handoff = packet(state, run=run)
+    suffix = ''
     if plan_v2 or compact_repair:
-        result += '\nRESPONSE SCHEMA\n' + dumps(provider_schema(state))
+        suffix += '\nRESPONSE SCHEMA\n' + dumps(provider_schema(state))
     rejection = current_rejection(state)
     if rejection:
-        result += ('\nPREVIOUS RESPONSE REJECTED\n' + rejection['reason'] +
+        suffix += ('\nPREVIOUS RESPONSE REJECTED\n' + rejection['reason'] +
                    '\nReturn a corrected complete response for this same handoff.\n')
+    prefix = header + '\nCURRENT HANDOFF\n'
+    result = prefix + dumps(handoff) + suffix
+    if len(result.encode()) > MAX_BYTES and handoff.get('plan_revision', {}).get('unified_diff'):
+        handoff['plan_revision'].update(unified_diff=None, reason='Supplemental diff would exceed the handoff limit.')
+        result = prefix + dumps(handoff) + suffix
     if len(result.encode()) > MAX_BYTES:
         raise ReviewError('Full handoff exceeds 4 MiB; narrow the review scope. Nothing was truncated.')
     return result
@@ -2336,7 +2397,7 @@ def advance(run, state, external_coordinator=False, reviewer_only=False, codex_r
             write_new(call_dir / 'provider-schema.json', provider_schema(state))
             write_new(call_dir / 'agent.json', agent_candidate(state, role(state)))
             argv = cli_argv(state, call_dir)
-            content = prompt(state) + '\nProject source is at: ' + state['project'] + '\n'
+            content = prompt(state, run=run) + '\nProject source is at: ' + state['project'] + '\n'
             cwd = provider_cwd(state, run, call_dir, content)
             execute_process(argv, cwd, content, call_dir, state['timeout'])
             try:

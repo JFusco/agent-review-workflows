@@ -53,6 +53,10 @@ Each new finding requires `severity`, `location`, `evidence`,
 and `SUGGESTION`; the remaining fields are nonblank prose. Locate the gap in the
 plan and ground it in the requirements or current source. Acceptance checks assess
 the document's specified behavior and future verification, not executed repairs.
+Explain what would go wrong if the plan stayed as written. A finding may warrant
+action because of a violated repository constraint, a broken caller, or a test
+that can pass without proving the intended behavior. Put optional preferences in
+the stage summary. Severity alone does not determine whether a gap requires action.
 
 New adjudication findings additionally require `disposition` (`ACCEPTED`,
 `REJECTED`, or `PENDING_USER`) and a nonblank `rationale`. Review and recheck
@@ -76,6 +80,9 @@ The coordinator always assesses the complete plan, including after a clean revie
 Check requirement completeness, relevant behavior and interfaces, failure
 handling, assumptions, and observable acceptance criteria. Introduce only
 evidence-backed, in-scope findings and avoid irrelevant boilerplate.
+Before submitting a refinement, trace each material change through its owning
+component, affected interfaces and callers, applicable repository constraints, and
+verification that distinguishes the new behavior from the current behavior.
 
 `plan_markdown` is required and its value follows the normalized findings:
 
@@ -100,10 +107,17 @@ exact current `evidence_catalog` keys, such as `PLAN:current`; line annotations
 belong in the nonblank rationale. `PASSED` requires at least one current reference
 and an explanation of how the plan satisfies the acceptance criterion.
 
-Also examine the whole revised plan for requirement loss, contradictions, and new
-gaps. Report these through `new_findings`. A passing recheck establishes that the
-document addresses the objections; it never claims future implementation or tests
-have passed.
+Use the `plan_revision` diff to trace new and changed decisions through the
+affected interfaces, callers, constraints, and verification. The helper derives
+the diff from the accepted refinement artifact and its predecessor. Both snapshots
+must match their ledger fingerprints. An empty diff means identical plan text.
+Oversized diffs are omitted with a reason while the complete current plan remains
+in the packet.
+
+Also examine the whole revised plan for requirement loss, contradictions, and
+material gaps. Report actionable gaps through `new_findings`. A passing recheck
+establishes that the document addresses the objections. Implementation and future
+tests remain separate evidence.
 
 ## Routing, artifacts, and recovery
 

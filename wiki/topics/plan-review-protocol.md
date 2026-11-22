@@ -113,3 +113,17 @@ roles, permissions, and evidence acceptance remain unchanged. The authoritative
 details are in the [research reference](../../references/research.md).
 Deterministic fixtures reproduce the observed two-rejection sequence; they do
 not establish a measured reduction in live provider failures or cost.
+
+## Review material changes before recheck
+
+[Issue #107](https://github.com/JFusco/agent-review-workflows/issues/107) moves
+the check of an edited decision's ownership, interfaces, callers, constraints,
+and planned verification into coordinator refinement. Independent recheck gets
+a diff derived from the two fingerprinted plan artifacts and retains the
+complete current plan. A new finding needs a concrete consequence. Optional
+preferences belong in the stage summary.
+
+Local fixtures cover the transport and unchanged two-refinement limit. Replay of
+12 saved runs reconstructed both revised plans in each run from the emitted
+diffs and validated the recorded final findings. No provider was called during
+the replay, so it establishes packet and contract behavior only.

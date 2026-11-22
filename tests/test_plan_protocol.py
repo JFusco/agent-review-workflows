@@ -1,6 +1,7 @@
 """Plan protocol fixtures. No provider invocations or production access."""
 import copy
 import io
+import json
 import sys
 import unittest
 from unittest.mock import patch
@@ -235,11 +236,79 @@ class PlanProtocolTests(unittest.TestCase):
         self.assertEqual(self.state['findings'][0]['verification_status'], 'PASSED')
         self.accept(self.response())  # Same plan bytes still consume an attempt.
         self.assertEqual(self.state['round'], 2)
+        self.assertEqual(r.packet(self.state, run=self.run)['plan_revision']['unified_diff'], '')
         for finding in self.state['findings']:
             self.assertEqual((finding['verification_status'], finding['verification_evidence']), ('UNVERIFIED', []))
         self.accept(self.response())
         self.assertEqual(self.state['status'], 'complete')
         self.assertEqual(len(self.state['ledger']), 5)
+
+    def test_recheck_dispatch_gets_each_plan_diff_from_its_parent_snapshot(self):
+        self.to_recheck()
+        reviewer = r.agent_candidate(self.state, 'opus')
+
+        def recheck(response):
+            with patch.object(r, 'assert_claude_auth'), patch.object(r, 'execute_process') as execute, \
+                    patch.object(r, 'extract_response', return_value=(response, None, reviewer)):
+                r.advance(self.run, self.state)
+            execute.assert_called_once()
+            text = execute.call_args.args[2]
+            packet, _ = json.JSONDecoder().raw_decode(text.split('\nCURRENT HANDOFF\n', 1)[1])
+            self.assertIn('whole revised plan', text)
+            self.assertIn('Put optional preferences in the summary', text)
+            return packet
+
+        first = recheck(self.response([self.gap()]))['plan_revision']
+        self.assertEqual((first['before'], first['after']), ('revision-001', 'revision-002'))
+        self.assertIn('-Specify average for nonempty lists', first['unified_diff'])
+        self.assertIn('+Specify average and an empty-list ValueError', first['unified_diff'])
+        self.assertNotIn('plan_revision', r.packet(self.state, run=self.run))
+        self.assertIn('trace each material change through its owning component', r.prompt(self.state))
+        self.assertIn('distinguishes the planned behavior from the current behavior', r.prompt(self.state))
+        second_plan = self.response()
+        second_plan['plan_markdown'] += '\nKeep the public entry point.'
+        self.accept(second_plan)
+        late_gap = {**self.gap(), 'severity': 'SUGGESTION',
+                    'location': 'Plan: public entry point',
+                    'evidence': 'The plan does not identify which public signature callers rely on.',
+                    'correction_recommended': 'Name and preserve average(values).',
+                    'acceptance_check': 'The plan identifies the preserved public signature.'}
+        packet = recheck(self.response([late_gap]))
+        second = packet['plan_revision']
+        self.assertEqual((second['before'], second['after']), ('revision-003', 'revision-004'))
+        self.assertIn('+Keep the public entry point.', second['unified_diff'])
+        self.assertNotIn('nonempty lists', second['unified_diff'])
+        self.assertEqual(packet['target']['plan'], second_plan['plan_markdown'])
+        self.assertEqual((self.state['status'], self.state['round']), ('unresolved', 2))
+        terminal = self.state['findings'][-1]
+        self.assertEqual((terminal['id'], terminal['severity'], terminal['disposition']),
+                         ('FIND-003', 'SUGGESTION', 'OPEN'))
+
+    def test_recheck_diff_omission_keeps_complete_current_plan(self):
+        self.to_recheck()
+        with patch.object(r, 'MAX_PLAN_DIFF_BYTES', 1):
+            packet = r.packet(self.state, run=self.run)
+        self.assertIsNone(packet['plan_revision']['unified_diff'])
+        self.assertIn('supplemental diff limit', packet['plan_revision']['reason'])
+        self.assertEqual(packet['target']['plan'], self.state['current_plan'])
+        with patch.object(r, 'MAX_PLAN_DIFF_BYTES', 1):
+            without_diff_size = len(r.prompt(self.state, run=self.run).encode()) + 32
+        with patch.object(r, 'MAX_BYTES', without_diff_size):
+            text = r.prompt(self.state, run=self.run)
+        self.assertIn('Supplemental diff would exceed the handoff limit.', text)
+        self.assertIn(self.state['current_plan'], text)
+
+    def test_recheck_refuses_corrupt_parent_before_provider_dispatch(self):
+        self.to_recheck()
+        path = self.run / 'artifacts/revision-001.json'
+        artifact = r.read_json(path)
+        artifact['target']['plan'] += 'Tampered.'
+        r.save_text(path, r.dumps(artifact))
+        with patch.object(r, 'assert_claude_auth'), patch.object(r, 'execute_process') as execute:
+            with self.assertRaisesRegex(r.ReviewError, 'snapshot does not match its saved fingerprint'):
+                r.advance(self.run, self.state)
+        execute.assert_not_called()
+        self.assertEqual(self.state['round'], 1)
 
     def test_two_failed_rechecks_end_unresolved_and_third_attempt_is_rejected(self):
         self.to_recheck()
