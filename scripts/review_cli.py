@@ -2281,6 +2281,16 @@ def recover_startup(run, state):
         raise ReviewError('Startup recovery requires the latest original call directory.')
     names = ('agent.json', 'invocation.json', 'input-transport.json', 'prompt.txt', 'stdin.txt',
              'provider-schema.json', 'started.json', 'process.json', 'stdout.log', 'stderr.log')
+    # The CLI can open its output file before the app server starts.
+    last_message = call / 'last-message.json'
+    try:
+        info = last_message.lstat()
+    except FileNotFoundError:
+        pass
+    else:
+        if not stat.S_ISREG(info.st_mode) or info.st_size:
+            raise ReviewError('Final-message receipt is not an empty regular file; reconcile uncertain writes.')
+        names += ('last-message.json',)
     for name in names:
         path = call / name
         if path.resolve() != path or not path.is_file():
@@ -2290,8 +2300,7 @@ def recover_startup(run, state):
             not isinstance(started, dict) or set(started) != {'pid', 'process_group'} or
             not isinstance(read_json(call / 'agent.json'), dict) or
             type(process.get('exit_code')) is not int or process['exit_code'] == 0 or
-            process.get('interruption') is not None or not codex_startup_failure(call) or
-            (call / 'last-message.json').exists() or (call / 'last-message.json').is_symlink()):
+            process.get('interruption') is not None or not codex_startup_failure(call)):
         raise ReviewError('Call is not a recognized startup-only failure; inspect and reconcile uncertain writes.')
     group = started.get('process_group')
     if type(group) is not int or group <= 1 or group != started.get('pid') or group_alive(group):
