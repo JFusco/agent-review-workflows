@@ -66,6 +66,29 @@ class RepairLaunchTests(MechanicsFixture, unittest.TestCase):
         self.command('recover-startup', failed=True)
         self.assertEqual((self.run / 'state.json').read_bytes(), before)
 
+    def test_empty_final_message_is_preserved_as_a_receipt(self):
+        call = self.fail_startup()
+        output = call / 'last-message.json'
+        output.touch()
+        self.command('recover-startup')
+        event = r.read_json(self.run / 'startup-recovery-001-repair.json')
+        self.assertEqual(event['receipts'][output.name], r.digest(b''))
+        self.assertEqual(output.read_bytes(), b'')
+
+    def test_nonregular_final_message_refuses_recovery(self):
+        call = self.fail_startup()
+        output = call / 'last-message.json'
+        empty = self.root / 'empty-message'
+        empty.touch()
+        output.symlink_to(empty)
+        self.command('recover-startup', failed=True)
+        empty.unlink()
+        self.command('recover-startup', failed=True)
+        output.unlink()
+        os.mkfifo(output)
+        self.command('recover-startup', failed=True)
+        self.assertFalse(list(self.run.glob('startup-recovery-*')))
+
     def test_recover_accepts_historical_receipts_without_provider_snapshot(self):
         # Runs saved before agent_providers recorded prompts without that packet field.
         del self.state['agent_providers']
