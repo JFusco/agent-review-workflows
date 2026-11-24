@@ -67,6 +67,18 @@ paths instead of leaving dead flags, maintain least privilege and single-writer
 rules, and add boundary-appropriate regression coverage. Fixture, live-provider,
 and production evidence remain distinct so validation claims stay legible.
 
+## Shared Graphify map
+
+GitHub checks the map's recorded source revision after pushes to `main`.
+Graphify 0.9.36 rebuilds when mapped scripts change. The workflow publishes
+only tracked map artifacts through `bot/graphify-refresh` and merges the exact
+generated head only after Quality, commit lint, and Wiki integrity pass.
+The workflow skips publication for map-only updates and supports manual retry
+on `main`. Native hooks still generate local previews.
+
+Commit lint accepts the compact Graphify PR body only for the canonical bot
+branch and account, with a diff limited to the approved map files.
+
 The repository contains no `ai-commit` or `ai-pr` dependency, command, hook, or
 workflow. The wiki's synchronization writers remain separately scoped bot
 workflows using reviewable `bot/wiki-*` branches and `BOT_TOKEN`; they do not

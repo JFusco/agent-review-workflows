@@ -1,0 +1,58 @@
+name: Refresh Graphify code map
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: review-workflows-graphify-main
+  cancel-in-progress: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  GRAPHIFY_SKIP_HOOK: '1'
+  PYTHONHASHSEED: '0'
+  GRAPHIFY_MAX_WORKERS: '1'
+
+jobs:
+  refresh:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '24.14.0'
+      - name: Check map freshness
+        id: freshness
+        run: node scripts/graphify/refresh.cjs --check
+      - name: Setup Python
+        if: steps.freshness.outputs.needed == 'true'
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.13'
+      - name: Rebuild tracked map
+        if: steps.freshness.outputs.needed == 'true'
+        id: refresh
+        run: |
+          python -m pip install 'graphifyy==0.9.36'
+          node scripts/graphify/refresh.cjs
+      - name: Publish and merge checked refresh
+        if: steps.refresh.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.BOT_TOKEN }}
+        run: |
+          test -n "$GH_TOKEN" || { echo 'BOT_TOKEN is required'; exit 1; }
+          gh auth setup-git
+          node scripts/graphify/publish-refresh.cjs

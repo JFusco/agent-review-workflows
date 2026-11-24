@@ -62,6 +62,10 @@ history and decisions come from the Markdown-only context wiki. Use Graphify
 for native Git refresh hooks and the local merge driver. Keep
 `graphify-out/memory/` empty and review background graph changes before
 staging. Do not install Graphify agent tool hooks.
+The [Graphify refresh workflow](.github/workflows/graphify-refresh.yml)
+publishes the shared map after mapped source reaches `main`. Its dedicated
+bot PR may merge only after the required checks pass on its generated head.
+Contributor PRs follow the delivery flow below.
 
 ## Git delivery flow
 

@@ -53,7 +53,7 @@ jobs:
         if: ${{ !startsWith(github.event.pull_request.head.ref, 'bot/wiki-') }}
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
-        run: pnpm run lint:pr
+        run: node scripts/graphify/refresh-pr.cjs || pnpm run lint:pr
       - name: Lint PR commit range
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}

@@ -15,9 +15,11 @@ not replace wiki history.
 - Follow returned file and line references into source. Confirm `INFERRED`
   and `AMBIGUOUS` relationships there. For an exact file or command question,
   inspect source directly; use wiki navigation for rationale and history.
-- After eligible code changes, pulls, or merges, run
-  `PYTHONHASHSEED=0 graphify update .`. Native post-commit and post-checkout
-  hooks refresh the map in the background; review output before staging.
+- GitHub refreshes the shared map after mapped source reaches `main`. Run
+  **Refresh Graphify code map** on `main` to retry the workflow.
+- For local previews, run `PYTHONHASHSEED=0 graphify update .`. Native
+  post-commit and post-checkout hooks refresh local output in the background.
+  Review output before staging.
 - To rebuild without model calls, run
   `PYTHONHASHSEED=0 GRAPHIFY_MAX_WORKERS=1 graphify extract . --code-only --force`
   and then `PYTHONHASHSEED=0 graphify update .`.
