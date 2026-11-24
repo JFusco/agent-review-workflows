@@ -220,7 +220,9 @@ project lock it requires the first repair, no prior writer session, the original
 adjudication lock, complete current checks and unchanged full inventory, HEAD,
 index and target. It validates the latest call's complete prompt/transport,
 schema, selected writer, invocation, nonzero uninterrupted exit, empty stdout,
-absent final response and stopped owned group. Empty stdout alone is insufficient.
+absent final response and stopped owned group. The final-message file may be
+absent or an empty regular file. Recovery records the digest of an existing
+empty file. Empty stdout alone is insufficient.
 It preserves failed calls, records a recovery receipt and restores readiness
 without dispatch, a new revision, or consuming the actual repair pass. Existing
 supported schema-3 startup failures can use this command without rewriting their
