@@ -1,7 +1,7 @@
-# Graph Report - agent-review-workflows  (2026-11-22)
+# Graph Report - agent-review-workflows  (2026-11-24)
 
 ## Corpus Check
-- 26 files · ~32,806 words
+- 26 files · ~32,844 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `7d6a42d0`
+- Built from commit: `207dbda8`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
