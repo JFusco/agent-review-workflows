@@ -1,5 +1,7 @@
 ---
 topics: [writer-startup-recovery]
+issue: 'https://github.com/jfusco/agent-review-workflows/issues/113'
+issues: ['https://github.com/jfusco/agent-review-workflows/issues/113']
 ---
 
 # Empty final-message receipt during writer startup
