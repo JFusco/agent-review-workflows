@@ -15,6 +15,337 @@
       "norm_label": "create_trial.py"
     },
     {
+      "label": "map-files.cjs",
+      "file_type": "code",
+      "source_file": "scripts/graphify/map-files.cjs",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "scripts_graphify_map_files",
+      "community": 17,
+      "community_name": "ref_node_fs",
+      "norm_label": "map-files.cjs"
+    },
+    {
+      "label": "{ execFileSync }",
+      "file_type": "code",
+      "source_file": "scripts/graphify/map-files.cjs",
+      "source_location": "L3",
+      "_origin": "ast",
+      "id": "scripts_graphify_map_files_execfilesync",
+      "community": 17,
+      "community_name": "ref_node_fs",
+      "norm_label": "{ execfilesync }"
+    },
+    {
+      "label": "files",
+      "file_type": "code",
+      "source_file": "scripts/graphify/map-files.cjs",
+      "source_location": "L6",
+      "_origin": "ast",
+      "id": "scripts_graphify_map_files_files",
+      "community": 17,
+      "community_name": "ref_node_fs",
+      "norm_label": "files"
+    },
+    {
+      "label": "changedPaths()",
+      "file_type": "code",
+      "source_file": "scripts/graphify/map-files.cjs",
+      "source_location": "L16",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "scripts_graphify_map_files_changedpaths",
+      "community": 17,
+      "community_name": "ref_node_fs",
+      "norm_label": "changedpaths()"
+    },
+    {
+      "label": "isMapInput()",
+      "file_type": "code",
+      "source_file": "scripts/graphify/map-files.cjs",
+      "source_location": "L21",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "scripts_graphify_map_files_ismapinput",
+      "community": 17,
+      "community_name": "ref_node_fs",
+      "norm_label": "ismapinput()"
+    },
+    {
+      "label": "mapOnly()",
+      "file_type": "code",
+      "source_file": "scripts/graphify/map-files.cjs",
+      "source_location": "L29",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "scripts_graphify_map_files_maponly",
+      "community": 17,
+      "community_name": "ref_node_fs",
+      "norm_label": "maponly()"
+    },
+    {
+      "label": "publish-refresh.cjs",
+      "file_type": "code",
+      "source_file": "scripts/graphify/publish-refresh.cjs",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "scripts_graphify_publish_refresh",
+      "community": 17,
+      "community_name": "ref_node_fs",
+      "norm_label": "publish-refresh.cjs"
+    },
+    {
+      "label": "{ execFileSync }",
+      "file_type": "code",
+      "source_file": "scripts/graphify/publish-refresh.cjs",
+      "source_location": "L3",
+      "_origin": "ast",
+      "id": "scripts_graphify_publish_refresh_execfilesync",
+      "community": 17,
+      "community_name": "ref_node_fs",
+      "norm_label": "{ execfilesync }"
+    },
+    {
+      "label": "{ setTimeout: delay }",
+      "file_type": "code",
+      "source_file": "scripts/graphify/publish-refresh.cjs",
+      "source_location": "L4",
+      "_origin": "ast",
+      "id": "scripts_graphify_publish_refresh_settimeout_delay",
+      "community": 17,
+      "community_name": "ref_node_fs",
+      "norm_label": "{ settimeout: delay }"
+    },
+    {
+      "label": "{ changedPaths, isMapInput, mapOnly }",
+      "file_type": "code",
+      "source_file": "scripts/graphify/publish-refresh.cjs",
+      "source_location": "L5",
+      "_origin": "ast",
+      "id": "scripts_graphify_publish_refresh_changedpaths_ismapinput_maponly",
+      "community": 17,
+      "community_name": "ref_node_fs",
+      "norm_label": "{ changedpaths, ismapinput, maponly }"
+    },
+    {
+      "label": "{ branch, title, body }",
+      "file_type": "code",
+      "source_file": "scripts/graphify/publish-refresh.cjs",
+      "source_location": "L6",
+      "_origin": "ast",
+      "id": "scripts_graphify_publish_refresh_branch_title_body",
+      "community": 17,
+      "community_name": "ref_node_fs",
+      "norm_label": "{ branch, title, body }"
+    },
+    {
+      "label": "{ mergeCheckState }",
+      "file_type": "code",
+      "source_file": "scripts/graphify/publish-refresh.cjs",
+      "source_location": "L7",
+      "_origin": "ast",
+      "id": "scripts_graphify_publish_refresh_mergecheckstate",
+      "community": 17,
+      "community_name": "ref_node_fs",
+      "norm_label": "{ mergecheckstate }"
+    },
+    {
+      "label": "git()",
+      "file_type": "code",
+      "source_file": "scripts/graphify/publish-refresh.cjs",
+      "source_location": "L9",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "scripts_graphify_publish_refresh_git",
+      "community": 17,
+      "community_name": "ref_node_fs",
+      "norm_label": "git()"
+    },
+    {
+      "label": "gh()",
+      "file_type": "code",
+      "source_file": "scripts/graphify/publish-refresh.cjs",
+      "source_location": "L10",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "scripts_graphify_publish_refresh_gh",
+      "community": 17,
+      "community_name": "ref_node_fs",
+      "norm_label": "gh()"
+    },
+    {
+      "label": "verifyBase()",
+      "file_type": "code",
+      "source_file": "scripts/graphify/publish-refresh.cjs",
+      "source_location": "L12",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "scripts_graphify_publish_refresh_verifybase",
+      "community": 17,
+      "community_name": "ref_node_fs",
+      "norm_label": "verifybase()"
+    },
+    {
+      "label": "publish()",
+      "file_type": "code",
+      "source_file": "scripts/graphify/publish-refresh.cjs",
+      "source_location": "L19",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "scripts_graphify_publish_refresh_publish",
+      "community": 17,
+      "community_name": "ref_node_fs",
+      "norm_label": "publish()"
+    },
+    {
+      "label": "refresh-checks.cjs",
+      "file_type": "code",
+      "source_file": "scripts/graphify/refresh-checks.cjs",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "scripts_graphify_refresh_checks",
+      "community": 17,
+      "community_name": "ref_node_fs",
+      "norm_label": "refresh-checks.cjs"
+    },
+    {
+      "label": "required",
+      "file_type": "code",
+      "source_file": "scripts/graphify/refresh-checks.cjs",
+      "source_location": "L3",
+      "_origin": "ast",
+      "id": "scripts_graphify_refresh_checks_required",
+      "community": 17,
+      "community_name": "ref_node_fs",
+      "norm_label": "required"
+    },
+    {
+      "label": "mergeCheckState()",
+      "file_type": "code",
+      "source_file": "scripts/graphify/refresh-checks.cjs",
+      "source_location": "L9",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "scripts_graphify_refresh_checks_mergecheckstate",
+      "community": 17,
+      "community_name": "ref_node_fs",
+      "norm_label": "mergecheckstate()"
+    },
+    {
+      "label": "refresh-pr.cjs",
+      "file_type": "code",
+      "source_file": "scripts/graphify/refresh-pr.cjs",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "scripts_graphify_refresh_pr",
+      "community": 17,
+      "community_name": "ref_node_fs",
+      "norm_label": "refresh-pr.cjs"
+    },
+    {
+      "label": "{ changedPaths, mapOnly }",
+      "file_type": "code",
+      "source_file": "scripts/graphify/refresh-pr.cjs",
+      "source_location": "L3",
+      "_origin": "ast",
+      "id": "scripts_graphify_refresh_pr_changedpaths_maponly",
+      "community": 17,
+      "community_name": "ref_node_fs",
+      "norm_label": "{ changedpaths, maponly }"
+    },
+    {
+      "label": "isRefreshPR()",
+      "file_type": "code",
+      "source_file": "scripts/graphify/refresh-pr.cjs",
+      "source_location": "L9",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "scripts_graphify_refresh_pr_isrefreshpr",
+      "community": 17,
+      "community_name": "ref_node_fs",
+      "norm_label": "isrefreshpr()"
+    },
+    {
+      "label": "refresh.cjs",
+      "file_type": "code",
+      "source_file": "scripts/graphify/refresh.cjs",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "scripts_graphify_refresh",
+      "community": 17,
+      "community_name": "ref_node_fs",
+      "norm_label": "refresh.cjs"
+    },
+    {
+      "label": "{ execFileSync }",
+      "file_type": "code",
+      "source_file": "scripts/graphify/refresh.cjs",
+      "source_location": "L3",
+      "_origin": "ast",
+      "id": "scripts_graphify_refresh_execfilesync",
+      "community": 17,
+      "community_name": "ref_node_fs",
+      "norm_label": "{ execfilesync }"
+    },
+    {
+      "label": "{ appendFileSync, readFileSync }",
+      "file_type": "code",
+      "source_file": "scripts/graphify/refresh.cjs",
+      "source_location": "L4",
+      "_origin": "ast",
+      "id": "scripts_graphify_refresh_appendfilesync_readfilesync",
+      "community": 17,
+      "community_name": "ref_node_fs",
+      "norm_label": "{ appendfilesync, readfilesync }"
+    },
+    {
+      "label": "{ changedPaths, isMapInput, mapOnly, manifest }",
+      "file_type": "code",
+      "source_file": "scripts/graphify/refresh.cjs",
+      "source_location": "L5",
+      "_origin": "ast",
+      "id": "scripts_graphify_refresh_changedpaths_ismapinput_maponly_manifest",
+      "community": 17,
+      "community_name": "ref_node_fs",
+      "norm_label": "{ changedpaths, ismapinput, maponly, manifest }"
+    },
+    {
+      "label": "refreshNeeded()",
+      "file_type": "code",
+      "source_file": "scripts/graphify/refresh.cjs",
+      "source_location": "L7",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "scripts_graphify_refresh_refreshneeded",
+      "community": 17,
+      "community_name": "ref_node_fs",
+      "norm_label": "refreshneeded()"
+    },
+    {
+      "label": "mappedCommit()",
+      "file_type": "code",
+      "source_file": "scripts/graphify/refresh.cjs",
+      "source_location": "L19",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "scripts_graphify_refresh_mappedcommit",
+      "community": 17,
+      "community_name": "ref_node_fs",
+      "norm_label": "mappedcommit()"
+    },
+    {
+      "label": "refresh()",
+      "file_type": "code",
+      "source_file": "scripts/graphify/refresh.cjs",
+      "source_location": "L23",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "scripts_graphify_refresh_refresh",
+      "community": 17,
+      "community_name": "ref_node_fs",
+      "norm_label": "refresh()"
+    },
+    {
       "label": "install_skills.py",
       "file_type": "code",
       "source_file": "scripts/install_skills.py",
@@ -32,8 +363,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "scripts_python",
-      "community": 17,
-      "community_name": "common.cjs",
+      "community": 19,
+      "community_name": "ref_node_path",
       "norm_label": "python.cjs"
     },
     {
@@ -43,8 +374,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "scripts_python_fs",
-      "community": 17,
-      "community_name": "common.cjs",
+      "community": 19,
+      "community_name": "ref_node_path",
       "norm_label": "fs"
     },
     {
@@ -54,8 +385,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "scripts_python_path",
-      "community": 17,
-      "community_name": "common.cjs",
+      "community": 19,
+      "community_name": "ref_node_path",
       "norm_label": "path"
     },
     {
@@ -65,8 +396,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "scripts_python_spawnsync",
-      "community": 17,
-      "community_name": "common.cjs",
+      "community": 19,
+      "community_name": "ref_node_path",
       "norm_label": "{ spawnsync }"
     },
     {
@@ -76,8 +407,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "scripts_python_root",
-      "community": 17,
-      "community_name": "common.cjs",
+      "community": 19,
+      "community_name": "ref_node_path",
       "norm_label": "root"
     },
     {
@@ -87,8 +418,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "scripts_python_local",
-      "community": 17,
-      "community_name": "common.cjs",
+      "community": 19,
+      "community_name": "ref_node_path",
       "norm_label": "local"
     },
     {
@@ -98,8 +429,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "scripts_python_result",
-      "community": 17,
-      "community_name": "common.cjs",
+      "community": 19,
+      "community_name": "ref_node_path",
       "norm_label": "result"
     },
     {
@@ -605,8 +936,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "scripts_review_cli_validate_research",
-      "community": 0,
-      "community_name": "review_cli.py",
+      "community": 5,
+      "community_name": "ReviewError",
       "norm_label": "validate_research()"
     },
     {
@@ -629,8 +960,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "scripts_review_cli_research_writable_roots",
-      "community": 5,
-      "community_name": "ReviewError",
+      "community": 9,
+      "community_name": "render",
       "norm_label": "research_writable_roots()"
     },
     {
@@ -737,8 +1068,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "scripts_review_cli_plan_response_schema",
-      "community": 0,
-      "community_name": "review_cli.py",
+      "community": 5,
+      "community_name": "ReviewError",
       "norm_label": "plan_response_schema()"
     },
     {
@@ -1181,8 +1512,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "scripts_review_cli_guard_codex_research",
-      "community": 5,
-      "community_name": "ReviewError",
+      "community": 9,
+      "community_name": "render",
       "norm_label": "guard_codex_research()"
     },
     {
@@ -1265,8 +1596,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "scripts_review_cli_runs_root",
-      "community": 0,
-      "community_name": "review_cli.py",
+      "community": 5,
+      "community_name": "ReviewError",
       "norm_label": "runs_root()"
     },
     {
@@ -1804,7 +2135,7 @@
       "_origin": "ast",
       "id": "scripts_wiki_apply_plan_audit",
       "community": 6,
-      "community_name": "archive-plan.cjs",
+      "community_name": "dates.cjs",
       "norm_label": "apply-plan-audit.cjs"
     },
     {
@@ -1815,7 +2146,7 @@
       "_origin": "ast",
       "id": "scripts_wiki_apply_plan_audit_fs",
       "community": 6,
-      "community_name": "archive-plan.cjs",
+      "community_name": "dates.cjs",
       "norm_label": "fs"
     },
     {
@@ -1826,7 +2157,7 @@
       "_origin": "ast",
       "id": "scripts_wiki_apply_plan_audit_path",
       "community": 6,
-      "community_name": "archive-plan.cjs",
+      "community_name": "dates.cjs",
       "norm_label": "path"
     },
     {
@@ -1837,7 +2168,7 @@
       "_origin": "ast",
       "id": "scripts_wiki_apply_plan_audit_archive_validatearchiveinput_statuses",
       "community": 6,
-      "community_name": "archive-plan.cjs",
+      "community_name": "dates.cjs",
       "norm_label": "{ archive, validatearchiveinput, statuses }"
     },
     {
@@ -1848,7 +2179,7 @@
       "_origin": "ast",
       "id": "scripts_wiki_apply_plan_audit_reporoot",
       "community": 6,
-      "community_name": "archive-plan.cjs",
+      "community_name": "dates.cjs",
       "norm_label": "{ reporoot }"
     },
     {
@@ -1859,7 +2190,7 @@
       "_origin": "ast",
       "id": "scripts_wiki_apply_plan_audit_inferplandate",
       "community": 6,
-      "community_name": "archive-plan.cjs",
+      "community_name": "dates.cjs",
       "norm_label": "{ inferplandate }"
     },
     {
@@ -1871,7 +2202,7 @@
       "_origin": "ast",
       "id": "scripts_wiki_apply_plan_audit_parse",
       "community": 6,
-      "community_name": "archive-plan.cjs",
+      "community_name": "dates.cjs",
       "norm_label": "parse()"
     },
     {
@@ -1883,7 +2214,7 @@
       "_origin": "ast",
       "id": "scripts_wiki_apply_plan_audit_main",
       "community": 6,
-      "community_name": "archive-plan.cjs",
+      "community_name": "dates.cjs",
       "norm_label": "main()"
     },
     {
@@ -1893,7 +2224,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "scripts_wiki_archive_plan",
-      "community": 6,
+      "community": 21,
       "community_name": "archive-plan.cjs",
       "norm_label": "archive-plan.cjs"
     },
@@ -1904,7 +2235,7 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "scripts_wiki_archive_plan_fs",
-      "community": 6,
+      "community": 21,
       "community_name": "archive-plan.cjs",
       "norm_label": "fs"
     },
@@ -1915,7 +2246,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "scripts_wiki_archive_plan_path",
-      "community": 6,
+      "community": 21,
       "community_name": "archive-plan.cjs",
       "norm_label": "path"
     },
@@ -1926,7 +2257,7 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "scripts_wiki_archive_plan_digest_reporoot_slugify_slash_ensureinside_hassymlinkcomponent_atomicwrite_walk",
-      "community": 6,
+      "community": 21,
       "community_name": "archive-plan.cjs",
       "norm_label": "{ digest, reporoot, slugify, slash, ensureinside, hassymlinkcomponent, atomicwrite, walk }"
     },
@@ -1937,7 +2268,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "scripts_wiki_archive_plan_inferplandate",
-      "community": 6,
+      "community": 21,
       "community_name": "archive-plan.cjs",
       "norm_label": "{ inferplandate }"
     },
@@ -1948,7 +2279,7 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "scripts_wiki_archive_plan_titlefrombody_render",
-      "community": 6,
+      "community": 21,
       "community_name": "archive-plan.cjs",
       "norm_label": "{ titlefrombody, render }"
     },
@@ -1959,7 +2290,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "scripts_wiki_archive_plan_cleancursor",
-      "community": 6,
+      "community": 21,
       "community_name": "archive-plan.cjs",
       "norm_label": "{ cleancursor }"
     },
@@ -1971,7 +2302,7 @@
       "_origin": "ast",
       "id": "scripts_wiki_archive_plan_statuses",
       "community": 6,
-      "community_name": "archive-plan.cjs",
+      "community_name": "dates.cjs",
       "norm_label": "statuses"
     },
     {
@@ -1982,7 +2313,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "scripts_wiki_archive_plan_parse",
-      "community": 6,
+      "community": 21,
       "community_name": "archive-plan.cjs",
       "norm_label": "parse()"
     },
@@ -1994,7 +2325,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "scripts_wiki_archive_plan_fromargs",
-      "community": 6,
+      "community": 21,
       "community_name": "archive-plan.cjs",
       "norm_label": "fromargs()"
     },
@@ -2006,7 +2337,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "scripts_wiki_archive_plan_ensureindex",
-      "community": 6,
+      "community": 21,
       "community_name": "archive-plan.cjs",
       "norm_label": "ensureindex()"
     },
@@ -2018,7 +2349,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "scripts_wiki_archive_plan_validdate",
-      "community": 6,
+      "community": 21,
       "community_name": "archive-plan.cjs",
       "norm_label": "validdate()"
     },
@@ -2030,7 +2361,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "scripts_wiki_archive_plan_stringlist",
-      "community": 6,
+      "community": 21,
       "community_name": "archive-plan.cjs",
       "norm_label": "stringlist()"
     },
@@ -2042,7 +2373,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "scripts_wiki_archive_plan_cell",
-      "community": 6,
+      "community": 21,
       "community_name": "archive-plan.cjs",
       "norm_label": "cell()"
     },
@@ -2054,7 +2385,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "scripts_wiki_archive_plan_label",
-      "community": 6,
+      "community": 21,
       "community_name": "archive-plan.cjs",
       "norm_label": "label()"
     },
@@ -2066,7 +2397,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "scripts_wiki_archive_plan_validatearchiveinput",
-      "community": 6,
+      "community": 21,
       "community_name": "archive-plan.cjs",
       "norm_label": "validatearchiveinput()"
     },
@@ -2078,7 +2409,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "scripts_wiki_archive_plan_archive",
-      "community": 6,
+      "community": 21,
       "community_name": "archive-plan.cjs",
       "norm_label": "archive()"
     },
@@ -2090,7 +2421,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "scripts_wiki_archive_plan_main",
-      "community": 6,
+      "community": 21,
       "community_name": "archive-plan.cjs",
       "norm_label": "main()"
     },
@@ -2490,8 +2821,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "scripts_wiki_build_graph",
-      "community": 21,
-      "community_name": "build-graph.cjs",
+      "community": 11,
+      "community_name": "wiki-graph.cjs",
       "norm_label": "build-graph.cjs"
     },
     {
@@ -2501,8 +2832,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "scripts_wiki_build_graph_fs",
-      "community": 21,
-      "community_name": "build-graph.cjs",
+      "community": 11,
+      "community_name": "wiki-graph.cjs",
       "norm_label": "fs"
     },
     {
@@ -2512,8 +2843,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "scripts_wiki_build_graph_path",
-      "community": 21,
-      "community_name": "build-graph.cjs",
+      "community": 11,
+      "community_name": "wiki-graph.cjs",
       "norm_label": "path"
     },
     {
@@ -2523,8 +2854,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "scripts_wiki_build_graph_reporoot_slash_hassymlinkcomponent_atomicwrite",
-      "community": 21,
-      "community_name": "build-graph.cjs",
+      "community": 11,
+      "community_name": "wiki-graph.cjs",
       "norm_label": "{ reporoot, slash, hassymlinkcomponent, atomicwrite }"
     },
     {
@@ -2534,8 +2865,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "scripts_wiki_build_graph_collect_resolvewikilink_kind",
-      "community": 21,
-      "community_name": "build-graph.cjs",
+      "community": 11,
+      "community_name": "wiki-graph.cjs",
       "norm_label": "{ collect, resolvewikilink, kind }"
     },
     {
@@ -2546,8 +2877,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "scripts_wiki_build_graph_connections",
-      "community": 21,
-      "community_name": "build-graph.cjs",
+      "community": 11,
+      "community_name": "wiki-graph.cjs",
       "norm_label": "connections()"
     },
     {
@@ -2558,8 +2889,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "scripts_wiki_build_graph_main",
-      "community": 21,
-      "community_name": "build-graph.cjs",
+      "community": 11,
+      "community_name": "wiki-graph.cjs",
       "norm_label": "main()"
     },
     {
@@ -2569,8 +2900,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "scripts_wiki_check",
-      "community": 20,
-      "community_name": "check.cjs",
+      "community": 8,
+      "community_name": "on-merge-sync.cjs",
       "norm_label": "check.cjs"
     },
     {
@@ -2580,8 +2911,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "scripts_wiki_check_fs",
-      "community": 20,
-      "community_name": "check.cjs",
+      "community": 8,
+      "community_name": "on-merge-sync.cjs",
       "norm_label": "fs"
     },
     {
@@ -2591,8 +2922,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "scripts_wiki_check_path",
-      "community": 20,
-      "community_name": "check.cjs",
+      "community": 8,
+      "community_name": "on-merge-sync.cjs",
       "norm_label": "path"
     },
     {
@@ -2602,8 +2933,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "scripts_wiki_check_spawnsync",
-      "community": 20,
-      "community_name": "check.cjs",
+      "community": 8,
+      "community_name": "on-merge-sync.cjs",
       "norm_label": "{ spawnsync }"
     },
     {
@@ -2613,8 +2944,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "scripts_wiki_check_reporoot_walk_slash_digest_hassymlinkcomponent",
-      "community": 20,
-      "community_name": "check.cjs",
+      "community": 8,
+      "community_name": "on-merge-sync.cjs",
       "norm_label": "{\n  reporoot,\n  walk,\n  slash,\n  digest,\n  hassymlinkcomponent,\n}"
     },
     {
@@ -2624,8 +2955,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "scripts_wiki_check_splitfrontmatter_scalar_list_frontmatterproblems",
-      "community": 20,
-      "community_name": "check.cjs",
+      "community": 8,
+      "community_name": "on-merge-sync.cjs",
       "norm_label": "{\n  splitfrontmatter,\n  scalar,\n  list,\n  frontmatterproblems,\n}"
     },
     {
@@ -2635,8 +2966,8 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "scripts_wiki_check_key_githubrefkey",
-      "community": 20,
-      "community_name": "check.cjs",
+      "community": 8,
+      "community_name": "on-merge-sync.cjs",
       "norm_label": "{ key: githubrefkey }"
     },
     {
@@ -2646,8 +2977,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "scripts_wiki_check_loadpolicy_policyproblems",
-      "community": 20,
-      "community_name": "check.cjs",
+      "community": 8,
+      "community_name": "on-merge-sync.cjs",
       "norm_label": "{ loadpolicy, policyproblems }"
     },
     {
@@ -2658,8 +2989,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "scripts_wiki_check_main",
-      "community": 20,
-      "community_name": "check.cjs",
+      "community": 8,
+      "community_name": "on-merge-sync.cjs",
       "norm_label": "main()"
     },
     {
@@ -2669,8 +3000,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "scripts_wiki_discover_plans",
-      "community": 18,
-      "community_name": "repoRoot",
+      "community": 20,
+      "community_name": "discover-plans.cjs",
       "norm_label": "discover-plans.cjs"
     },
     {
@@ -2680,8 +3011,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "scripts_wiki_discover_plans_fs",
-      "community": 18,
-      "community_name": "repoRoot",
+      "community": 20,
+      "community_name": "discover-plans.cjs",
       "norm_label": "fs"
     },
     {
@@ -2691,8 +3022,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "scripts_wiki_discover_plans_path",
-      "community": 18,
-      "community_name": "repoRoot",
+      "community": 20,
+      "community_name": "discover-plans.cjs",
       "norm_label": "path"
     },
     {
@@ -2702,8 +3033,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "scripts_wiki_discover_plans_reporoot_atomicwrite",
-      "community": 18,
-      "community_name": "repoRoot",
+      "community": 20,
+      "community_name": "discover-plans.cjs",
       "norm_label": "{ reporoot, atomicwrite }"
     },
     {
@@ -2713,8 +3044,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "scripts_wiki_discover_plans_discover",
-      "community": 18,
-      "community_name": "repoRoot",
+      "community": 20,
+      "community_name": "discover-plans.cjs",
       "norm_label": "{ discover }"
     },
     {
@@ -2725,8 +3056,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "scripts_wiki_discover_plans_parse",
-      "community": 18,
-      "community_name": "repoRoot",
+      "community": 20,
+      "community_name": "discover-plans.cjs",
       "norm_label": "parse()"
     },
     {
@@ -2737,8 +3068,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "scripts_wiki_discover_plans_main",
-      "community": 18,
-      "community_name": "repoRoot",
+      "community": 20,
+      "community_name": "discover-plans.cjs",
       "norm_label": "main()"
     },
     {
@@ -3106,7 +3437,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "scripts_wiki_lib_common",
-      "community": 17,
+      "community": 18,
       "community_name": "common.cjs",
       "norm_label": "common.cjs"
     },
@@ -3117,7 +3448,7 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "scripts_wiki_lib_common_crypto",
-      "community": 17,
+      "community": 18,
       "community_name": "common.cjs",
       "norm_label": "crypto"
     },
@@ -3128,7 +3459,7 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "scripts_wiki_lib_common_fs",
-      "community": 17,
+      "community": 18,
       "community_name": "common.cjs",
       "norm_label": "fs"
     },
@@ -3139,7 +3470,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "scripts_wiki_lib_common_path",
-      "community": 17,
+      "community": 18,
       "community_name": "common.cjs",
       "norm_label": "path"
     },
@@ -3150,7 +3481,7 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "scripts_wiki_lib_common_execfilesync",
-      "community": 17,
+      "community": 18,
       "community_name": "common.cjs",
       "norm_label": "{ execfilesync }"
     },
@@ -3162,8 +3493,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "scripts_wiki_lib_common_digest",
-      "community": 12,
-      "community_name": "plans.cjs",
+      "community": 21,
+      "community_name": "archive-plan.cjs",
       "norm_label": "digest()"
     },
     {
@@ -3186,8 +3517,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "scripts_wiki_lib_common_slugify",
-      "community": 6,
-      "community_name": "archive-plan.cjs",
+      "community": 8,
+      "community_name": "on-merge-sync.cjs",
       "norm_label": "slugify()"
     },
     {
@@ -3211,7 +3542,7 @@
       "_origin": "ast",
       "id": "scripts_wiki_lib_common_reporoot",
       "community": 18,
-      "community_name": "repoRoot",
+      "community_name": "common.cjs",
       "norm_label": "reporoot()"
     },
     {
@@ -3246,8 +3577,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "scripts_wiki_lib_common_wikipath",
-      "community": 17,
-      "community_name": "common.cjs",
+      "community": 11,
+      "community_name": "wiki-graph.cjs",
       "norm_label": "wikipath()"
     },
     {
@@ -3258,8 +3589,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "scripts_wiki_lib_common_ensureinside",
-      "community": 11,
-      "community_name": "wiki-graph.cjs",
+      "community": 21,
+      "community_name": "archive-plan.cjs",
       "norm_label": "ensureinside()"
     },
     {
@@ -3271,7 +3602,7 @@
       "_origin": "ast",
       "id": "scripts_wiki_lib_common_hassymlinkcomponent",
       "community": 21,
-      "community_name": "build-graph.cjs",
+      "community_name": "archive-plan.cjs",
       "norm_label": "hassymlinkcomponent()"
     },
     {
@@ -3282,8 +3613,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "scripts_wiki_lib_common_atomicwrite",
-      "community": 21,
-      "community_name": "build-graph.cjs",
+      "community": 20,
+      "community_name": "discover-plans.cjs",
       "norm_label": "atomicwrite()"
     },
     {
@@ -3295,7 +3626,7 @@
       "_origin": "ast",
       "id": "scripts_wiki_lib_common_substantive",
       "community": 18,
-      "community_name": "repoRoot",
+      "community_name": "common.cjs",
       "norm_label": "substantive()"
     },
     {
@@ -3307,7 +3638,7 @@
       "_origin": "ast",
       "id": "scripts_wiki_lib_common_today",
       "community": 6,
-      "community_name": "archive-plan.cjs",
+      "community_name": "dates.cjs",
       "norm_label": "today()"
     },
     {
@@ -3318,7 +3649,7 @@
       "_origin": "ast",
       "id": "scripts_wiki_lib_dates",
       "community": 6,
-      "community_name": "archive-plan.cjs",
+      "community_name": "dates.cjs",
       "norm_label": "dates.cjs"
     },
     {
@@ -3329,7 +3660,7 @@
       "_origin": "ast",
       "id": "scripts_wiki_lib_dates_fs",
       "community": 6,
-      "community_name": "archive-plan.cjs",
+      "community_name": "dates.cjs",
       "norm_label": "fs"
     },
     {
@@ -3340,7 +3671,7 @@
       "_origin": "ast",
       "id": "scripts_wiki_lib_dates_path",
       "community": 6,
-      "community_name": "archive-plan.cjs",
+      "community_name": "dates.cjs",
       "norm_label": "path"
     },
     {
@@ -3351,7 +3682,7 @@
       "_origin": "ast",
       "id": "scripts_wiki_lib_dates_git_today",
       "community": 6,
-      "community_name": "archive-plan.cjs",
+      "community_name": "dates.cjs",
       "norm_label": "{ git, today }"
     },
     {
@@ -3363,7 +3694,7 @@
       "_origin": "ast",
       "id": "scripts_wiki_lib_dates_isodatefromms",
       "community": 6,
-      "community_name": "archive-plan.cjs",
+      "community_name": "dates.cjs",
       "norm_label": "isodatefromms()"
     },
     {
@@ -3375,7 +3706,7 @@
       "_origin": "ast",
       "id": "scripts_wiki_lib_dates_validdate",
       "community": 6,
-      "community_name": "archive-plan.cjs",
+      "community_name": "dates.cjs",
       "norm_label": "validdate()"
     },
     {
@@ -3387,7 +3718,7 @@
       "_origin": "ast",
       "id": "scripts_wiki_lib_dates_datefromplanbasename",
       "community": 6,
-      "community_name": "archive-plan.cjs",
+      "community_name": "dates.cjs",
       "norm_label": "datefromplanbasename()"
     },
     {
@@ -3399,7 +3730,7 @@
       "_origin": "ast",
       "id": "scripts_wiki_lib_dates_datefromsessionpath",
       "community": 6,
-      "community_name": "archive-plan.cjs",
+      "community_name": "dates.cjs",
       "norm_label": "datefromsessionpath()"
     },
     {
@@ -3411,7 +3742,7 @@
       "_origin": "ast",
       "id": "scripts_wiki_lib_dates_gitcommitdate",
       "community": 6,
-      "community_name": "archive-plan.cjs",
+      "community_name": "dates.cjs",
       "norm_label": "gitcommitdate()"
     },
     {
@@ -3423,7 +3754,7 @@
       "_origin": "ast",
       "id": "scripts_wiki_lib_dates_filemtimedate",
       "community": 6,
-      "community_name": "archive-plan.cjs",
+      "community_name": "dates.cjs",
       "norm_label": "filemtimedate()"
     },
     {
@@ -3435,7 +3766,7 @@
       "_origin": "ast",
       "id": "scripts_wiki_lib_dates_evidencedates",
       "community": 6,
-      "community_name": "archive-plan.cjs",
+      "community_name": "dates.cjs",
       "norm_label": "evidencedates()"
     },
     {
@@ -3447,7 +3778,7 @@
       "_origin": "ast",
       "id": "scripts_wiki_lib_dates_sourcepathdates",
       "community": 6,
-      "community_name": "archive-plan.cjs",
+      "community_name": "dates.cjs",
       "norm_label": "sourcepathdates()"
     },
     {
@@ -3459,7 +3790,7 @@
       "_origin": "ast",
       "id": "scripts_wiki_lib_dates_inferplandate",
       "community": 6,
-      "community_name": "archive-plan.cjs",
+      "community_name": "dates.cjs",
       "norm_label": "inferplandate()"
     },
     {
@@ -3553,8 +3884,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "scripts_wiki_lib_frontmatter_frontmatterproblems",
-      "community": 20,
-      "community_name": "check.cjs",
+      "community": 8,
+      "community_name": "on-merge-sync.cjs",
       "norm_label": "frontmatterproblems()"
     },
     {
@@ -3565,7 +3896,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "scripts_wiki_lib_frontmatter_titlefrombody",
-      "community": 6,
+      "community": 21,
       "community_name": "archive-plan.cjs",
       "norm_label": "titlefrombody()"
     },
@@ -3786,8 +4117,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "scripts_wiki_lib_plans_cleancursor",
-      "community": 12,
-      "community_name": "plans.cjs",
+      "community": 21,
+      "community_name": "archive-plan.cjs",
       "norm_label": "cleancursor()"
     },
     {
@@ -4079,8 +4410,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "scripts_wiki_navigate",
-      "community": 11,
-      "community_name": "wiki-graph.cjs",
+      "community": 3,
+      "community_name": "routing.cjs",
       "norm_label": "navigate.cjs"
     },
     {
@@ -4090,8 +4421,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "scripts_wiki_navigate_reporoot",
-      "community": 11,
-      "community_name": "wiki-graph.cjs",
+      "community": 3,
+      "community_name": "routing.cjs",
       "norm_label": "{ reporoot }"
     },
     {
@@ -4101,8 +4432,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "scripts_wiki_navigate_collect_normalizewikiroot",
-      "community": 11,
-      "community_name": "wiki-graph.cjs",
+      "community": 3,
+      "community_name": "routing.cjs",
       "norm_label": "{ collect, normalizewikiroot }"
     },
     {
@@ -4112,8 +4443,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "scripts_wiki_navigate_route_formatroute",
-      "community": 11,
-      "community_name": "wiki-graph.cjs",
+      "community": 3,
+      "community_name": "routing.cjs",
       "norm_label": "{ route, formatroute }"
     },
     {
@@ -4124,8 +4455,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "scripts_wiki_navigate_parseargs",
-      "community": 11,
-      "community_name": "wiki-graph.cjs",
+      "community": 3,
+      "community_name": "routing.cjs",
       "norm_label": "parseargs()"
     },
     {
@@ -4136,8 +4467,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "scripts_wiki_navigate_usage",
-      "community": 11,
-      "community_name": "wiki-graph.cjs",
+      "community": 3,
+      "community_name": "routing.cjs",
       "norm_label": "usage()"
     },
     {
@@ -4148,8 +4479,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "scripts_wiki_navigate_main",
-      "community": 11,
-      "community_name": "wiki-graph.cjs",
+      "community": 3,
+      "community_name": "routing.cjs",
       "norm_label": "main()"
     },
     {
@@ -4369,7 +4700,7 @@
       "_origin": "ast",
       "id": "scripts_wiki_pre_commit",
       "community": 18,
-      "community_name": "repoRoot",
+      "community_name": "common.cjs",
       "norm_label": "pre-commit.cjs"
     },
     {
@@ -4380,7 +4711,7 @@
       "_origin": "ast",
       "id": "scripts_wiki_pre_commit_path",
       "community": 18,
-      "community_name": "repoRoot",
+      "community_name": "common.cjs",
       "norm_label": "path"
     },
     {
@@ -4391,7 +4722,7 @@
       "_origin": "ast",
       "id": "scripts_wiki_pre_commit_spawnsync",
       "community": 18,
-      "community_name": "repoRoot",
+      "community_name": "common.cjs",
       "norm_label": "{ spawnsync }"
     },
     {
@@ -4402,7 +4733,7 @@
       "_origin": "ast",
       "id": "scripts_wiki_pre_commit_reporoot_git_substantive",
       "community": 18,
-      "community_name": "repoRoot",
+      "community_name": "common.cjs",
       "norm_label": "{ reporoot, git, substantive }"
     },
     {
@@ -4413,7 +4744,7 @@
       "_origin": "ast",
       "id": "scripts_wiki_pre_commit_discover",
       "community": 18,
-      "community_name": "repoRoot",
+      "community_name": "common.cjs",
       "norm_label": "{ discover }"
     },
     {
@@ -4425,7 +4756,7 @@
       "_origin": "ast",
       "id": "scripts_wiki_pre_commit_main",
       "community": 18,
-      "community_name": "repoRoot",
+      "community_name": "common.cjs",
       "norm_label": "main()"
     },
     {
@@ -4883,8 +5214,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "scripts_wiki_routing_loadpolicy",
-      "community": 20,
-      "community_name": "check.cjs",
+      "community": 8,
+      "community_name": "on-merge-sync.cjs",
       "norm_label": "loadpolicy()"
     },
     {
@@ -4979,8 +5310,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "scripts_wiki_routing_policyproblems",
-      "community": 3,
-      "community_name": "routing.cjs",
+      "community": 8,
+      "community_name": "on-merge-sync.cjs",
       "norm_label": "policyproblems()"
     },
     {
@@ -5111,7 +5442,7 @@
       "_origin": "ast",
       "id": "scripts_wiki_serve_graph",
       "community": 19,
-      "community_name": "serve-graph.cjs",
+      "community_name": "ref_node_path",
       "norm_label": "serve-graph.cjs"
     },
     {
@@ -5122,7 +5453,7 @@
       "_origin": "ast",
       "id": "scripts_wiki_serve_graph_fs",
       "community": 19,
-      "community_name": "serve-graph.cjs",
+      "community_name": "ref_node_path",
       "norm_label": "fs"
     },
     {
@@ -5133,7 +5464,7 @@
       "_origin": "ast",
       "id": "scripts_wiki_serve_graph_http",
       "community": 19,
-      "community_name": "serve-graph.cjs",
+      "community_name": "ref_node_path",
       "norm_label": "http"
     },
     {
@@ -5144,7 +5475,7 @@
       "_origin": "ast",
       "id": "scripts_wiki_serve_graph_path",
       "community": 19,
-      "community_name": "serve-graph.cjs",
+      "community_name": "ref_node_path",
       "norm_label": "path"
     },
     {
@@ -5155,7 +5486,7 @@
       "_origin": "ast",
       "id": "scripts_wiki_serve_graph_reporoot_ensureinside",
       "community": 19,
-      "community_name": "serve-graph.cjs",
+      "community_name": "ref_node_path",
       "norm_label": "{ reporoot, ensureinside }"
     },
     {
@@ -5166,7 +5497,7 @@
       "_origin": "ast",
       "id": "scripts_wiki_serve_graph_types",
       "community": 19,
-      "community_name": "serve-graph.cjs",
+      "community_name": "ref_node_path",
       "norm_label": "types"
     },
     {
@@ -5178,7 +5509,7 @@
       "_origin": "ast",
       "id": "scripts_wiki_serve_graph_resolverequest",
       "community": 19,
-      "community_name": "serve-graph.cjs",
+      "community_name": "ref_node_path",
       "norm_label": "resolverequest()"
     },
     {
@@ -5190,7 +5521,7 @@
       "_origin": "ast",
       "id": "scripts_wiki_serve_graph_createserver",
       "community": 19,
-      "community_name": "serve-graph.cjs",
+      "community_name": "ref_node_path",
       "norm_label": "createserver()"
     },
     {
@@ -5202,7 +5533,7 @@
       "_origin": "ast",
       "id": "scripts_wiki_serve_graph_listen",
       "community": 19,
-      "community_name": "serve-graph.cjs",
+      "community_name": "ref_node_path",
       "norm_label": "listen()"
     },
     {
@@ -5214,7 +5545,7 @@
       "_origin": "ast",
       "id": "scripts_wiki_serve_graph_main",
       "community": 19,
-      "community_name": "serve-graph.cjs",
+      "community_name": "ref_node_path",
       "norm_label": "main()"
     },
     {
@@ -5400,7 +5731,7 @@
     {
       "label": "ref_node_child_process",
       "community": 17,
-      "community_name": "common.cjs",
+      "community_name": "ref_node_fs",
       "external": true,
       "file_type": "concept",
       "norm_label": "ref_node_child_process",
@@ -5520,7 +5851,7 @@
     {
       "label": "ref_node_http",
       "community": 19,
-      "community_name": "serve-graph.cjs",
+      "community_name": "ref_node_path",
       "external": true,
       "file_type": "concept",
       "norm_label": "ref_node_http",
@@ -5531,7 +5862,7 @@
     },
     {
       "label": "ref_node_crypto",
-      "community": 17,
+      "community": 18,
       "community_name": "common.cjs",
       "external": true,
       "file_type": "concept",
@@ -5544,7 +5875,7 @@
     {
       "label": "ref_node_fs",
       "community": 17,
-      "community_name": "common.cjs",
+      "community_name": "ref_node_fs",
       "external": true,
       "file_type": "concept",
       "norm_label": "ref_node_fs",
@@ -5555,8 +5886,8 @@
     },
     {
       "label": "ref_node_path",
-      "community": 18,
-      "community_name": "repoRoot",
+      "community": 19,
+      "community_name": "ref_node_path",
       "external": true,
       "file_type": "concept",
       "norm_label": "ref_node_path",
@@ -5649,6 +5980,649 @@
       "_origin": "ast",
       "source": "scripts_create_trial",
       "target": "tempfile",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify/map-files.cjs",
+      "source_location": "L3",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_map_files",
+      "target": "ref_node_child_process",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "indirect_call",
+      "confidence": "INFERRED",
+      "source_file": "scripts/graphify/map-files.cjs",
+      "source_location": "L33",
+      "weight": 1.0,
+      "_origin": "ast",
+      "context": "collection",
+      "source": "scripts_graphify_map_files",
+      "target": "scripts_graphify_map_files_changedpaths",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify/map-files.cjs",
+      "source_location": "L3",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_map_files",
+      "target": "scripts_graphify_map_files_execfilesync",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify/map-files.cjs",
+      "source_location": "L6",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_map_files",
+      "target": "scripts_graphify_map_files_files",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "indirect_call",
+      "confidence": "INFERRED",
+      "source_file": "scripts/graphify/map-files.cjs",
+      "source_location": "L33",
+      "weight": 1.0,
+      "_origin": "ast",
+      "context": "collection",
+      "source": "scripts_graphify_map_files",
+      "target": "scripts_graphify_map_files_ismapinput",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "indirect_call",
+      "confidence": "INFERRED",
+      "source_file": "scripts/graphify/map-files.cjs",
+      "source_location": "L33",
+      "weight": 1.0,
+      "_origin": "ast",
+      "context": "collection",
+      "source": "scripts_graphify_map_files",
+      "target": "scripts_graphify_map_files_maponly",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify/publish-refresh.cjs",
+      "source_location": "L5",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_publish_refresh",
+      "target": "scripts_graphify_map_files",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify/refresh.cjs",
+      "source_location": "L5",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_refresh",
+      "target": "scripts_graphify_map_files",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify/refresh-pr.cjs",
+      "source_location": "L3",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_refresh_pr",
+      "target": "scripts_graphify_map_files",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify/publish-refresh.cjs",
+      "source_location": "L5",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_publish_refresh",
+      "target": "scripts_graphify_map_files_changedpaths",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify/refresh.cjs",
+      "source_location": "L5",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_refresh",
+      "target": "scripts_graphify_map_files_changedpaths",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify/refresh-pr.cjs",
+      "source_location": "L3",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_refresh_pr",
+      "target": "scripts_graphify_map_files_changedpaths",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/graphify/refresh.cjs",
+      "source_location": "L30",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_refresh_refresh",
+      "target": "scripts_graphify_map_files_changedpaths"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/graphify/refresh.cjs",
+      "source_location": "L16",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_refresh_refreshneeded",
+      "target": "scripts_graphify_map_files_changedpaths"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify/publish-refresh.cjs",
+      "source_location": "L5",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_publish_refresh",
+      "target": "scripts_graphify_map_files_ismapinput",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "indirect_call",
+      "context": "argument",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "scripts/graphify/publish-refresh.cjs",
+      "source_location": "L14",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_publish_refresh_verifybase",
+      "target": "scripts_graphify_map_files_ismapinput"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify/refresh.cjs",
+      "source_location": "L5",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_refresh",
+      "target": "scripts_graphify_map_files_ismapinput",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "indirect_call",
+      "context": "argument",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "scripts/graphify/refresh.cjs",
+      "source_location": "L16",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_refresh_refreshneeded",
+      "target": "scripts_graphify_map_files_ismapinput"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify/publish-refresh.cjs",
+      "source_location": "L5",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_publish_refresh",
+      "target": "scripts_graphify_map_files_maponly",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/graphify/publish-refresh.cjs",
+      "source_location": "L22",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_publish_refresh_publish",
+      "target": "scripts_graphify_map_files_maponly"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify/refresh.cjs",
+      "source_location": "L5",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_refresh",
+      "target": "scripts_graphify_map_files_maponly",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify/refresh-pr.cjs",
+      "source_location": "L3",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_refresh_pr",
+      "target": "scripts_graphify_map_files_maponly",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/graphify/refresh-pr.cjs",
+      "source_location": "L21",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_refresh_pr_isrefreshpr",
+      "target": "scripts_graphify_map_files_maponly"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/graphify/refresh.cjs",
+      "source_location": "L35",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_refresh_refresh",
+      "target": "scripts_graphify_map_files_maponly"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify/publish-refresh.cjs",
+      "source_location": "L3",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_publish_refresh",
+      "target": "ref_node_child_process",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify/publish-refresh.cjs",
+      "source_location": "L6",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_publish_refresh",
+      "target": "scripts_graphify_publish_refresh_branch_title_body",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify/publish-refresh.cjs",
+      "source_location": "L5",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_publish_refresh",
+      "target": "scripts_graphify_publish_refresh_changedpaths_ismapinput_maponly",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify/publish-refresh.cjs",
+      "source_location": "L3",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_publish_refresh",
+      "target": "scripts_graphify_publish_refresh_execfilesync",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify/publish-refresh.cjs",
+      "source_location": "L10",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_publish_refresh",
+      "target": "scripts_graphify_publish_refresh_gh",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify/publish-refresh.cjs",
+      "source_location": "L9",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_publish_refresh",
+      "target": "scripts_graphify_publish_refresh_git",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify/publish-refresh.cjs",
+      "source_location": "L7",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_publish_refresh",
+      "target": "scripts_graphify_publish_refresh_mergecheckstate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "indirect_call",
+      "confidence": "INFERRED",
+      "source_file": "scripts/graphify/publish-refresh.cjs",
+      "source_location": "L72",
+      "weight": 1.0,
+      "_origin": "ast",
+      "context": "collection",
+      "source": "scripts_graphify_publish_refresh",
+      "target": "scripts_graphify_publish_refresh_publish",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify/publish-refresh.cjs",
+      "source_location": "L4",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_publish_refresh",
+      "target": "scripts_graphify_publish_refresh_settimeout_delay",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify/publish-refresh.cjs",
+      "source_location": "L12",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_publish_refresh",
+      "target": "scripts_graphify_publish_refresh_verifybase",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify/publish-refresh.cjs",
+      "source_location": "L7",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_publish_refresh",
+      "target": "scripts_graphify_refresh_checks",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify/publish-refresh.cjs",
+      "source_location": "L7",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_publish_refresh",
+      "target": "scripts_graphify_refresh_checks_mergecheckstate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify/publish-refresh.cjs",
+      "source_location": "L6",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_publish_refresh",
+      "target": "scripts_graphify_refresh_pr",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify/publish-refresh.cjs",
+      "source_location": "L13",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_publish_refresh_verifybase",
+      "target": "scripts_graphify_publish_refresh_git",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify/publish-refresh.cjs",
+      "source_location": "L23",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_publish_refresh_publish",
+      "target": "scripts_graphify_publish_refresh_verifybase",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/graphify/publish-refresh.cjs",
+      "source_location": "L53",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_publish_refresh_publish",
+      "target": "scripts_graphify_refresh_checks_mergecheckstate"
+    },
+    {
+      "relation": "indirect_call",
+      "confidence": "INFERRED",
+      "source_file": "scripts/graphify/refresh-checks.cjs",
+      "source_location": "L35",
+      "weight": 1.0,
+      "_origin": "ast",
+      "context": "collection",
+      "source": "scripts_graphify_refresh_checks",
+      "target": "scripts_graphify_refresh_checks_mergecheckstate",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify/refresh-checks.cjs",
+      "source_location": "L3",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_refresh_checks",
+      "target": "scripts_graphify_refresh_checks_required",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify/refresh-pr.cjs",
+      "source_location": "L25",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_refresh_pr",
+      "target": "ref_node_fs",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify/refresh-pr.cjs",
+      "source_location": "L3",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_refresh_pr",
+      "target": "scripts_graphify_refresh_pr_changedpaths_maponly",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "indirect_call",
+      "confidence": "INFERRED",
+      "source_file": "scripts/graphify/refresh-pr.cjs",
+      "source_location": "L31",
+      "weight": 1.0,
+      "_origin": "ast",
+      "context": "collection",
+      "source": "scripts_graphify_refresh_pr",
+      "target": "scripts_graphify_refresh_pr_isrefreshpr",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify/refresh.cjs",
+      "source_location": "L3",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_refresh",
+      "target": "ref_node_child_process",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify/refresh.cjs",
+      "source_location": "L4",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_refresh",
+      "target": "ref_node_fs",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify/refresh.cjs",
+      "source_location": "L4",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_refresh",
+      "target": "scripts_graphify_refresh_appendfilesync_readfilesync",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify/refresh.cjs",
+      "source_location": "L5",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_refresh",
+      "target": "scripts_graphify_refresh_changedpaths_ismapinput_maponly_manifest",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify/refresh.cjs",
+      "source_location": "L3",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_refresh",
+      "target": "scripts_graphify_refresh_execfilesync",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify/refresh.cjs",
+      "source_location": "L19",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_refresh",
+      "target": "scripts_graphify_refresh_mappedcommit",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify/refresh.cjs",
+      "source_location": "L23",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_refresh",
+      "target": "scripts_graphify_refresh_refresh",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "indirect_call",
+      "confidence": "INFERRED",
+      "source_file": "scripts/graphify/refresh.cjs",
+      "source_location": "L50",
+      "weight": 1.0,
+      "_origin": "ast",
+      "context": "collection",
+      "source": "scripts_graphify_refresh",
+      "target": "scripts_graphify_refresh_refreshneeded",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify/refresh.cjs",
+      "source_location": "L24",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_refresh_refresh",
+      "target": "scripts_graphify_refresh_refreshneeded",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/graphify/refresh.cjs",
+      "source_location": "L24",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_graphify_refresh_refresh",
+      "target": "scripts_graphify_refresh_mappedcommit",
       "confidence_score": 1.0
     },
     {
@@ -22091,5 +23065,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "207dbda850033b5851cbbadd93038fea8d920aa9"
+  "built_at_commit": "e0c3eb27db9c030cb7203f56418a997b43b1b547"
 }
