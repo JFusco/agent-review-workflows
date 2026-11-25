@@ -1,6 +1,8 @@
 ---
 topics: [contributor-quality-and-delivery]
 plans: [2026-11-24-refresh-the-review-workflow-map-after-source-merges-3ae7cd1d48.md]
+issue: 'https://github.com/jfusco/agent-review-workflows/issues/117'
+issues: ['https://github.com/jfusco/agent-review-workflows/issues/117']
 ---
 
 # Refresh the shared Graphify map after source merges
