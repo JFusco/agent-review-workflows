@@ -23,7 +23,7 @@ test("GitHub workflows run the explicit quality and commit-range gates", () => {
   assert.match(commitlint, /printf '%s\\n' "\$PR_TITLE" \| pnpm run lint:commit --verbose/);
   assert.match(commitlint, /PR_BODY: \$\{\{ github\.event\.pull_request\.body \}\}/);
   assert.match(commitlint, /if: \$\{\{ !startsWith\(github\.event\.pull_request\.head\.ref, 'bot\/wiki-'\) \}\}/);
-  assert.match(commitlint, /run: pnpm run lint:pr/);
+  assert.match(commitlint, /run: node scripts\/graphify\/refresh-pr\.cjs \|\| pnpm run lint:pr/);
   assert.match(commitlint, /pnpm run lint:commit --from "\$BASE_SHA" --to "\$HEAD_SHA" --verbose/);
 });
 
@@ -48,4 +48,14 @@ test("developer automation contains no AI commit or PR helper", () => {
     read(".github/workflows/commitlint.yml")
   ].join("\n");
   assert.doesNotMatch(automation, /\bai-(?:commit|pr)\b/);
+});
+
+test("Graphify publication uses trusted main, the pinned extractor and a dedicated write step", () => {
+  const workflow = read(".github/workflows/graphify-refresh.yml");
+  assert.match(workflow, /push:\n\s+branches: \[main\]/);
+  assert.match(workflow, /workflow_dispatch: \{\}/);
+  assert.match(workflow, /ref: main\n\s+fetch-depth: 0\n\s+persist-credentials: false/);
+  assert.match(workflow, /python -m pip install 'graphifyy==0\.9\.36'/);
+  assert.match(workflow, /if: steps\.refresh\.outputs\.changed == 'true'\n\s+env:\n\s+GH_TOKEN: \$\{\{ secrets\.BOT_TOKEN \}\}/);
+  assert.equal(workflow.match(/BOT_TOKEN \}\}/g)?.length, 1);
 });
